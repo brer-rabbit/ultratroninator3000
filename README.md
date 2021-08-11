@@ -1,4 +1,4 @@
-ultratroninator 3000
+Ultratroninator 3000
 Ultratroninator 3000 Raspberry Pi project
 
 Handful of 4 segment LEDs with Adafruit HT16K33 drivers
