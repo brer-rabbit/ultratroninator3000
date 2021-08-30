@@ -1,0 +1,59 @@
+Raspberry Pi Zero
+
+
+Adafruit Quad Alphanumeric Display 0.56"
+Red qty 1
+Blue qty 1
+Green qty 1
+https://www.adafruit.com/product/1911
+
+
+Adafruit 16x8 LED Matrix Driver Backpack HT16K33 Breakout
+qty 1
+https://www.adafruit.com/product/1427
+
+
+Rotary Encoder + Extras
+qty 3
+https://www.adafruit.com/product/377
+
+
+Mini Panel Mount SPDT Toggle Switch
+qty 8
+https://www.adafruit.com/product/3221
+
+
+Thru-hole 5-way Navigation switch
+qty 1
+https://www.adafruit.com/product/504
+
+
+16mm Panel Mount Momentary Pushbutton
+qty 1
+https://www.adafruit.com/product/1445
+
+
+Electrcookie mini PCBs 6 pack
+qty 1
+https://smile.amazon.com/gp/product/B081MSKJJX/
+
+
+Fender 4-Position Custom Shop Telecaster Pickup Selector Switch
+qty 2
+https://smile.amazon.com/gp/product/B0002E2G24/
+
+Hammond Mfg sloped metal console; 15 degree; black top; blue case
+1456KH3BKBU
+https://www.hammfg.com/part/1456KH3BKBU
+
+
+Diode 1N4148
+qty 36
+
+
+39k Resistor
+qty 12
+
+
+Chanzon 60 pcs(6 colors x 10 pcs) 5mm LED Diode Lights
+https://smile.amazon.com/gp/product/B01C3ZZT2I/
