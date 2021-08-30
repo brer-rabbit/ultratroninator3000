@@ -1,0 +1,1809 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A 11000 8500
+encoding utf-8
+Sheet 1 1
+Title "Ultratroninator 3000"
+Date "2021-08-23"
+Rev "0.1"
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L power:+5V #PWR01
+U 1 1 580C1B61
+P 2650 750
+F 0 "#PWR01" H 2650 600 50  0001 C CNN
+F 1 "+5V" H 2650 890 50  0000 C CNN
+F 2 "" H 2650 750 50  0000 C CNN
+F 3 "" H 2650 750 50  0000 C CNN
+	1    2650 750 
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2650 750  2650 900 
+Wire Wire Line
+	2650 900  2450 900 
+Wire Wire Line
+	2650 1000 2450 1000
+Connection ~ 2650 900 
+$Comp
+L power:GND #PWR02
+U 1 1 580C1D11
+P 2550 2950
+F 0 "#PWR02" H 2550 2700 50  0001 C CNN
+F 1 "GND" H 2550 2800 50  0000 C CNN
+F 2 "" H 2550 2950 50  0000 C CNN
+F 3 "" H 2550 2950 50  0000 C CNN
+	1    2550 2950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2550 1100 2550 1500
+Wire Wire Line
+	2550 2500 2450 2500
+Wire Wire Line
+	2550 2300 2450 2300
+Connection ~ 2550 2500
+Wire Wire Line
+	2550 1800 2450 1800
+Connection ~ 2550 2300
+Wire Wire Line
+	2550 1500 2450 1500
+Connection ~ 2550 1800
+$Comp
+L power:GND #PWR03
+U 1 1 580C1E01
+P 1850 2950
+F 0 "#PWR03" H 1850 2700 50  0001 C CNN
+F 1 "GND" H 1850 2800 50  0000 C CNN
+F 2 "" H 1850 2950 50  0000 C CNN
+F 3 "" H 1850 2950 50  0000 C CNN
+	1    1850 2950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1850 2800 1950 2800
+Wire Wire Line
+	1850 1300 1850 2100
+Wire Wire Line
+	1850 2100 1950 2100
+Connection ~ 1850 2800
+Connection ~ 1750 900 
+Wire Wire Line
+	1750 1700 1950 1700
+Wire Wire Line
+	1750 900  1950 900 
+Wire Wire Line
+	1750 750  1750 900 
+$Comp
+L power:+3.3V #PWR04
+U 1 1 580C1BC1
+P 1750 750
+F 0 "#PWR04" H 1750 600 50  0001 C CNN
+F 1 "+3.3V" H 1750 890 50  0000 C CNN
+F 2 "" H 1750 750 50  0000 C CNN
+F 3 "" H 1750 750 50  0000 C CNN
+	1    1750 750 
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1850 1300 1950 1300
+Connection ~ 1850 2100
+Wire Wire Line
+	1950 1000 800  1000
+Wire Wire Line
+	800  1100 1950 1100
+Wire Wire Line
+	800  1200 1950 1200
+Wire Wire Line
+	1950 1400 800  1400
+Wire Wire Line
+	800  1500 1950 1500
+Wire Wire Line
+	800  1600 1950 1600
+Wire Wire Line
+	1950 1800 800  1800
+Wire Wire Line
+	800  1900 1950 1900
+Wire Wire Line
+	800  2000 1950 2000
+Wire Wire Line
+	1950 2200 800  2200
+Wire Wire Line
+	800  2400 1950 2400
+Wire Wire Line
+	1950 2500 800  2500
+Wire Wire Line
+	800  2600 1950 2600
+Wire Wire Line
+	800  2700 1950 2700
+Wire Wire Line
+	2450 2600 3500 2600
+Wire Wire Line
+	2450 2700 3500 2700
+Wire Wire Line
+	2450 2100 3500 2100
+Wire Wire Line
+	2450 2200 3500 2200
+Wire Wire Line
+	2450 1900 3500 1900
+Wire Wire Line
+	2450 2000 3500 2000
+Wire Wire Line
+	2450 1600 3500 1600
+Wire Wire Line
+	2450 1700 3500 1700
+Wire Wire Line
+	2450 1300 3500 1300
+Wire Wire Line
+	2450 1400 3500 1400
+Wire Wire Line
+	2450 1200 3500 1200
+Wire Wire Line
+	2450 2400 3500 2400
+Text Label 800  1000 0    50   ~ 0
+GPIO2(SDA1)
+Text Label 800  1100 0    50   ~ 0
+GPIO3(SCL1)
+Text Label 800  1200 0    50   ~ 0
+GPIO4(GCLK)
+Text Label 800  1400 0    50   ~ 0
+GPIO17(GEN0)
+Text Label 800  1500 0    50   ~ 0
+GPIO27(GEN2)
+Text Label 800  1600 0    50   ~ 0
+GPIO22(GEN3)
+Text Label 800  1800 0    50   ~ 0
+GPIO10(SPI0_MOSI)
+Text Label 800  1900 0    50   ~ 0
+GPIO9(SPI0_MISO)
+Text Label 800  2000 0    50   ~ 0
+GPIO11(SPI0_SCK)
+Text Label 800  2200 0    50   ~ 0
+ID_SD
+Text Label 800  2300 0    50   ~ 0
+GPIO5
+Text Label 800  2400 0    50   ~ 0
+GPIO6
+Text Label 800  2500 0    50   ~ 0
+GPIO13(PWM1)
+Text Label 800  2600 0    50   ~ 0
+GPIO19(SPI1_MISO)
+Text Label 800  2700 0    50   ~ 0
+GPIO26
+Text Label 3500 2700 2    50   ~ 0
+GPIO20(SPI1_MOSI)
+Text Label 3500 2600 2    50   ~ 0
+GPIO16
+Text Label 3500 2400 2    50   ~ 0
+GPIO12(PWM0)
+Text Label 3500 2200 2    50   ~ 0
+ID_SC
+Text Label 3500 2100 2    50   ~ 0
+GPIO7(SPI1_CE_N)
+Text Label 3500 2000 2    50   ~ 0
+GPIO8(SPI0_CE_N)
+Text Label 3500 1900 2    50   ~ 0
+GPIO25(GEN6)
+Text Label 3500 1700 2    50   ~ 0
+GPIO24(GEN5)
+Text Label 3500 1600 2    50   ~ 0
+GPIO23(GEN4)
+Text Label 3500 1400 2    50   ~ 0
+GPIO18(GEN1)(PWM0)
+Text Label 3500 1300 2    50   ~ 0
+GPIO15(RXD0)
+Text Label 3500 1200 2    50   ~ 0
+GPIO14(TXD0)
+Wire Wire Line
+	2550 1100 2450 1100
+Connection ~ 2550 1500
+$Comp
+L Connector_Generic:Conn_02x20_Odd_Even P1
+U 1 1 59AD464A
+P 2150 1800
+F 0 "P1" H 2200 2917 50  0000 C CNN
+F 1 "Conn_02x20_Odd_Even" H 2200 2826 50  0000 C CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_2x20_P2.54mm_Vertical" H -2700 850 50  0001 C CNN
+F 3 "" H -2700 850 50  0001 C CNN
+	1    2150 1800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2450 2800 3500 2800
+Text Label 3500 2800 2    50   ~ 0
+GPIO21(SPI1_SCK)
+Wire Wire Line
+	2650 900  2650 1000
+Wire Wire Line
+	2550 2500 2550 2950
+Wire Wire Line
+	2550 2300 2550 2500
+Wire Wire Line
+	2550 1800 2550 2300
+Wire Wire Line
+	1850 2800 1850 2950
+Wire Wire Line
+	1750 900  1750 1700
+Wire Wire Line
+	1850 2100 1850 2800
+Wire Wire Line
+	2550 1500 2550 1800
+$Comp
+L reywas-cache:HT16K33 U?
+U 1 1 61197ADA
+P 2350 4750
+F 0 "U?" H 2175 5465 50  0000 C CNN
+F 1 "HT16K33" H 2175 5374 50  0000 C CNN
+F 2 "" H 2350 4750 50  0001 C CNN
+F 3 "" H 2350 4750 50  0001 C CNN
+	1    2350 4750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1600 4350 1400 4350
+Text Label 1400 4350 0    50   ~ 0
+GND
+Wire Wire Line
+	2750 4350 2950 4350
+Text Label 2950 4350 0    50   ~ 0
++3.3V
+Text Label 1750 800  0    50   ~ 0
++3.3V
+Text Label 1850 2850 0    50   ~ 0
+GND
+Text Label 2550 2900 0    50   ~ 0
+GND
+Text Label 1400 1000 0    50   ~ 0
+SDA
+Wire Wire Line
+	2750 4450 2950 4450
+Text Label 2950 4450 0    50   ~ 0
+SDA
+Wire Wire Line
+	2750 4550 2950 4550
+Text Label 2950 4550 0    50   ~ 0
+SCL
+Text Label 1400 1100 0    50   ~ 0
+SCL
+Wire Wire Line
+	1600 4550 1400 4550
+Text Label 1400 4550 0    50   ~ 0
+COM1
+Wire Wire Line
+	1600 4650 1400 4650
+Text Label 1400 4650 0    50   ~ 0
+COM2
+Wire Wire Line
+	1600 4750 1400 4750
+Text Label 1400 4750 0    50   ~ 0
+COM3
+Wire Wire Line
+	2750 4650 2950 4650
+Text Label 2950 4650 0    50   ~ 0
+ROW0
+Wire Wire Line
+	2750 4750 2950 4750
+Wire Wire Line
+	2750 4850 2950 4850
+Text Label 2950 4750 0    50   ~ 0
+ROW1
+Text Label 2950 4850 0    50   ~ 0
+ROW2
+Text Label 2950 4950 0    50   ~ 0
+ROW3
+Text Label 2950 5050 0    50   ~ 0
+ROW4
+Text Label 2950 5150 0    50   ~ 0
+ROW5
+Text Label 2950 5250 0    50   ~ 0
+ROW6
+Text Label 2950 5350 0    50   ~ 0
+ROW7
+Text Label 2950 5450 0    50   ~ 0
+ROW8
+Text Label 2950 5550 0    50   ~ 0
+ROW9
+Text Label 2950 5650 0    50   ~ 0
+ROW10
+Text Label 1400 5650 0    50   ~ 0
+ROW11
+Text Label 1400 5550 0    50   ~ 0
+ROW12
+Text Label 1400 5450 0    50   ~ 0
+ROW13
+Text Label 1400 5350 0    50   ~ 0
+ROW14
+Text Label 1400 5250 0    50   ~ 0
+ROW15
+$Comp
+L Device:LED D0
+U 1 1 611DEDB6
+P 5300 3350
+F 0 "D0" H 5293 3095 50  0000 C CNN
+F 1 "LED RED" H 5293 3186 50  0000 C CNN
+F 2 "" H 5300 3350 50  0001 C CNN
+F 3 "~" H 5300 3350 50  0001 C CNN
+	1    5300 3350
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E35E8
+P 5300 3500
+F 0 "D?" H 5293 3245 50  0000 C CNN
+F 1 "LED RED" H 5293 3336 50  0000 C CNN
+F 2 "" H 5300 3500 50  0001 C CNN
+F 3 "~" H 5300 3500 50  0001 C CNN
+	1    5300 3500
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E3CC6
+P 5300 3650
+F 0 "D?" H 5293 3395 50  0000 C CNN
+F 1 "LED RED" H 5293 3486 50  0000 C CNN
+F 2 "" H 5300 3650 50  0001 C CNN
+F 3 "~" H 5300 3650 50  0001 C CNN
+	1    5300 3650
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E4151
+P 5300 3800
+F 0 "D?" H 5293 3545 50  0000 C CNN
+F 1 "LED RED" H 5293 3636 50  0000 C CNN
+F 2 "" H 5300 3800 50  0001 C CNN
+F 3 "~" H 5300 3800 50  0001 C CNN
+	1    5300 3800
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E4548
+P 5300 3950
+F 0 "D?" H 5293 3695 50  0000 C CNN
+F 1 "LED RED" H 5293 3786 50  0000 C CNN
+F 2 "" H 5300 3950 50  0001 C CNN
+F 3 "~" H 5300 3950 50  0001 C CNN
+	1    5300 3950
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E504A
+P 5300 4100
+F 0 "D?" H 5293 3845 50  0000 C CNN
+F 1 "LED RED" H 5293 3936 50  0000 C CNN
+F 2 "" H 5300 4100 50  0001 C CNN
+F 3 "~" H 5300 4100 50  0001 C CNN
+	1    5300 4100
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E53F1
+P 5300 4250
+F 0 "D?" H 5293 3995 50  0000 C CNN
+F 1 "LED RED" H 5293 4086 50  0000 C CNN
+F 2 "" H 5300 4250 50  0001 C CNN
+F 3 "~" H 5300 4250 50  0001 C CNN
+	1    5300 4250
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E57C0
+P 5300 4400
+F 0 "D?" H 5293 4145 50  0000 C CNN
+F 1 "LED RED" H 5293 4236 50  0000 C CNN
+F 2 "" H 5300 4400 50  0001 C CNN
+F 3 "~" H 5300 4400 50  0001 C CNN
+	1    5300 4400
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E6172
+P 5300 5150
+F 0 "D?" H 5293 4895 50  0000 C CNN
+F 1 "LED BLUE" H 5293 4986 50  0000 C CNN
+F 2 "" H 5300 5150 50  0001 C CNN
+F 3 "~" H 5300 5150 50  0001 C CNN
+	1    5300 5150
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E73A1
+P 5300 5300
+F 0 "D?" H 5293 5045 50  0000 C CNN
+F 1 "LED BLUE" H 5293 5136 50  0000 C CNN
+F 2 "" H 5300 5300 50  0001 C CNN
+F 3 "~" H 5300 5300 50  0001 C CNN
+	1    5300 5300
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E7824
+P 5300 5450
+F 0 "D?" H 5293 5195 50  0000 C CNN
+F 1 "LED BLUE" H 5293 5286 50  0000 C CNN
+F 2 "" H 5300 5450 50  0001 C CNN
+F 3 "~" H 5300 5450 50  0001 C CNN
+	1    5300 5450
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E7EC0
+P 5300 5600
+F 0 "D?" H 5293 5345 50  0000 C CNN
+F 1 "LED BLUE" H 5293 5436 50  0000 C CNN
+F 2 "" H 5300 5600 50  0001 C CNN
+F 3 "~" H 5300 5600 50  0001 C CNN
+	1    5300 5600
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E843B
+P 5300 5750
+F 0 "D?" H 5293 5495 50  0000 C CNN
+F 1 "LED BLUE" H 5293 5586 50  0000 C CNN
+F 2 "" H 5300 5750 50  0001 C CNN
+F 3 "~" H 5300 5750 50  0001 C CNN
+	1    5300 5750
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E899F
+P 5300 5900
+F 0 "D?" H 5293 5645 50  0000 C CNN
+F 1 "LED BLUE" H 5293 5736 50  0000 C CNN
+F 2 "" H 5300 5900 50  0001 C CNN
+F 3 "~" H 5300 5900 50  0001 C CNN
+	1    5300 5900
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E8FA9
+P 5300 6050
+F 0 "D?" H 5293 5795 50  0000 C CNN
+F 1 "LED BLUE" H 5293 5886 50  0000 C CNN
+F 2 "" H 5300 6050 50  0001 C CNN
+F 3 "~" H 5300 6050 50  0001 C CNN
+	1    5300 6050
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611E9554
+P 5300 6200
+F 0 "D?" H 5293 5945 50  0000 C CNN
+F 1 "LED BLUE" H 5293 6036 50  0000 C CNN
+F 2 "" H 5300 6200 50  0001 C CNN
+F 3 "~" H 5300 6200 50  0001 C CNN
+	1    5300 6200
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611EA63A
+P 5300 6800
+F 0 "D?" H 5293 6545 50  0000 C CNN
+F 1 "LED GREEN" H 5293 6636 50  0000 C CNN
+F 2 "" H 5300 6800 50  0001 C CNN
+F 3 "~" H 5300 6800 50  0001 C CNN
+	1    5300 6800
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611EB31E
+P 5300 6950
+F 0 "D?" H 5293 6695 50  0000 C CNN
+F 1 "LED GREEN" H 5293 6786 50  0000 C CNN
+F 2 "" H 5300 6950 50  0001 C CNN
+F 3 "~" H 5300 6950 50  0001 C CNN
+	1    5300 6950
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611EB883
+P 5300 7100
+F 0 "D?" H 5293 6845 50  0000 C CNN
+F 1 "LED GREEN" H 5293 6936 50  0000 C CNN
+F 2 "" H 5300 7100 50  0001 C CNN
+F 3 "~" H 5300 7100 50  0001 C CNN
+	1    5300 7100
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611EBF86
+P 5300 7250
+F 0 "D?" H 5293 6995 50  0000 C CNN
+F 1 "LED GREEN" H 5293 7086 50  0000 C CNN
+F 2 "" H 5300 7250 50  0001 C CNN
+F 3 "~" H 5300 7250 50  0001 C CNN
+	1    5300 7250
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611EC5B5
+P 5300 7400
+F 0 "D?" H 5293 7145 50  0000 C CNN
+F 1 "LED GREEN" H 5293 7236 50  0000 C CNN
+F 2 "" H 5300 7400 50  0001 C CNN
+F 3 "~" H 5300 7400 50  0001 C CNN
+	1    5300 7400
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611ECC54
+P 5300 7550
+F 0 "D?" H 5293 7295 50  0000 C CNN
+F 1 "LED GREEN" H 5293 7386 50  0000 C CNN
+F 2 "" H 5300 7550 50  0001 C CNN
+F 3 "~" H 5300 7550 50  0001 C CNN
+	1    5300 7550
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611ED503
+P 5300 7700
+F 0 "D?" H 5293 7445 50  0000 C CNN
+F 1 "LED GREEN" H 5293 7536 50  0000 C CNN
+F 2 "" H 5300 7700 50  0001 C CNN
+F 3 "~" H 5300 7700 50  0001 C CNN
+	1    5300 7700
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:LED D?
+U 1 1 611ED9BA
+P 5300 7850
+F 0 "D?" H 5293 7595 50  0000 C CNN
+F 1 "LED GREEN" H 5293 7686 50  0000 C CNN
+F 2 "" H 5300 7850 50  0001 C CNN
+F 3 "~" H 5300 7850 50  0001 C CNN
+	1    5300 7850
+	-1   0    0    1   
+$EndComp
+$Comp
+L Switch:SW_DIP_x08 SWX
+U 1 1 61264A8E
+P 8700 5400
+F 0 "SWX" H 8700 6067 50  0000 C CNN
+F 1 "PANEL SPST" H 8700 5976 50  0000 C CNN
+F 2 "" H 8700 5400 50  0001 C CNN
+F 3 "~" H 8700 5400 50  0001 C CNN
+	1    8700 5400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Switch:SW_DIP_x05 SWJ
+U 1 1 6126918E
+P 9400 2850
+F 0 "SWJ" H 9400 3317 50  0000 C CNN
+F 1 "JOYSTICK" H 9400 3226 50  0000 C CNN
+F 2 "" H 9400 2850 50  0001 C CNN
+F 3 "~" H 9400 2850 50  0001 C CNN
+	1    9400 2850
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	9700 2650 9700 2750
+Connection ~ 9700 2750
+Wire Wire Line
+	9700 2750 9700 2850
+Connection ~ 9700 2850
+Wire Wire Line
+	9700 2850 9700 2950
+Connection ~ 9700 2950
+Wire Wire Line
+	9700 2950 9700 3050
+$Comp
+L Switch:SW_SPST SW_ARCADE
+U 1 1 61284FED
+P 8700 4400
+F 0 "SW_ARCADE" H 8700 4635 50  0000 C CNN
+F 1 "RED" H 8700 4544 50  0000 C CNN
+F 2 "" H 8700 4400 50  0001 C CNN
+F 3 "~" H 8700 4400 50  0001 C CNN
+	1    8700 4400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Switch:SW_SPST SW_ARCADE
+U 1 1 612866BE
+P 7000 900
+F 0 "SW_ARCADE" H 7000 1135 50  0000 C CNN
+F 1 "BLUE" H 7000 1044 50  0000 C CNN
+F 2 "" H 7000 900 50  0001 C CNN
+F 3 "~" H 7000 900 50  0001 C CNN
+	1    7000 900 
+	1    0    0    -1  
+$EndComp
+$Comp
+L Switch:SW_SPST SW_ARCADE
+U 1 1 6128A8A7
+P 7000 1300
+F 0 "SW_ARCADE" H 7000 1535 50  0000 C CNN
+F 1 "GREEN" H 7000 1444 50  0000 C CNN
+F 2 "" H 7000 1300 50  0001 C CNN
+F 3 "~" H 7000 1300 50  0001 C CNN
+	1    7000 1300
+	1    0    0    -1  
+$EndComp
+$Comp
+L Switch:SW_Rotary3x4 SW_4POSITION
+U 1 1 6128B9FE
+P 6900 2450
+F 0 "SW_4POSITION" H 6950 1625 50  0000 C CNN
+F 1 "SW_4POSITIONX2" H 6950 1716 50  0000 C CNN
+F 2 "" H 6800 3250 50  0001 C CNN
+F 3 "http://cdn-reichelt.de/documents/datenblatt/C200/DS-Serie%23LOR.pdf" H 6800 3250 50  0001 C CNN
+	1    6900 2450
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	5450 3350 5700 3350
+Wire Wire Line
+	5700 3350 5700 3100
+Wire Wire Line
+	5450 3500 5700 3500
+Wire Wire Line
+	5700 3500 5700 3350
+Connection ~ 5700 3350
+Wire Wire Line
+	5450 3650 5700 3650
+Wire Wire Line
+	5700 3650 5700 3500
+Connection ~ 5700 3500
+Wire Wire Line
+	5400 3800 5450 3800
+Wire Wire Line
+	5700 3800 5700 3650
+Connection ~ 5450 3800
+Wire Wire Line
+	5450 3800 5700 3800
+Connection ~ 5700 3650
+Wire Wire Line
+	5450 3950 5700 3950
+Wire Wire Line
+	5700 3950 5700 3800
+Connection ~ 5700 3800
+Wire Wire Line
+	5450 4100 5700 4100
+Wire Wire Line
+	5700 4100 5700 3950
+Connection ~ 5700 3950
+Wire Wire Line
+	5450 4250 5700 4250
+Connection ~ 5700 4100
+Wire Wire Line
+	5450 4400 5700 4400
+Wire Wire Line
+	5700 4100 5700 4250
+Connection ~ 5700 4250
+Wire Wire Line
+	5700 4250 5700 4400
+Text Label 5700 3100 0    50   ~ 0
+COM4
+Wire Wire Line
+	5150 3350 5100 3350
+Wire Wire Line
+	5150 3500 5050 3500
+Wire Wire Line
+	5150 3650 5000 3650
+Wire Wire Line
+	5150 3800 4950 3800
+Wire Wire Line
+	5150 4100 4850 4100
+Wire Wire Line
+	5150 4250 4800 4250
+Wire Wire Line
+	5150 4400 4750 4400
+Text Label 4950 3350 0    50   ~ 0
+ROW0
+Text Label 4900 3500 0    50   ~ 0
+ROW1
+Text Label 4850 3650 0    50   ~ 0
+ROW2
+Text Label 4800 3800 0    50   ~ 0
+ROW3
+Text Label 4750 3950 0    50   ~ 0
+ROW4
+Text Label 4700 4100 0    50   ~ 0
+ROW5
+Text Label 4650 4250 0    50   ~ 0
+ROW6
+Text Label 4600 4400 0    50   ~ 0
+ROW7
+Wire Wire Line
+	5450 6200 5700 6200
+Wire Wire Line
+	5700 6200 5700 6050
+Wire Wire Line
+	5450 6050 5700 6050
+Connection ~ 5700 6050
+Wire Wire Line
+	5700 6050 5700 5900
+Wire Wire Line
+	5450 5900 5700 5900
+Connection ~ 5700 5900
+Wire Wire Line
+	5700 5900 5700 5750
+Wire Wire Line
+	5450 5750 5700 5750
+Connection ~ 5700 5750
+Wire Wire Line
+	5450 5600 5700 5600
+Wire Wire Line
+	5700 4800 5700 5150
+Connection ~ 5700 5600
+Wire Wire Line
+	5700 5600 5700 5750
+Wire Wire Line
+	5450 5450 5700 5450
+Connection ~ 5700 5450
+Wire Wire Line
+	5700 5450 5700 5600
+Wire Wire Line
+	5450 5300 5700 5300
+Connection ~ 5700 5300
+Wire Wire Line
+	5700 5300 5700 5450
+Wire Wire Line
+	5400 5150 5450 5150
+Connection ~ 5700 5150
+Wire Wire Line
+	5700 5150 5700 5300
+Connection ~ 5450 5150
+Wire Wire Line
+	5450 5150 5700 5150
+Text Label 5700 4800 0    50   ~ 0
+COM5
+Wire Wire Line
+	5150 5150 5100 5150
+Wire Wire Line
+	5100 5150 5100 3350
+Connection ~ 5100 3350
+Wire Wire Line
+	5100 3350 4950 3350
+Wire Wire Line
+	5150 5300 5050 5300
+Wire Wire Line
+	5050 5300 5050 3500
+Connection ~ 5050 3500
+Wire Wire Line
+	5050 3500 4900 3500
+Wire Wire Line
+	5150 5450 5000 5450
+Wire Wire Line
+	5000 5450 5000 3650
+Connection ~ 5000 3650
+Wire Wire Line
+	5000 3650 4850 3650
+Wire Wire Line
+	5150 5600 4950 5600
+Wire Wire Line
+	4950 5600 4950 3800
+Connection ~ 4950 3800
+Wire Wire Line
+	4950 3800 4800 3800
+Wire Wire Line
+	5150 3950 4900 3950
+Wire Wire Line
+	5150 5750 4900 5750
+Wire Wire Line
+	4900 5750 4900 3950
+Connection ~ 4900 3950
+Wire Wire Line
+	4900 3950 4750 3950
+Wire Wire Line
+	5150 5900 4850 5900
+Wire Wire Line
+	4850 5900 4850 4100
+Connection ~ 4850 4100
+Wire Wire Line
+	4850 4100 4700 4100
+Wire Wire Line
+	5150 6050 4800 6050
+Wire Wire Line
+	4800 6050 4800 4250
+Connection ~ 4800 4250
+Wire Wire Line
+	4800 4250 4650 4250
+Wire Wire Line
+	5150 6200 4750 6200
+Wire Wire Line
+	4750 6200 4750 4400
+Connection ~ 4750 4400
+Wire Wire Line
+	4750 4400 4600 4400
+Wire Wire Line
+	5450 7850 5700 7850
+Wire Wire Line
+	5700 7850 5700 7700
+Text Label 5700 6500 0    50   ~ 0
+COM6
+Wire Wire Line
+	5450 7700 5700 7700
+Connection ~ 5700 7700
+Wire Wire Line
+	5700 7700 5700 7550
+Wire Wire Line
+	5450 7550 5700 7550
+Connection ~ 5700 7550
+Wire Wire Line
+	5700 7550 5700 7400
+Wire Wire Line
+	5450 7400 5700 7400
+Connection ~ 5700 7400
+Wire Wire Line
+	5700 7400 5700 7250
+Wire Wire Line
+	5450 7250 5700 7250
+Connection ~ 5700 7250
+Wire Wire Line
+	5700 7250 5700 7100
+Wire Wire Line
+	5450 7100 5700 7100
+Connection ~ 5700 7100
+Wire Wire Line
+	5450 6950 5700 6950
+Wire Wire Line
+	5700 6500 5700 6800
+Connection ~ 5700 6950
+Wire Wire Line
+	5700 6950 5700 7100
+Wire Wire Line
+	5450 6800 5700 6800
+Connection ~ 5700 6800
+Wire Wire Line
+	5700 6800 5700 6950
+Wire Wire Line
+	5150 6800 5100 6800
+Wire Wire Line
+	5100 6800 5100 5150
+Connection ~ 5100 5150
+Wire Wire Line
+	5150 6950 5050 6950
+Wire Wire Line
+	5050 6950 5050 5300
+Connection ~ 5050 5300
+Wire Wire Line
+	5150 7100 5000 7100
+Wire Wire Line
+	5000 7100 5000 5450
+Connection ~ 5000 5450
+Wire Wire Line
+	5150 7250 4950 7250
+Wire Wire Line
+	4950 7250 4950 5600
+Connection ~ 4950 5600
+Wire Wire Line
+	5150 7400 4900 7400
+Wire Wire Line
+	4900 7400 4900 5750
+Connection ~ 4900 5750
+Wire Wire Line
+	5150 7550 4850 7550
+Wire Wire Line
+	4850 7550 4850 5900
+Connection ~ 4850 5900
+Wire Wire Line
+	5150 7700 4800 7700
+Wire Wire Line
+	4800 7700 4800 6050
+Connection ~ 4800 6050
+Wire Wire Line
+	5150 7850 4750 7850
+Wire Wire Line
+	4750 7850 4750 6200
+Connection ~ 4750 6200
+Wire Wire Line
+	9000 5000 9000 5100
+Connection ~ 9000 5100
+Wire Wire Line
+	9000 5100 9000 5200
+Connection ~ 9000 5200
+Wire Wire Line
+	9000 5200 9000 5300
+Connection ~ 9000 5300
+Wire Wire Line
+	9000 5300 9000 5400
+Connection ~ 9000 5400
+Wire Wire Line
+	9000 5400 9000 5500
+Connection ~ 9000 5500
+Wire Wire Line
+	9000 5500 9000 5600
+Connection ~ 9000 5600
+Wire Wire Line
+	9000 5600 9000 5700
+Wire Wire Line
+	7200 1300 7300 1300
+Wire Wire Line
+	7200 900  7300 900 
+Wire Wire Line
+	8200 5000 8400 5000
+Wire Wire Line
+	8200 5100 8400 5100
+Wire Wire Line
+	8200 5200 8400 5200
+Wire Wire Line
+	8200 5300 8400 5300
+Wire Wire Line
+	8200 5400 8400 5400
+Wire Wire Line
+	8200 5500 8400 5500
+Wire Wire Line
+	8200 5600 8400 5600
+Wire Wire Line
+	8200 5700 8400 5700
+Wire Wire Line
+	8200 4400 8500 4400
+Wire Wire Line
+	6500 900  6800 900 
+Wire Wire Line
+	6500 1300 6800 1300
+Wire Wire Line
+	1600 4850 1400 4850
+Wire Wire Line
+	1600 4950 1400 4950
+Wire Wire Line
+	1600 5050 1400 5050
+Text Label 1400 4850 0    50   ~ 0
+COM4
+Text Label 1400 4950 0    50   ~ 0
+COM5
+Text Label 1400 5050 0    50   ~ 0
+COM6
+$Comp
+L Device:Rotary_Encoder_Switch SW?
+U 1 1 61B6E8F4
+P 9350 1150
+F 0 "SW?" H 9350 1517 50  0000 C CNN
+F 1 "Encoder Engr" H 9350 1426 50  0000 C CNN
+F 2 "" H 9200 1310 50  0001 C CNN
+F 3 "~" H 9350 1410 50  0001 C CNN
+	1    9350 1150
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:Rotary_Encoder_Switch SW?
+U 1 1 61B72025
+P 9350 1950
+F 0 "SW?" H 9350 2317 50  0000 C CNN
+F 1 "Encoder Battle" H 9350 2226 50  0000 C CNN
+F 2 "" H 9200 2110 50  0001 C CNN
+F 3 "~" H 9350 2210 50  0001 C CNN
+	1    9350 1950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612DAB47
+P 8050 5000
+F 0 "D?" H 8050 5217 50  0000 C CNN
+F 1 "1N4148" H 8050 5126 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8050 4825 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8050 5000 50  0001 C CNN
+	1    8050 5000
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612E84B9
+P 8050 5100
+F 0 "D?" H 8050 5317 50  0000 C CNN
+F 1 "1N4148" H 8050 5226 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8050 4925 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8050 5100 50  0001 C CNN
+	1    8050 5100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612E9E17
+P 8050 5200
+F 0 "D?" H 8050 5417 50  0000 C CNN
+F 1 "1N4148" H 8050 5326 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8050 5025 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8050 5200 50  0001 C CNN
+	1    8050 5200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612EAAF4
+P 8050 5300
+F 0 "D?" H 8050 5517 50  0000 C CNN
+F 1 "1N4148" H 8050 5426 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8050 5125 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8050 5300 50  0001 C CNN
+	1    8050 5300
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612EB4AA
+P 8050 5400
+F 0 "D?" H 8050 5617 50  0000 C CNN
+F 1 "1N4148" H 8050 5526 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8050 5225 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8050 5400 50  0001 C CNN
+	1    8050 5400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612EBE26
+P 8050 5500
+F 0 "D?" H 8050 5717 50  0000 C CNN
+F 1 "1N4148" H 8050 5626 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8050 5325 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8050 5500 50  0001 C CNN
+	1    8050 5500
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612EC6F4
+P 8050 5600
+F 0 "D?" H 8050 5817 50  0000 C CNN
+F 1 "1N4148" H 8050 5726 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8050 5425 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8050 5600 50  0001 C CNN
+	1    8050 5600
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612ED06F
+P 8050 5700
+F 0 "D?" H 8050 5917 50  0000 C CNN
+F 1 "1N4148" H 8050 5826 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8050 5525 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8050 5700 50  0001 C CNN
+	1    8050 5700
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612FCD81
+P 8050 4400
+F 0 "D?" H 8050 4617 50  0000 C CNN
+F 1 "1N4148" H 8050 4526 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8050 4225 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8050 4400 50  0001 C CNN
+	1    8050 4400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612FDB8C
+P 6350 900
+F 0 "D?" H 6350 1117 50  0000 C CNN
+F 1 "1N4148" H 6350 1026 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 6350 725 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 6350 900 50  0001 C CNN
+	1    6350 900 
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 612FE88D
+P 6350 1300
+F 0 "D?" H 6350 1517 50  0000 C CNN
+F 1 "1N4148" H 6350 1426 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 6350 1125 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 6350 1300 50  0001 C CNN
+	1    6350 1300
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 6140739A
+P 8950 2650
+F 0 "D?" H 8950 2867 50  0000 C CNN
+F 1 "1N4148" H 8950 2776 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8950 2475 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8950 2650 50  0001 C CNN
+	1    8950 2650
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 61412493
+P 8950 2750
+F 0 "D?" H 8950 2967 50  0000 C CNN
+F 1 "1N4148" H 8950 2876 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8950 2575 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8950 2750 50  0001 C CNN
+	1    8950 2750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 61412EFC
+P 8950 2850
+F 0 "D?" H 8950 3067 50  0000 C CNN
+F 1 "1N4148" H 8950 2976 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8950 2675 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8950 2850 50  0001 C CNN
+	1    8950 2850
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 6141386A
+P 8950 2950
+F 0 "D?" H 8950 3167 50  0000 C CNN
+F 1 "1N4148" H 8950 3076 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8950 2775 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8950 2950 50  0001 C CNN
+	1    8950 2950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 61414341
+P 8950 3050
+F 0 "D?" H 8950 3267 50  0000 C CNN
+F 1 "1N4148" H 8950 3176 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8950 2875 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8950 3050 50  0001 C CNN
+	1    8950 3050
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8800 3050 8450 3050
+Wire Wire Line
+	8800 2950 8450 2950
+Wire Wire Line
+	8800 2850 8450 2850
+Wire Wire Line
+	8800 2750 8450 2750
+Wire Wire Line
+	8800 2650 8450 2650
+$Comp
+L Diode:1N4148 D?
+U 1 1 614631F9
+P 6250 1850
+F 0 "D?" H 6250 2067 50  0000 C CNN
+F 1 "1N4148" H 6250 1976 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 6250 1675 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 6250 1850 50  0001 C CNN
+	1    6250 1850
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 614643D1
+P 6250 1950
+F 0 "D?" H 6250 2167 50  0000 C CNN
+F 1 "1N4148" H 6250 2076 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 6250 1775 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 6250 1950 50  0001 C CNN
+	1    6250 1950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 61464C5C
+P 6250 2050
+F 0 "D?" H 6250 2267 50  0000 C CNN
+F 1 "1N4148" H 6250 2176 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 6250 1875 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 6250 2050 50  0001 C CNN
+	1    6250 2050
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 614656D6
+P 6250 2150
+F 0 "D?" H 6250 2367 50  0000 C CNN
+F 1 "1N4148" H 6250 2276 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 6250 1975 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 6250 2150 50  0001 C CNN
+	1    6250 2150
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 61466335
+P 6250 2350
+F 0 "D?" H 6250 2567 50  0000 C CNN
+F 1 "1N4148" H 6250 2476 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 6250 2175 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 6250 2350 50  0001 C CNN
+	1    6250 2350
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 6146700D
+P 6250 2450
+F 0 "D?" H 6250 2667 50  0000 C CNN
+F 1 "1N4148" H 6250 2576 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 6250 2275 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 6250 2450 50  0001 C CNN
+	1    6250 2450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 614679E9
+P 6250 2550
+F 0 "D?" H 6250 2767 50  0000 C CNN
+F 1 "1N4148" H 6250 2676 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 6250 2375 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 6250 2550 50  0001 C CNN
+	1    6250 2550
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 614685AF
+P 6250 2650
+F 0 "D?" H 6250 2867 50  0000 C CNN
+F 1 "1N4148" H 6250 2776 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 6250 2475 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 6250 2650 50  0001 C CNN
+	1    6250 2650
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6100 1950 5750 1950
+Wire Wire Line
+	6100 2050 5750 2050
+Wire Wire Line
+	6100 2450 5750 2450
+Wire Wire Line
+	6100 2550 5750 2550
+Wire Wire Line
+	9700 1250 9650 1250
+$Comp
+L Diode:1N4148 D?
+U 1 1 61515F67
+P 8850 1250
+F 0 "D?" H 8850 1467 50  0000 C CNN
+F 1 "1N4148" H 8850 1376 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8850 1075 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8850 1250 50  0001 C CNN
+	1    8850 1250
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 61517458
+P 8850 1050
+F 0 "D?" H 8850 1267 50  0000 C CNN
+F 1 "1N4148" H 8850 1176 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8850 875 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8850 1050 50  0001 C CNN
+	1    8850 1050
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 61517F5D
+P 9850 1050
+F 0 "D?" H 9850 1267 50  0000 C CNN
+F 1 "1N4148" H 9850 1176 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 9850 875 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 9850 1050 50  0001 C CNN
+	1    9850 1050
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	9900 1050 10000 1050
+Wire Wire Line
+	9150 6650 9150 6400
+$Comp
+L Diode:1N4148 D?
+U 1 1 615BE3F4
+P 8900 1850
+F 0 "D?" H 8900 2067 50  0000 C CNN
+F 1 "1N4148" H 8900 1976 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8900 1675 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8900 1850 50  0001 C CNN
+	1    8900 1850
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 615BF1C7
+P 8900 2050
+F 0 "D?" H 8900 2267 50  0000 C CNN
+F 1 "1N4148" H 8900 2176 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8900 1875 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8900 2050 50  0001 C CNN
+	1    8900 2050
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 615BFB31
+P 9800 1850
+F 0 "D?" H 9800 2067 50  0000 C CNN
+F 1 "1N4148" H 9800 1976 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 9800 1675 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 9800 1850 50  0001 C CNN
+	1    9800 1850
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	8750 1850 8550 1850
+Wire Wire Line
+	8750 2050 8550 2050
+Connection ~ 10000 1050
+Wire Wire Line
+	10000 1050 10100 1050
+Connection ~ 9650 1250
+Wire Wire Line
+	9650 1250 9600 1250
+Wire Wire Line
+	8300 1050 8700 1050
+Wire Wire Line
+	9000 1450 9700 1450
+Wire Wire Line
+	9000 1250 9050 1250
+Wire Wire Line
+	9000 1050 9050 1050
+Wire Wire Line
+	9000 1150 9050 1150
+Wire Wire Line
+	9650 1050 9700 1050
+Wire Wire Line
+	8300 1250 8700 1250
+Connection ~ 8700 1250
+Wire Wire Line
+	8700 1250 8750 1250
+Wire Wire Line
+	9000 1150 9000 1250
+Wire Wire Line
+	9300 6200 9450 6200
+Wire Wire Line
+	9150 6400 9000 6400
+$Comp
+L Diode:1N4148 D?
+U 1 1 61572519
+P 9150 6200
+F 0 "D?" H 9150 6417 50  0000 C CNN
+F 1 "1N4148" H 9150 6326 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 9150 6025 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 9150 6200 50  0001 C CNN
+	1    9150 6200
+	-1   0    0    1   
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 61571B76
+P 8250 6400
+F 0 "D?" H 8250 6617 50  0000 C CNN
+F 1 "1N4148" H 8250 6526 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8250 6225 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8250 6400 50  0001 C CNN
+	1    8250 6400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode:1N4148 D?
+U 1 1 61570EAC
+P 8250 6200
+F 0 "D?" H 8250 6417 50  0000 C CNN
+F 1 "1N4148" H 8250 6326 50  0000 C CNN
+F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8250 6025 50  0001 C CNN
+F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8250 6200 50  0001 C CNN
+	1    8250 6200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:Rotary_Encoder_Switch SW?
+U 1 1 61B705BD
+P 8700 6300
+F 0 "SW?" H 8700 6667 50  0000 C CNN
+F 1 "Encoder Nav" H 8700 6576 50  0000 C CNN
+F 2 "" H 8550 6460 50  0001 C CNN
+F 3 "~" H 8700 6560 50  0001 C CNN
+	1    8700 6300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5750 2150 6100 2150
+Wire Wire Line
+	5750 2350 6100 2350
+Wire Wire Line
+	7450 5700 7900 5700
+Wire Wire Line
+	7450 5600 7900 5600
+Wire Wire Line
+	7450 5500 7900 5500
+Wire Wire Line
+	7450 5400 7900 5400
+Wire Wire Line
+	7450 5300 7900 5300
+Wire Wire Line
+	7450 5200 7900 5200
+Wire Wire Line
+	7450 5100 7900 5100
+Wire Wire Line
+	7450 5000 7900 5000
+$Comp
+L Device:R_US R?
+U 1 1 622EA1DB
+P 3450 4950
+F 0 "R?" V 3245 4950 50  0000 C CNN
+F 1 "39K" V 3336 4950 50  0000 C CNN
+F 2 "" V 3490 4940 50  0001 C CNN
+F 3 "~" H 3450 4950 50  0001 C CNN
+	1    3450 4950
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	2750 4950 3300 4950
+$Comp
+L Device:R_US R?
+U 1 1 624521DB
+P 3450 5050
+F 0 "R?" V 3245 5050 50  0000 C CNN
+F 1 "39K" V 3336 5050 50  0000 C CNN
+F 2 "" V 3490 5040 50  0001 C CNN
+F 3 "~" H 3450 5050 50  0001 C CNN
+	1    3450 5050
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_US R?
+U 1 1 62452696
+P 3450 5150
+F 0 "R?" V 3245 5150 50  0000 C CNN
+F 1 "39K" V 3336 5150 50  0000 C CNN
+F 2 "" V 3490 5140 50  0001 C CNN
+F 3 "~" H 3450 5150 50  0001 C CNN
+	1    3450 5150
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_US R?
+U 1 1 62452C0F
+P 3450 5250
+F 0 "R?" V 3245 5250 50  0000 C CNN
+F 1 "39K" V 3336 5250 50  0000 C CNN
+F 2 "" V 3490 5240 50  0001 C CNN
+F 3 "~" H 3450 5250 50  0001 C CNN
+	1    3450 5250
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_US R?
+U 1 1 62453193
+P 3450 5350
+F 0 "R?" V 3245 5350 50  0000 C CNN
+F 1 "39K" V 3336 5350 50  0000 C CNN
+F 2 "" V 3490 5340 50  0001 C CNN
+F 3 "~" H 3450 5350 50  0001 C CNN
+	1    3450 5350
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_US R?
+U 1 1 6245365C
+P 3450 5450
+F 0 "R?" V 3245 5450 50  0000 C CNN
+F 1 "39K" V 3336 5450 50  0000 C CNN
+F 2 "" V 3490 5440 50  0001 C CNN
+F 3 "~" H 3450 5450 50  0001 C CNN
+	1    3450 5450
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_US R?
+U 1 1 62453BBC
+P 3450 5550
+F 0 "R?" V 3245 5550 50  0000 C CNN
+F 1 "39K" V 3336 5550 50  0000 C CNN
+F 2 "" V 3490 5540 50  0001 C CNN
+F 3 "~" H 3450 5550 50  0001 C CNN
+	1    3450 5550
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_US R?
+U 1 1 624541ED
+P 3450 5650
+F 0 "R?" V 3245 5650 50  0000 C CNN
+F 1 "39K" V 3336 5650 50  0000 C CNN
+F 2 "" V 3490 5640 50  0001 C CNN
+F 3 "~" H 3450 5650 50  0001 C CNN
+	1    3450 5650
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_US R?
+U 1 1 624561F0
+P 1150 5650
+F 0 "R?" V 945 5650 50  0000 C CNN
+F 1 "39K" V 1036 5650 50  0000 C CNN
+F 2 "" V 1190 5640 50  0001 C CNN
+F 3 "~" H 1150 5650 50  0001 C CNN
+	1    1150 5650
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_US R?
+U 1 1 624569C4
+P 1150 5550
+F 0 "R?" V 945 5550 50  0000 C CNN
+F 1 "39K" V 1036 5550 50  0000 C CNN
+F 2 "" V 1190 5540 50  0001 C CNN
+F 3 "~" H 1150 5550 50  0001 C CNN
+	1    1150 5550
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_US R?
+U 1 1 62456E7F
+P 1150 5450
+F 0 "R?" V 945 5450 50  0000 C CNN
+F 1 "39K" V 1036 5450 50  0000 C CNN
+F 2 "" V 1190 5440 50  0001 C CNN
+F 3 "~" H 1150 5450 50  0001 C CNN
+	1    1150 5450
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_US R?
+U 1 1 62457341
+P 1150 5350
+F 0 "R?" V 945 5350 50  0000 C CNN
+F 1 "39K" V 1036 5350 50  0000 C CNN
+F 2 "" V 1190 5340 50  0001 C CNN
+F 3 "~" H 1150 5350 50  0001 C CNN
+	1    1150 5350
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	1300 5350 1600 5350
+Wire Wire Line
+	1300 5450 1600 5450
+Wire Wire Line
+	1300 5550 1600 5550
+Wire Wire Line
+	1300 5650 1600 5650
+Wire Wire Line
+	2750 5050 3300 5050
+Wire Wire Line
+	2750 5150 3300 5150
+Wire Wire Line
+	2750 5250 3300 5250
+Wire Wire Line
+	2750 5350 3300 5350
+Wire Wire Line
+	2750 5450 3300 5450
+Wire Wire Line
+	2750 5550 3300 5550
+Wire Wire Line
+	2750 5650 3300 5650
+Wire Wire Line
+	3600 4950 3800 4950
+Text Label 3800 4950 0    50   ~ 0
+R_ROW3
+Wire Wire Line
+	3600 5050 3800 5050
+Text Label 3800 5050 0    50   ~ 0
+R_ROW4
+Wire Wire Line
+	3600 5150 3800 5150
+Text Label 3800 5150 0    50   ~ 0
+R_ROW5
+Wire Wire Line
+	3600 5250 3800 5250
+Text Label 3800 5250 0    50   ~ 0
+R_ROW6
+Wire Wire Line
+	3600 5350 3800 5350
+Text Label 3800 5350 0    50   ~ 0
+R_ROW7
+Wire Wire Line
+	3600 5450 3800 5450
+Text Label 3800 5450 0    50   ~ 0
+R_ROW8
+Wire Wire Line
+	3600 5550 3800 5550
+Text Label 3800 5550 0    50   ~ 0
+R_ROW9
+Wire Wire Line
+	3600 5650 3800 5650
+Text Label 3800 5650 0    50   ~ 0
+R_ROW10
+Wire Wire Line
+	1000 5350 650  5350
+Wire Wire Line
+	1000 5450 650  5450
+Wire Wire Line
+	1000 5550 650  5550
+Wire Wire Line
+	1000 5650 650  5650
+Text Label 650  5650 0    50   ~ 0
+R_ROW11
+Text Label 650  5550 0    50   ~ 0
+R_ROW12
+Text Label 650  5450 0    50   ~ 0
+R_ROW13
+Text Label 650  5350 0    50   ~ 0
+R_ROW14
+Connection ~ 9000 1250
+Wire Wire Line
+	9000 1250 9000 1450
+Wire Wire Line
+	700  5250 700  2300
+Wire Wire Line
+	700  5250 1600 5250
+Wire Wire Line
+	700  2300 1950 2300
+Wire Wire Line
+	7300 900  7300 1300
+Wire Wire Line
+	7300 1300 7300 1650
+Connection ~ 7300 1300
+Wire Wire Line
+	7300 1950 7300 2450
+Connection ~ 7300 1950
+Wire Wire Line
+	7300 1650 7500 1650
+Connection ~ 7300 1650
+Wire Wire Line
+	7300 1650 7300 1950
+Text Label 7500 1650 0    50   ~ 0
+COM2
+Wire Wire Line
+	9700 2650 9700 2300
+Wire Wire Line
+	9700 2050 9650 2050
+Connection ~ 9700 2650
+Wire Wire Line
+	9050 1950 8450 1950
+Wire Wire Line
+	8450 1950 8450 2300
+Wire Wire Line
+	8450 2300 9700 2300
+Connection ~ 9700 2300
+Wire Wire Line
+	9700 2300 9700 2050
+Wire Wire Line
+	9700 2050 10050 2050
+Wire Wire Line
+	10050 2050 10050 1350
+Connection ~ 9700 2050
+Wire Wire Line
+	9700 1250 9700 1350
+Wire Wire Line
+	9700 1350 10050 1350
+Connection ~ 9700 1350
+Wire Wire Line
+	9700 1350 9700 1450
+Text Label 10050 1350 0    50   ~ 0
+COM1
+Wire Wire Line
+	8400 6300 7650 6300
+Wire Wire Line
+	7650 6300 7650 6650
+Wire Wire Line
+	7650 6650 9150 6650
+Wire Wire Line
+	9000 5400 9700 5400
+Wire Wire Line
+	9700 5400 9700 6400
+Wire Wire Line
+	9700 6400 9150 6400
+Connection ~ 9150 6400
+Wire Wire Line
+	9700 4400 9700 5400
+Wire Wire Line
+	8900 4400 9700 4400
+Connection ~ 9700 5400
+Text Label 9700 5400 0    50   ~ 0
+COM1
+Wire Wire Line
+	6200 1300 5900 1300
+Text Label 5900 1300 0    50   ~ 0
+R_ROW3
+Wire Wire Line
+	6200 900  5900 900 
+Text Label 5900 900  0    50   ~ 0
+R_ROW4
+Wire Wire Line
+	6100 1850 5750 1850
+Text Label 5750 1850 0    50   ~ 0
+R_ROW7
+Text Label 5750 1950 0    50   ~ 0
+R_ROW8
+Text Label 5750 2050 0    50   ~ 0
+R_ROW9
+Text Label 5750 2150 0    50   ~ 0
+R_ROW10
+Text Label 5750 2350 0    50   ~ 0
+R_ROW11
+Text Label 5750 2450 0    50   ~ 0
+R_ROW12
+Text Label 5750 2550 0    50   ~ 0
+R_ROW13
+Wire Wire Line
+	6100 2650 5750 2650
+Text Label 5750 2650 0    50   ~ 0
+R_ROW14
+Text Label 8300 1050 0    50   ~ 0
+R_ROW4
+Text Label 8300 1250 0    50   ~ 0
+R_ROW5
+Text Label 10100 1050 0    50   ~ 0
+R_ROW6
+Text Label 8550 1850 0    50   ~ 0
+R_ROW7
+Text Label 8550 2050 0    50   ~ 0
+R_ROW8
+Text Label 9950 1850 0    50   ~ 0
+R_ROW9
+Text Label 8450 2650 0    50   ~ 0
+R_ROW10
+Text Label 8450 2750 0    50   ~ 0
+R_ROW11
+Text Label 8450 2850 0    50   ~ 0
+R_ROW12
+Text Label 8450 2950 0    50   ~ 0
+R_ROW13
+Text Label 8450 3050 0    50   ~ 0
+R_ROW14
+Wire Wire Line
+	7900 4400 7450 4400
+Text Label 7450 4400 0    50   ~ 0
+R_ROW11
+Text Label 7450 5000 0    50   ~ 0
+R_ROW3
+Text Label 7450 5100 0    50   ~ 0
+R_ROW4
+Text Label 7450 5200 0    50   ~ 0
+R_ROW5
+Text Label 7450 5300 0    50   ~ 0
+R_ROW6
+Text Label 7450 5400 0    50   ~ 0
+R_ROW7
+Text Label 7450 5500 0    50   ~ 0
+R_ROW8
+Text Label 7450 5600 0    50   ~ 0
+R_ROW9
+Text Label 7450 5700 0    50   ~ 0
+R_ROW10
+Text Label 9450 6200 0    50   ~ 0
+R_ROW14
+Wire Wire Line
+	8100 6200 7750 6200
+Wire Wire Line
+	8100 6400 7750 6400
+Text Label 7750 6200 0    50   ~ 0
+R_ROW12
+Text Label 7750 6400 0    50   ~ 0
+R_ROW13
+$EndSCHEMATC
