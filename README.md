@@ -1,7 +1,9 @@
 Ultratroninator 3000
 Ultratroninator 3000 Raspberry Pi project
 
-Handful of 4 segment LEDs with Adafruit HT16K33 drivers
+Project blog: https://ultratroninator3000.wordpress.com/
+
+Handful of Adafruit alphanum LED displays with HT16K33 drivers
 Lots-o-LEDs
 Switches
 Knobs
