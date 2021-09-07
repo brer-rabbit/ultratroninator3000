@@ -1,6 +1,8 @@
 Ultratroninator 3000
 Ultratroninator 3000 Raspberry Pi project
 
+Project blog: https://ultratroninator3000.wordpress.com/
+
 Handful of Adafruit alphanum LED displays with HT16K33 drivers
 Lots-o-LEDs
 Switches
