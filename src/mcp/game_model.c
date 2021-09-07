@@ -17,8 +17,7 @@
 #include "game_model.h"
 
 #define GAMES_LOCAL_ENV_VAR "GAMES_LOCAL"
-// prod: /usr/local/games/hacks
-#define DEFAULT_GAMES_BASEDIR "/home/kaf/src/ultratroninator3000/src/mcp/"
+#define DEFAULT_GAMES_BASEDIR "/usr/local/games/ultratroninator_3000"
 
 #define MAX_GAMES 32
 #define MAX_PATH 512
@@ -44,30 +43,51 @@ static int get_games(char *directory, struct game *games_list, int max_list);
  * read directory from env var where games are stored
  */
 struct game_model* create_game_model() {
-  struct game_model* game_model = (struct game_model*)malloc(sizeof(struct game_model));
+  struct game_model* this = (struct game_model*)malloc(sizeof(struct game_model));
   char *games_directory;
 
   if (! (games_directory = getenv(GAMES_LOCAL_ENV_VAR)) ) {
     games_directory = DEFAULT_GAMES_BASEDIR;
   }
 
-  game_model->num_games = get_games(games_directory, game_model->games, MAX_GAMES);
-  game_model->game_index = 0;
+  this->num_games = get_games(games_directory, this->games, MAX_GAMES);
+  this->game_index = 0;
 
-  if (game_model->num_games == 0) {
+  if (this->num_games == 0) {
     printf("sad panda, no games found!\n");
-    free(game_model);
+    free(this);
     return NULL;
   }
 
 
-  return game_model;
+  return this;
 }
 
-void free_game_model(struct game_model *model) {
-  return free(model);
+void free_game_model(struct game_model *this) {
+  return free(this);
 }
 
+
+
+/** next_game and prev_game
+ * scroll forward/backward through the game list by 1
+ */
+
+void next_game(struct game_model *this) {
+  if (++this->game_index == this->num_games) {
+    this->game_index = 0;
+  }
+}
+
+void previous_game(struct game_model *this) {
+  if (--this->game_index < 0) {
+    this->game_index = this->num_games - 1;
+  }
+}
+
+char* get_current_executable(struct game_model *this) {
+  return this->games[this->game_index].game_executable;
+}
 
 
 int set_green_string(struct game_model *this, char *display_string) {
@@ -106,8 +126,6 @@ char* get_red_string(struct game_model *this) {
   }
   return NULL;
 }
-
-
 
 
 /* static ----------------------------------------------------------- */

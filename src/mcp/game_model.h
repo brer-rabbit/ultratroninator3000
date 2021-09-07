@@ -13,6 +13,11 @@ struct game_model;
 struct game_model* create_game_model();
 void free_game_model(struct game_model*);
 
+void next_game(struct game_model *this);
+void previous_game(struct game_model *this);
+char* get_current_executable(struct game_model *this);
+
+
 int set_green_string(struct game_model *this, char *display_string);
 int set_blue_string(struct game_model *this, char *display_string);
 int set_red_string(struct game_model *this, char *display_string);
