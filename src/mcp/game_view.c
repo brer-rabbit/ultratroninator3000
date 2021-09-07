@@ -34,6 +34,7 @@ struct rotary_encoder {
   int encoder_ignore_count; // rotary encoder seems to work best if ignored for 1 read after a change
   int8_t encoder_delta;  // -1, 0, 1
 };
+
 static void read_rotary_encoder(struct rotary_encoder *encoder, uint8_t pushbutton, uint8_t rotary_encoder);
 
 
@@ -134,6 +135,12 @@ int free_game_view(struct game_view *this) {
   HT16K33_CLOSE(this->green_display);
   HT16K33_CLOSE(this->blue_display);
   HT16K33_CLOSE(this->red_display);
+  HT16K33_CLOSE(this->inputs_and_leds);
+
+  free(this->green_display);
+  free(this->blue_display);
+  free(this->red_display);
+  free(this->inputs_and_leds);
 
   free(this);
   return rc;
