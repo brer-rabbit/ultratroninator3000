@@ -34,10 +34,12 @@ struct game_model {
   struct game games[MAX_GAMES];
   int game_index;
   int num_games;
+  struct display_strategy *display_strategy;
 };
 
 static int get_games(char *directory, struct game *games_list, int max_list);
-  
+static struct display_strategy* create_display_strategy(struct game_model *this);
+static void free_display_strategy(struct display_strategy *display_strategy); 
 
 /** create the model.
  * read directory from env var where games are stored
@@ -59,11 +61,13 @@ struct game_model* create_game_model() {
     return NULL;
   }
 
+  this->display_strategy = create_display_strategy(this);
 
   return this;
 }
 
 void free_game_model(struct game_model *this) {
+  free_display_strategy(this->display_strategy);
   return free(this);
 }
 
@@ -128,6 +132,37 @@ char* get_red_string(struct game_model *this) {
 }
 
 
+// implements f_get_display for the red display
+display_type get_red_display(struct display_strategy *display_strategy, display_value *value) {
+  struct game_model *this = (struct game_model*) display_strategy->userdata;
+  char *red_string = get_red_string(this);
+  (*value).display_string = red_string;
+  return string_display;
+}
+
+// implements f_get_display for the blue display
+display_type get_blue_display(struct display_strategy *display_strategy, display_value *value) {
+  struct game_model *this = (struct game_model*) display_strategy->userdata;
+  char *blue_string = get_blue_string(this);
+  (*value).display_string = blue_string;
+  return string_display;
+}
+
+// implements f_get_display for the green display
+display_type get_green_display(struct display_strategy *display_strategy, display_value *value) {
+  struct game_model *this = (struct game_model*) display_strategy->userdata;
+  char *green_string = get_green_string(this);
+  (*value).display_string = green_string;
+  return string_display;
+}
+
+
+struct display_strategy* get_display_strategy(struct game_model *this) {
+  return this->display_strategy;
+}
+
+
+
 /* static ----------------------------------------------------------- */
 
 /**
@@ -187,3 +222,16 @@ static int get_games(char *directory, struct game *games_list, int max_games) {
   return game_num;
 }
 
+static struct display_strategy* create_display_strategy(struct game_model *this) {
+  struct display_strategy *display_strategy;
+  display_strategy = (struct display_strategy*)malloc(sizeof(struct display_strategy));
+  display_strategy->userdata = (void*)this;
+  display_strategy->get_green_display = get_green_display;
+  display_strategy->get_blue_display = get_blue_display;
+  display_strategy->get_red_display = get_red_display;
+  return display_strategy;
+}
+
+static void free_display_strategy(struct display_strategy *display_strategy) {
+  free(display_strategy);
+}

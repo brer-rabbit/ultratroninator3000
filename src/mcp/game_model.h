@@ -6,6 +6,7 @@
 #ifndef GAME_MODEL_H
 #define GAME_MODEL_H
 
+#include "display_strategy.h"
 
 struct game_model;
 
@@ -17,15 +18,11 @@ void next_game(struct game_model *this);
 void previous_game(struct game_model *this);
 char* get_current_executable(struct game_model *this);
 
-
-int set_green_string(struct game_model *this, char *display_string);
-int set_blue_string(struct game_model *this, char *display_string);
-int set_red_string(struct game_model *this, char *display_string);
-
+// accessible here- but may be decoupled via the display_strategy
 char* get_green_string(struct game_model *this);
 char* get_blue_string(struct game_model *this);
 char* get_red_string(struct game_model *this);
 
-
+struct display_strategy* get_display_strategy(struct game_model *this);
 
 #endif

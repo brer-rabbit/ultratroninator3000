@@ -7,13 +7,11 @@
 
 struct game_view;
 
-#include "game_model.h"
+#include "display_strategy.h"
 #include "ht16k33.h"
 
 
-typedef void (*f_view_displays)(struct game_view*, struct game_model*);
-typedef void (*f_view_leds)(struct game_view*, struct game_model*);
-
+typedef void (*f_show_displays)(struct game_view*, struct display_strategy*);
 
 /** initialize_game_view
  *
@@ -32,11 +30,10 @@ int free_game_view(struct game_view *this);
  * update all 3 displays and any other visible components
  * TBD: should this be responsible for reading as well? likely...
  */
-void update_view(struct game_view*, struct game_model*);
+void update_view(struct game_view*, struct display_strategy*);
 
 
 /* Listeners / callback */
-
 
 /** callback for rotary encoder if something happened.
  * by something- either rotation or button push.  Callback provide:

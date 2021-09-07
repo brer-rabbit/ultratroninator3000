@@ -39,8 +39,7 @@ static void read_rotary_encoder(struct rotary_encoder *encoder, uint8_t pushbutt
 
 
 struct game_view {
-  f_view_displays show_displays;
-  f_view_leds show_leds;
+  f_show_displays show_displays;
 
   // Adafruit displays with backpacks
   HT16K33 *green_display;
@@ -59,7 +58,7 @@ struct game_view {
 
 
 static int initialize_backpack(HT16K33 *backpack);
-static void ht16k33_alphanum_display_game(struct game_view *this, struct game_model *model);
+static void ht16k33_alphanum_display_game(struct game_view *this, struct display_strategy *display);
 
 
 
@@ -122,6 +121,10 @@ struct game_view* create_alphanum_game_view() {
     return NULL;
   }
 
+
+  // clear all callbacks
+  this->green_encoder_listener.callback = NULL;
+
   return this;
 }
 
@@ -147,13 +150,13 @@ int free_game_view(struct game_view *this) {
 
 }
 
-void update_view(struct game_view *this, struct game_model *model) {
+void update_view(struct game_view *this, struct display_strategy *display_strategy) {
   uint8_t keyscan[6];
   int keyscan_rc;
 
   // odd..but abstract out implementation while passing object state.
   // maybe I should switch to an OO language?
-  this->show_displays(this, model);
+  this->show_displays(this, display_strategy);
 
   keyscan_rc = HT16K33_READ(this->inputs_and_leds, keyscan);
   if (keyscan_rc != 0) {
@@ -202,12 +205,44 @@ void register_green_encoder_listener(struct game_view *view, f_controller_update
 /* Static ------------------------------------------------------------- */
 
 
-static void ht16k33_alphanum_display_game(struct game_view *this, struct game_model *model) {
+static void ht16k33_alphanum_display_game(struct game_view *this, struct display_strategy *display_strategy) {
   int backpack, digit;
+  display_value union_result;
   char *display[3];
-  display[0] = get_green_string(model);
-  display[1] = get_blue_string(model);
-  display[2] = get_red_string(model);
+
+  switch(display_strategy->get_green_display(display_strategy, &union_result)) {
+  case integer_display:
+  case glyph_display:
+    printf("integer and glyph not implemented\n");
+    display[0] = NULL;
+    break;
+  case string_display:
+    display[0] = union_result.display_string;
+    break;
+  }
+
+  switch(display_strategy->get_blue_display(display_strategy, &union_result)) {
+  case integer_display:
+  case glyph_display:
+    printf("integer and glyph not implemented\n");
+    display[1] = NULL;
+    break;
+  case string_display:
+    display[1] = union_result.display_string;
+    break;
+  }
+
+  switch(display_strategy->get_red_display(display_strategy, &union_result)) {
+  case integer_display:
+  case glyph_display:
+    printf("integer and glyph not implemented\n");
+    display[2] = NULL;
+    break;
+  case string_display:
+    display[2] = union_result.display_string;
+    break;
+  }
+
 
   for (backpack = 0; backpack < DISPLAY_ROWS; ++backpack) { // backpack
 

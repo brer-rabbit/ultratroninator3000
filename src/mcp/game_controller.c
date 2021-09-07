@@ -29,7 +29,7 @@ char* get_game_to_launch(struct game_controller *this) {
 }
 
 void controller_update(struct game_controller *this) {
-  update_view(this->view, this->model);
+  update_view(this->view, get_display_strategy(this->model));
 }
 
 void controller_callback_green_rotary_encoder(int8_t delta, uint8_t button_pushed, uint8_t button_changed, void *userdata) {
