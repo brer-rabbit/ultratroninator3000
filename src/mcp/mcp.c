@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -53,6 +54,7 @@ static char* run_mvc() {
   struct game_view *view;
   struct game_controller *controller;
   char *executable = NULL;
+  struct timeval tval_controller_start, tval_controller_end, tval_controller_time, tval_fixed_loop_time, tval_sleep_time;
 
   model = create_game_model();
   if (model == NULL) {
@@ -75,14 +77,33 @@ static char* run_mvc() {
 
   register_green_encoder_listener(view, controller_callback_green_rotary_encoder, controller);
 
-  // scroll through all the games
+
+  tval_fixed_loop_time.tv_sec = 0;
+  tval_fixed_loop_time.tv_usec = 35000;
+
+
+  // scroll through all the games.  Try and nail the loop timewise.
   while (executable == NULL) {
     // should this function even exist or just rely on callback?
     // could instead just make this a loop around update_view?
+    gettimeofday(&tval_controller_start, NULL);
+
     controller_update(controller);
     executable = get_game_to_launch(controller);
+    gettimeofday(&tval_controller_end, NULL);
+    // tval_controller_time is duration of controller_update
+    timersub(&tval_controller_end, &tval_controller_start, &tval_controller_time);
+    timersub(&tval_fixed_loop_time, &tval_controller_time, &tval_sleep_time);
 
-    usleep(35000);
+
+    if (tval_sleep_time.tv_sec != 0) {
+       // this really shouldn't happen... loop takes ~6 ms.  Expect 0.025-0.029
+      printf("controller took wayyyy too long\n");
+    }
+    else {
+      // sleep for the fixed loop time minux the time for the controller
+      usleep(tval_sleep_time.tv_usec);
+    }
   }
 
 
