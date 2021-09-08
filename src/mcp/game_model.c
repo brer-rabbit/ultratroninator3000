@@ -79,7 +79,6 @@ struct game_model* create_game_model() {
   }
 
   this->display_strategy = create_display_strategy(this);
-
   return this;
 }
 
@@ -108,6 +107,19 @@ void previous_game(struct game_model *this) {
 
 char* get_current_executable(struct game_model *this) {
   return this->games[this->game_index].game_executable;
+}
+
+void set_blink(struct game_model *this, int on) {
+  if (on) {
+    this->display_strategy->green_blink = HT16K33_BLINK_FAST;
+    this->display_strategy->blue_blink = HT16K33_BLINK_FAST;
+    this->display_strategy->red_blink = HT16K33_BLINK_FAST;
+  }
+  else {
+    this->display_strategy->green_blink = HT16K33_BLINK_OFF;
+    this->display_strategy->blue_blink = HT16K33_BLINK_OFF;
+    this->display_strategy->red_blink = HT16K33_BLINK_OFF;
+  }
 }
 
 
@@ -150,26 +162,41 @@ char* get_red_string(struct game_model *this) {
 
 
 // implements f_get_display for the red display
-display_type get_red_display(struct display_strategy *display_strategy, display_value *value) {
+display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct game_model *this = (struct game_model*) display_strategy->userdata;
   char *red_string = get_red_string(this);
   (*value).display_string = red_string;
+
+  // no change
+  *blink = display_strategy->red_blink;
+  *brightness = display_strategy->red_brightness;
+
   return string_display;
 }
 
 // implements f_get_display for the blue display
-display_type get_blue_display(struct display_strategy *display_strategy, display_value *value) {
+display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct game_model *this = (struct game_model*) display_strategy->userdata;
   char *blue_string = get_blue_string(this);
   (*value).display_string = blue_string;
+
+  // no change
+  *blink = display_strategy->blue_blink;
+  *brightness = display_strategy->blue_brightness;
+
   return string_display;
 }
 
 // implements f_get_display for the green display
-display_type get_green_display(struct display_strategy *display_strategy, display_value *value) {
+display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct game_model *this = (struct game_model*) display_strategy->userdata;
   char *green_string = get_green_string(this);
   (*value).display_string = green_string;
+
+  // no change
+  *blink = display_strategy->green_blink;
+  *brightness = display_strategy->green_brightness;
+
   return string_display;
 }
 
@@ -244,8 +271,14 @@ static struct display_strategy* create_display_strategy(struct game_model *this)
   display_strategy = (struct display_strategy*)malloc(sizeof(struct display_strategy));
   display_strategy->userdata = (void*)this;
   display_strategy->get_green_display = get_green_display;
+  display_strategy->green_blink = HT16K33_BLINK_OFF;
+  display_strategy->green_brightness = HT16K33_BRIGHTNESS_7;
   display_strategy->get_blue_display = get_blue_display;
+  display_strategy->blue_blink = HT16K33_BLINK_OFF;
+  display_strategy->blue_brightness = HT16K33_BRIGHTNESS_7;
   display_strategy->get_red_display = get_red_display;
+  display_strategy->red_blink = HT16K33_BLINK_OFF;
+  display_strategy->red_brightness = HT16K33_BRIGHTNESS_7;
   return display_strategy;
 }
 

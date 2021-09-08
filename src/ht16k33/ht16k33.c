@@ -81,7 +81,7 @@ void HT16K33_init(HT16K33 *backpack, int i2cadapter, uint8_t driveraddr) {
   backpack->interrupt_mode = HT16K33_ROW15_DRIVER;
   backpack->display_state = HT16K33_DISPLAY_OFF;
   backpack->blink_state = HT16K33_BLINK_OFF;
-  backpack->brightness = 0x0F;
+  backpack->brightness = HT16K33_BRIGHTNESS_15;
 }
 
 
@@ -315,7 +315,7 @@ int HT16K33_DISPLAY(HT16K33 *backpack, ht16k33display_t display_cmd) {
 	
 	return rc;
 }
-int HT16K33_BRIGHTNESS(HT16K33 *backpack, uint8_t brightness) {
+int HT16K33_BRIGHTNESS(HT16K33 *backpack, ht16k33brightness_t brightness) {
 	int rc=-1;
 	uint8_t cmd;
 	//unsigned char buf[16];

@@ -40,7 +40,10 @@ void free_game_controller(struct game_controller *this) {
 }
 
 char* get_game_to_launch(struct game_controller *this) {
-  return this->game_exec_to_launch;
+  // get the game to launch- if it returns non-NULL, prep for launch!
+  char *game_to_launch = this->game_exec_to_launch;
+
+  return game_to_launch;
 }
 
 void controller_update(struct game_controller *this) {
@@ -52,6 +55,7 @@ void controller_callback_green_rotary_encoder(int8_t delta, uint8_t button_pushe
 
   if (button_pushed) { // launch game!
     this->game_exec_to_launch = get_current_executable(this->model);
+    set_blink(this->model, 1);
     return; // don't process any delta from the rotary encoder
   }
 

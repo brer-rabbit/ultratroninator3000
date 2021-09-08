@@ -41,6 +41,8 @@ void next_game(struct game_model *this);
 void previous_game(struct game_model *this);
 char* get_current_executable(struct game_model *this);
 
+void set_blink(struct game_model *this, int on);
+
 // accessible here- but may be decoupled via the display_strategy
 char* get_green_string(struct game_model *this);
 char* get_blue_string(struct game_model *this);

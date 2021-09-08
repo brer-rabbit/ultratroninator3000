@@ -27,6 +27,7 @@
 
 
 #include <stdint.h>
+#include "ht16k33.h"
 
 /* for viewing, provide an interface the (presumably model) can use to
  * set the 4-digit display.  The displayable types are:
@@ -49,8 +50,15 @@ struct display_strategy;
  * particular display:
  * User of this interface will implement three
  * f_get_display types, one for each display.
+ * (not) sorry for pulling in ht16k33.h types...a bit more exposure than I'd liek.
+ * params the implementor of this will take:
+ * struct display_strategy* : "this" struct display_strategy
+ * display_value* : value to display on the ht16k33, set as one type of a union
+ * ht16k33blink_t : blink enum from ht16k33.h
+ * ht16k33brightness_t : brightness enum from ht16k33.h
+ * 
  */
-typedef display_type (*f_get_display)(struct display_strategy*, display_value*);
+typedef display_type (*f_get_display)(struct display_strategy*, display_value*, ht16k33blink_t*, ht16k33brightness_t*);
 
 /** To utilize the strategy, one must also construct a struct display_strategy
  * that gets passed to the view.
@@ -58,8 +66,16 @@ typedef display_type (*f_get_display)(struct display_strategy*, display_value*);
 struct display_strategy {
   void *userdata;
   f_get_display get_green_display;
+  ht16k33blink_t green_blink;
+  ht16k33brightness_t green_brightness;
+
   f_get_display get_blue_display;
+  ht16k33blink_t blue_blink;
+  ht16k33brightness_t blue_brightness;
+
   f_get_display get_red_display;
+  ht16k33blink_t red_blink;
+  ht16k33brightness_t red_brightness;
 };
 
 

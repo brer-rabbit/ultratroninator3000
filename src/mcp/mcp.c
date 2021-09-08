@@ -50,7 +50,6 @@ static void launch_game(char *executable, char **envp) {
   argv[0] = executable;
   argv[1] = NULL;
 
-  printf("launching %s\n", executable);
   pid_t parent = getpid();
   pid_t pid = fork();
 
@@ -112,9 +111,24 @@ static char* run_mvc(config_t *cfg) {
   register_green_encoder_listener(view, controller_callback_green_rotary_encoder, controller);
 
 
+  // init
+  tval_sleep_time.tv_sec = 0;
+  tval_sleep_time.tv_usec = 0;
+  
 
   // scroll through all the games.  Try and nail the loop timewise.
   while (executable == NULL) {
+    // do the usleep first, otherwise the game launch is delayed by ~30 ms
+
+    if (tval_sleep_time.tv_sec != 0) {
+       // this really shouldn't happen... loop takes ~6 ms.  Expect 0.025-0.029
+      printf("controller took wayyyy too long\n");
+    }
+    else {
+      // sleep for the fixed loop time minux the time for the controller
+      usleep(tval_sleep_time.tv_usec);
+    }
+
     // should this function even exist or just rely on callback?
     // could instead just make this a loop around update_view?
     gettimeofday(&tval_controller_start, NULL);
@@ -126,17 +140,10 @@ static char* run_mvc(config_t *cfg) {
     timersub(&tval_controller_end, &tval_controller_start, &tval_controller_time);
     timersub(&tval_fixed_loop_time, &tval_controller_time, &tval_sleep_time);
 
-
-    if (tval_sleep_time.tv_sec != 0) {
-       // this really shouldn't happen... loop takes ~6 ms.  Expect 0.025-0.029
-      printf("controller took wayyyy too long\n");
-    }
-    else {
-      // sleep for the fixed loop time minux the time for the controller
-      usleep(tval_sleep_time.tv_usec);
-    }
   }
 
+
+  sleep(2);
 
   free_game_controller(controller);
   free_game_view(view);

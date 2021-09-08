@@ -166,13 +166,16 @@ int free_game_view(struct game_view *this) {
 
 }
 
+
+/** update_view
+ * keyscan HT16K33
+ * callback to any hooks
+ * update displays
+ */
 void update_view(struct game_view *this, struct display_strategy *display_strategy) {
   uint8_t keyscan[6];
   int keyscan_rc;
 
-  // odd..but abstract out implementation while passing object state.
-  // maybe I should switch to an OO language?
-  this->show_displays(this, display_strategy);
 
   keyscan_rc = HT16K33_READ(this->inputs_and_leds, keyscan);
   if (keyscan_rc != 0) {
@@ -196,6 +199,10 @@ void update_view(struct game_view *this, struct display_strategy *display_strate
   }
 
 
+  // odd..but abstract out implementation while passing object state.
+  // maybe I should switch to an OO language?
+  // show_displays is expected to update all visual info on the HT16K33s
+  this->show_displays(this, display_strategy);
 }
 
 
@@ -221,12 +228,20 @@ void register_green_encoder_listener(struct game_view *view, f_controller_update
 /* Static ------------------------------------------------------------- */
 
 
+/** ht16k33_alphanum_display_game: implements f_show_displays
+ * specific implementation for the Adafruit alphanum display
+ */
+
 static void ht16k33_alphanum_display_game(struct game_view *this, struct display_strategy *display_strategy) {
   int backpack, digit;
   display_value union_result;
   char *display[3];
+  ht16k33blink_t blink;
+  ht16k33brightness_t brightness;
 
-  switch(display_strategy->get_green_display(display_strategy, &union_result)) {
+  
+
+  switch(display_strategy->get_green_display(display_strategy, &union_result, &blink, &brightness)) {
   case integer_display:
   case glyph_display:
     printf("integer and glyph not implemented\n");
@@ -237,7 +252,16 @@ static void ht16k33_alphanum_display_game(struct game_view *this, struct display
     break;
   }
 
-  switch(display_strategy->get_blue_display(display_strategy, &union_result)) {
+  if (brightness != this->green_display->brightness) {
+    HT16K33_BRIGHTNESS(this->green_display, brightness);
+  }
+  if (blink != this->green_display->blink_state) {
+    HT16K33_BLINK(this->green_display, blink);
+  }
+
+
+
+  switch(display_strategy->get_blue_display(display_strategy, &union_result, &blink, &brightness)) {
   case integer_display:
   case glyph_display:
     printf("integer and glyph not implemented\n");
@@ -248,7 +272,16 @@ static void ht16k33_alphanum_display_game(struct game_view *this, struct display
     break;
   }
 
-  switch(display_strategy->get_red_display(display_strategy, &union_result)) {
+  if (brightness != this->blue_display->brightness) {
+    HT16K33_BRIGHTNESS(this->blue_display, brightness);
+  }
+  if (blink != this->blue_display->blink_state) {
+    HT16K33_BLINK(this->blue_display, blink);
+  }
+
+
+
+  switch(display_strategy->get_red_display(display_strategy, &union_result, &blink, &brightness)) {
   case integer_display:
   case glyph_display:
     printf("integer and glyph not implemented\n");
@@ -257,6 +290,14 @@ static void ht16k33_alphanum_display_game(struct game_view *this, struct display
   case string_display:
     display[2] = union_result.display_string;
     break;
+  }
+
+
+  if (brightness != this->red_display->brightness) {
+    HT16K33_BRIGHTNESS(this->red_display, brightness);
+  }
+  if (blink != this->red_display->blink_state) {
+    HT16K33_BLINK(this->red_display, blink);
   }
 
 
@@ -353,7 +394,7 @@ static int initialize_backpack(HT16K33 *backpack) {
   }
 
   // halfway bright
-  HT16K33_BRIGHTNESS(backpack, 0x07);
+  HT16K33_BRIGHTNESS(backpack, HT16K33_BRIGHTNESS_7);
 
   // power on the display
   HT16K33_DISPLAY(backpack, HT16K33_DISPLAY_ON);

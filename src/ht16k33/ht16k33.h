@@ -50,6 +50,27 @@ typedef enum
 	HT16K33_BLINK_SLOW = 0x06	// display blinks at 0.5 HZ
 } ht16k33blink_t;
 
+
+typedef enum
+{
+        HT16K33_BRIGHTNESS_0 = 0x00,  // lowest setting, 1/16 duty
+        HT16K33_BRIGHTNESS_1 = 0x01,
+        HT16K33_BRIGHTNESS_2 = 0x02,
+        HT16K33_BRIGHTNESS_3 = 0x03,
+        HT16K33_BRIGHTNESS_4 = 0x04,
+        HT16K33_BRIGHTNESS_5 = 0x05,
+        HT16K33_BRIGHTNESS_6 = 0x06,
+        HT16K33_BRIGHTNESS_7 = 0x07,
+        HT16K33_BRIGHTNESS_8 = 0x08,
+        HT16K33_BRIGHTNESS_9 = 0x09,
+        HT16K33_BRIGHTNESS_10 = 0x0A,
+        HT16K33_BRIGHTNESS_11 = 0x0B,
+        HT16K33_BRIGHTNESS_12 = 0x0C,
+        HT16K33_BRIGHTNESS_13 = 0x0D,
+        HT16K33_BRIGHTNESS_14 = 0x0E,
+        HT16K33_BRIGHTNESS_15 = 0x0F  // highest setting, 16/16 duty
+} ht16k33brightness_t;
+
 typedef enum
 {
 	HT16K33_DISPLAY_OFF = 0x00,	// disable display (all leds off)
@@ -357,7 +378,7 @@ typedef struct HT16K33
 	ht16k33interrupt_t interrupt_mode;	// interrupt mode
 	ht16k33display_t display_state;		// backpack display state
 	ht16k33blink_t blink_state;		// backpack blink state
-	uint8_t brightness;			// only the last nibble is used
+	ht16k33brightness_t brightness;         // only the last nibble is used
 	ht16k33_matrix display_buffer;		// adafruit 7 segment backpack display
 } HT16K33;
 
@@ -375,7 +396,7 @@ typedef struct HT16K33
         .interrupt_mode = HT16K33_ROW15_DRIVER, \
 	.display_state = HT16K33_DISPLAY_OFF, \
 	.blink_state = HT16K33_BLINK_OFF, \
-	.brightness = 0x0F, /* 16/16 duty (max brightness) */ \
+	.brightness = HT16K33_BRIGHTNESS_15, /* 16/16 duty (max brightness) */ \
       .display_buffer = { { 0, 0, 0, 0, 0, 0, 0, 0 } },	      \
 };
 
@@ -420,7 +441,7 @@ int HT16K33_DISPLAY(HT16K33 *backpack, ht16k33display_t display_cmd);
  * The attribute brightness can be setted from 0x00 (minimum brightness) to 0x0F (maximum brightness).
  * When brightness is setted to 0x00 the dimming duty is 1/16, when setted to 0x0F the dimming duty is 16/16.
  */
-int HT16K33_BRIGHTNESS(HT16K33 *backpack, uint8_t brightness);
+int HT16K33_BRIGHTNESS(HT16K33 *backpack, ht16k33brightness_t brightness);
 /**
  * Adafruit 7-segment display:
  * Update a single display digit, identified by the digit parameter, starting from 0.
