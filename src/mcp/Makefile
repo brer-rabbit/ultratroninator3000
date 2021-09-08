@@ -1,6 +1,6 @@
 TARGET = mcp
 INCLUDE = -I../../include
-LIBS = -li2c -lpigpio -L../../lib/ -lht16k33
+LIBS = -li2c -lconfig -L../../lib/ -lht16k33
 CC = gcc
 CFLAGS = -g -Wall
 

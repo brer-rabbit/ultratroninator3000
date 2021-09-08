@@ -1,4 +1,20 @@
-** initialize_game_model
+/* Copyright 2021 Kyle Farrell
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/* initialize_game_model
  *
  * get the backpacks up and going. Clear their mem first.
  **/
@@ -14,10 +30,9 @@
 #include <unistd.h>
 
 
+#include "mcp.h"
 #include "game_model.h"
 
-#define GAMES_LOCAL_ENV_VAR "GAMES_LOCAL"
-#define DEFAULT_GAMES_BASEDIR "/usr/local/games/ultratroninator_3000"
 
 #define MAX_GAMES 32
 #define MAX_PATH 512
@@ -46,13 +61,15 @@ static void free_display_strategy(struct display_strategy *display_strategy);
  */
 struct game_model* create_game_model() {
   struct game_model* this = (struct game_model*)malloc(sizeof(struct game_model));
-  char *games_directory;
+  char *games_base_directory, games_bin_directory[128];
 
-  if (! (games_directory = getenv(GAMES_LOCAL_ENV_VAR)) ) {
-    games_directory = DEFAULT_GAMES_BASEDIR;
+  if (! (games_base_directory = getenv(GAMES_LOCAL_ENV_VAR)) ) {
+    games_base_directory = DEFAULT_GAMES_BASEDIR;
   }
 
-  this->num_games = get_games(games_directory, this->games, MAX_GAMES);
+  snprintf(games_bin_directory, 128, "%s/bin/", games_base_directory);
+
+  this->num_games = get_games(games_bin_directory, this->games, MAX_GAMES);
   this->game_index = 0;
 
   if (this->num_games == 0) {

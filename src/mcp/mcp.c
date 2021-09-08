@@ -1,10 +1,27 @@
+/* Copyright 2021 Kyle Farrell
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <libconfig.h>
 
+#include "mcp.h"
 #include "game_model.h"
 #include "game_view.h"
 #include "game_controller.h"
@@ -22,6 +39,10 @@
  * signal handler for kill switch sends signal to child process
  * loop back to listening for user input
  */
+
+// configurable duration for event loop; default to 35ms
+#define EVENT_LOOP_DURATION_TIME_KEY "event_loop_duration"
+#define EVENT_LOOP_DURATION_TIME_DEFAULT 35
 
 
 static void launch_game(char *executable, char **envp) {
@@ -49,12 +70,25 @@ static void launch_game(char *executable, char **envp) {
 }
 
 
-static char* run_mvc() {
+static char* run_mvc(config_t *cfg) {
   struct game_model *model;
   struct game_view *view;
   struct game_controller *controller;
   char *executable = NULL;
   struct timeval tval_controller_start, tval_controller_end, tval_controller_time, tval_fixed_loop_time, tval_sleep_time;
+  int loop_time_ms;
+
+  if (cfg != NULL &&
+      config_lookup_int(cfg, EVENT_LOOP_DURATION_TIME_KEY, &loop_time_ms)) {
+    printf("using config loop duration of %d\n", loop_time_ms);
+    tval_fixed_loop_time.tv_sec = 0;
+    tval_fixed_loop_time.tv_usec = loop_time_ms * 1000;
+  }
+  else {
+    printf("No loop duration setting in configuration file.\n");
+    tval_fixed_loop_time.tv_sec = 0;
+    tval_fixed_loop_time.tv_usec = EVENT_LOOP_DURATION_TIME_DEFAULT * 1000;
+  }
 
   model = create_game_model();
   if (model == NULL) {
@@ -77,9 +111,6 @@ static char* run_mvc() {
 
   register_green_encoder_listener(view, controller_callback_green_rotary_encoder, controller);
 
-
-  tval_fixed_loop_time.tv_sec = 0;
-  tval_fixed_loop_time.tv_usec = 35000;
 
 
   // scroll through all the games.  Try and nail the loop timewise.
@@ -118,12 +149,42 @@ static char* run_mvc() {
 
 int main(int argc, char **argv, char **envp) {
   char *executable;
+  char *games_directory, config_filename[128];
+  config_t *cfg;
+
+  cfg = (config_t*)malloc(sizeof(config_t));
+
+  config_init(cfg);
+
+  if (! (games_directory = getenv(GAMES_LOCAL_ENV_VAR)) ) {
+    games_directory = DEFAULT_GAMES_BASEDIR;
+  }
+
+  snprintf(config_filename, 128, "%s%s", games_directory, CONFIG_FILENAME);
+
+  printf("looking for config: %s\n", config_filename);
+
+  /* configuration file ought to exist here... */
+  if(! config_read_file(cfg, config_filename))
+  {
+    fprintf(stderr, "no config file?\n%s:%d - %s\n", config_error_file(cfg),
+            config_error_line(cfg), config_error_text(cfg));
+    config_destroy(cfg);
+    free(cfg);
+    cfg = NULL;
+  }
 
 
   for (int i = 0; i < 3; ++i) {
-    executable = run_mvc();
+    executable = run_mvc(cfg);
     launch_game(executable, envp);
   }
+
+  if (cfg) {
+    config_destroy(cfg);
+    free(cfg);
+  }
+
 
   return 0;
 }
