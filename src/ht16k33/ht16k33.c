@@ -438,23 +438,31 @@ int HT16K33_COMMIT(HT16K33 *backpack) {
 
 /**
  * Read the key data from the HT16K33.
- * Key data is 39 bits of data, returned as 5 bytes
+ * Key data is 39 bits of data, returned as 6 bytes.
+ *      D7  D6  D5  D4  D3  D2  D1  D0
+ * KS0  K8  K7  K6  K5  K4  K3  K2  K1
+ * KS0   0   0   0  K13 K12 K11 K10 K9
+ *
+ * KS1  K8  K7  K6  K5  K4  K3  K2  K1
+ * KS1   0   0   0  K13 K12 K11 K10 K9
+ *
+ * KS2  K8  K7  K6  K5  K4  K3  K2  K1
+ * KS2   0   0   0  K13 K12 K11 K10 K9
+ *
+ * ROWS3~15  K1-K8   K9-16
+ * COM1      0x40    0x41
+ * COM2      0x42    0x43
+ * COM3      0x44    0x45
+ *
+ * this function reads 6 consecutive bytes starting from 0x40 and
+ * copies that to the passed in keyscan buffer.
+ *
+ * Success: return 0
+ * fail: return -1 if no bytes are read; otherwise returns the number of bytes read
  */
-#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
-#define BYTE_TO_BINARY(byte)  \
-  (byte & 0x80 ? '1' : '0'), \
-  (byte & 0x40 ? '1' : '0'), \
-  (byte & 0x20 ? '1' : '0'), \
-  (byte & 0x10 ? '1' : '0'), \
-  (byte & 0x08 ? '1' : '0'), \
-  (byte & 0x04 ? '1' : '0'), \
-  (byte & 0x02 ? '1' : '0'), \
-  (byte & 0x01 ? '1' : '0')
 
-unsigned char HT16K33_READ(HT16K33 *backpack) {
-  unsigned char buf[16];
-  int i;
-  unsigned char ret;
+int HT16K33_READ(HT16K33 *backpack, uint8_t keyscan[6]) {
+  int bytes_read;
 
   if(backpack->adapter_fd == -1) {
     backpack->lasterr = -1;
@@ -462,14 +470,11 @@ unsigned char HT16K33_READ(HT16K33 *backpack) {
   }
   
   // read from the i2c bus
-  //i = i2c_smbus_read_i2c_block_data(backpack->adapter_fd, 0x00, 16, &buf);
-  i = i2c_smbus_read_i2c_block_data(backpack->adapter_fd, 0x40, 6, buf);
+  bytes_read = i2c_smbus_read_i2c_block_data(backpack->adapter_fd, HT16K33_KEY_DATA_RAM_BASE, 6, keyscan);
 
-  /* printf("read %d bytes from i2c bus\n", i); */
-  /* for (int j = 0; j < i; ++j) { */
-  /*   printf("  addr 0x%x: %c%c%c%c%c%c%c%c\n", j, BYTE_TO_BINARY(buf[j])); */
-  /* } */
+  if (bytes_read != 6){
+    return bytes_read == 0 ? -1 : bytes_read;
+  }
 
-  ret = buf[0];
-  return ret;
+  return 0;
 }

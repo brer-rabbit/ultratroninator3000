@@ -82,6 +82,8 @@ typedef enum
 } ht16k33interrupt_t;
 
 
+#define HT16K33_KEY_DATA_RAM_BASE 0x40
+
 
 /**
   Adafruit 7 segment display
@@ -455,7 +457,7 @@ int HT16K33_COMMIT(HT16K33 *backpack);
 /**
  * Read they key scanner memeory from the HT16K33
  */
-unsigned char HT16K33_READ(HT16K33 *backpack);
+int HT16K33_READ(HT16K33 *backpack, uint8_t keyscan[6]);
 
 
 /** Some example of macros writing things on the display **/
