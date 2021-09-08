@@ -1,8 +1,10 @@
-/* display interace for decoupling view & model --
- * this is somewhere between a strategy and a bridge...
- * allow for decoupling of the model from the view, and
+/* display interface for decoupling view & model --
+ * this is somewhere between a strategy and a (broken?) bridge...
+ * Allow for decoupling of the model from the view, and
  * at the same time provide the model with flexiblity to
- * display a variety of different data
+ * vary the display based upon model data.
+ *
+ * Consider this a poor man's interface/abstract base class...
  */
 #ifndef DISPLAY_STRATEGY_H
 #define DISPLAY_STRATEGY_H
@@ -27,9 +29,16 @@ typedef union {
 
 struct display_strategy;
 
-// method to implement in the strategy for getting a particular display
+/** methods to implement to realize the strategy for getting a
+ * particular display:
+ * User of this interface will implement three
+ * f_get_display types, one for each display.
+ */
 typedef display_type (*f_get_display)(struct display_strategy*, display_value*);
 
+/** To utilize the strategy, one must also construct a struct display_strategy
+ * that gets passed to the view.
+ */
 struct display_strategy {
   void *userdata;
   f_get_display get_green_display;

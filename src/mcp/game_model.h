@@ -10,9 +10,13 @@
 
 struct game_model;
 
-/* init model.  Caller is responsible for allocating game_model memory */
+/* create a model for the caller.  Mem is allocated in the function;
+ * caller is responsible for freeing later via free_game_mode
+ */
 struct game_model* create_game_model();
 void free_game_model(struct game_model*);
+
+// Supported model methods
 
 void next_game(struct game_model *this);
 void previous_game(struct game_model *this);

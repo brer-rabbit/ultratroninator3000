@@ -1,4 +1,4 @@
-/** initialize_game_model
+** initialize_game_model
  *
  * get the backpacks up and going. Clear their mem first.
  **/
