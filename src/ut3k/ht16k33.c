@@ -465,7 +465,7 @@ int HT16K33_COMMIT(HT16K33 *backpack) {
  * fail: return -1 if no bytes are read; otherwise returns the number of bytes read
  */
 
-int HT16K33_READ(HT16K33 *backpack, uint8_t keyscan[6]) {
+int HT16K33_READ(HT16K33 *backpack, ht16k33keyscan_t keyscan) {
   int bytes_read;
 
   if(backpack->adapter_fd == -1) {

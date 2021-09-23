@@ -103,6 +103,9 @@ typedef enum
 } ht16k33interrupt_t;
 
 
+typedef uint8_t ht16k33keyscan_t[6];
+#define ht16k33keyscan_byte(keyscan_buffer, byte_num) ((*keyscan_buffer)[byte_num])
+
 #define HT16K33_KEY_DATA_RAM_BASE 0x40
 
 
@@ -478,7 +481,7 @@ int HT16K33_COMMIT(HT16K33 *backpack);
 /**
  * Read they key scanner memeory from the HT16K33
  */
-int HT16K33_READ(HT16K33 *backpack, uint8_t keyscan[6]);
+int HT16K33_READ(HT16K33 *backpack, ht16k33keyscan_t keyscan);
 
 
 /** Some example of macros writing things on the display **/

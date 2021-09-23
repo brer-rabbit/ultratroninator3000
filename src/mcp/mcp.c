@@ -124,13 +124,13 @@ static char* run_mvc(config_t *cfg) {
   while (executable == NULL) {
     // do the usleep first, otherwise the game launch is delayed by way too long
 
-    if (tval_sleep_time.tv_sec != 0) {
-       // this really shouldn't happen... loop takes <8 ms
-      printf("controller took %ld.%06ld; this is longer than event loop of %ld.%06ld seconds\n", tval_controller_time.tv_sec, tval_controller_time.tv_usec, tval_fixed_loop_time.tv_sec, tval_fixed_loop_time.tv_usec);
-    }
-    else {
+    if (tval_sleep_time.tv_sec == 0) {
       // sleep for the fixed loop time minus the time for the controller
       usleep(tval_sleep_time.tv_usec);
+    }
+    else {
+       // this really shouldn't happen... loop takes <8 ms
+      printf("controller took %ld.%06ld; this is longer than event loop of %ld.%06ld seconds\n", tval_controller_time.tv_sec, tval_controller_time.tv_usec, tval_fixed_loop_time.tv_sec, tval_fixed_loop_time.tv_usec);
     }
 
     // should this function even exist or just rely on callback?

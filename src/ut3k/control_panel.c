@@ -87,3 +87,13 @@ struct control_panel* create_control_panel() {
 
   return this;
 }
+
+
+void free_control_panel(struct control_panel *this) {
+  free(this);
+}
+
+
+int update_panel(struct control_panel *this, uint8_t keyscan[6]) {
+  return 0;
+}

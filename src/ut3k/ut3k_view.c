@@ -185,7 +185,7 @@ int free_ut3k_view(struct ut3k_view *this) {
  * update displays
  */
 void update_view(struct ut3k_view *this, struct display_strategy *display_strategy) {
-  uint8_t keyscan[6];
+  ht16k33keyscan_t keyscan;
   int keyscan_rc;
 
 

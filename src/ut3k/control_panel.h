@@ -23,6 +23,8 @@
 
 #include <stdint.h>
 
+#include "ht16k33.h"
+
 struct control_panel;
 
 /** create_control_panel
