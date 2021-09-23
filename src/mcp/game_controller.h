@@ -24,10 +24,10 @@
 struct game_controller;
 
 #include "game_model.h"
-#include "game_view.h"
+#include "ut3k_view.h"
 
 
-struct game_controller* create_game_controller(struct game_model*, struct game_view*);
+struct game_controller* create_game_controller(struct game_model*, struct ut3k_view*);
 void free_game_controller(struct game_controller *this);
 
 /** get_game_to_launch

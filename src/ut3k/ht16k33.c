@@ -1,4 +1,7 @@
 /**
+ * Copyright 2021 Kyle Farrell <ultratroninator3000@patentinvestor.com>
+ * Based upon work from Dino Ciuffetti
+ *
  * Copyright 2014 Dino Ciuffetti <dino@tuxweb.it>
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");

@@ -18,8 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "game_view.h"
-#include "game_model.h"
+#include "ut3k_view.h"
 
 #define GREEN_DISPLAY_ADDRESS HT16K33_ADDR_07
 #define BLUE_DISPLAY_ADDRESS HT16K33_ADDR_06
@@ -61,12 +60,12 @@ static void read_rotary_encoder(struct rotary_encoder *encoder, uint8_t pushbutt
 
 
 // I've no idea why this is parameterized here like this...why did I do that?
-typedef void (*f_show_displays)(struct game_view*, struct display_strategy*);
+typedef void (*f_show_displays)(struct ut3k_view*, struct display_strategy*);
 
 // implements f_show_displays
-static void ht16k33_alphanum_display_game(struct game_view *this, struct display_strategy *display);
+static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display_strategy *display);
 
-struct game_view {
+struct ut3k_view {
   f_show_displays show_displays;
 
   // Adafruit displays with backpacks
@@ -90,17 +89,17 @@ static int initialize_backpack(HT16K33 *backpack);
 
 
 
-/** create_alphanum_game_view
- * clients will want to call this function with a game_view to construct
+/** create_alphanum_ut3k_view
+ * clients will want to call this function with a ut3k_view to construct
  * an alphanum view.
  * Creates a view that utilizes three of the Adafruit HT16K33 alphanum
  * displays
  */
-struct game_view* create_alphanum_game_view() {
-  struct game_view *this;
+struct ut3k_view* create_alphanum_ut3k_view() {
+  struct ut3k_view *this;
   int rc = 0;
 
-  this = (struct game_view*) malloc(sizeof(struct game_view));
+  this = (struct ut3k_view*) malloc(sizeof(struct ut3k_view));
 
   this->show_displays = ht16k33_alphanum_display_game;
 
@@ -158,7 +157,7 @@ struct game_view* create_alphanum_game_view() {
 }
 
 
-int free_game_view(struct game_view *this) {
+int free_ut3k_view(struct ut3k_view *this) {
   int rc = 0;
   if (this == NULL) {
     return 1;
@@ -185,7 +184,7 @@ int free_game_view(struct game_view *this) {
  * callback to any hooks
  * update displays
  */
-void update_view(struct game_view *this, struct display_strategy *display_strategy) {
+void update_view(struct ut3k_view *this, struct display_strategy *display_strategy) {
   uint8_t keyscan[6];
   int keyscan_rc;
 
@@ -231,7 +230,7 @@ void update_view(struct game_view *this, struct display_strategy *display_strate
   * Register event handlers with the appropriate components.
   * Un(de?)register by calling with NULL values
   */
-void register_green_encoder_listener(struct game_view *view, f_controller_update_rotary_encoder f, void *userdata) {
+void register_green_encoder_listener(struct ut3k_view *view, f_controller_update_rotary_encoder f, void *userdata) {
   view->green_encoder_listener.callback = f;
   view->green_encoder_listener.userdata = userdata;
   view->green_encoder_listener.button_previous_state = 0;
@@ -250,7 +249,7 @@ void register_green_encoder_listener(struct game_view *view, f_controller_update
  * specific implementation for the Adafruit alphanum display
  */
 
-static void ht16k33_alphanum_display_game(struct game_view *this, struct display_strategy *display_strategy) {
+static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display_strategy *display_strategy) {
   int backpack, digit;
   display_value union_result;
   char *display[3];
@@ -367,37 +366,6 @@ static void ht16k33_alphanum_display_game(struct game_view *this, struct display
 
 
 
-/*
-void ht16k33_7_segment_display_game(game_model model) {
-  int backpack, digit;
-
-  for (backpack = 0; backpack < DISPLAY_ROWS; ++backpack) { // backpack
-    HT16K33_CLEAN_DIGIT(model->display_array[backpack], 2); // colon off
-    for (digit = 0; digit < 4; ++digit) {
-      if (model->string_array[backpack] == NULL ||
-	  model->string_array[backpack][digit] == '\0') {
-	break;
-      }
-      // digit two is the colon sep, so skip that
-      HT16K33_UPDATE_DIGIT(model->display_array[backpack], digit < 2 ? digit : digit + 1, model->string_array[backpack][digit], 0);
-
-    }
-
-    for (; digit < 5; ++digit) {
-      // clear any remaining digits
-      HT16K33_CLEAN_DIGIT(model->display_array[backpack], digit < 2 ? digit : digit + 1);
-    }
-
-    HT16K33_COMMIT(model->display_array[backpack]);
-  }
-
-}
-*/
-
-
-
-
-
 
 static int initialize_backpack(HT16K33 *backpack) {
   int rc;
@@ -415,7 +383,7 @@ static int initialize_backpack(HT16K33 *backpack) {
     return rc;
   }
 
-  rc = HT16K33_INTERRUPT(backpack, HT16K33_ROW15_DRIVER);
+  rc = HT16K33_INTERRUPT(backpack, HT16K33_ROW15_INTERRUPT_HIGH);
   if (rc != 0) {
     fprintf(stderr, "Error putting the HT16K33 led backpack to ROW15 Driver. Check your i2c bus (es. i2cdetect)\n");
     // you don't need to HT16K33_OFF() if HT16K33_ON() failed, but it's safe doing it.

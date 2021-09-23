@@ -25,8 +25,8 @@
 
 #include "mcp.h"
 #include "game_model.h"
-#include "game_view.h"
 #include "game_controller.h"
+#include "ut3k_view.h"
 
 
 /** Master Control Program
@@ -74,7 +74,7 @@ static void launch_game(char *executable, char **envp) {
 
 static char* run_mvc(config_t *cfg) {
   struct game_model *model;
-  struct game_view *view;
+  struct ut3k_view *view;
   struct game_controller *controller;
   char *executable = NULL;
   struct timeval tval_controller_start, tval_controller_end, tval_controller_time, tval_fixed_loop_time, tval_sleep_time;
@@ -98,7 +98,7 @@ static char* run_mvc(config_t *cfg) {
     return NULL;
   }
 
-  view = create_alphanum_game_view();
+  view = create_alphanum_ut3k_view();
   if (view == NULL) {
     printf("error creating game view\n");
     return NULL;
@@ -139,7 +139,7 @@ static char* run_mvc(config_t *cfg) {
 
     controller_update(controller);
     executable = get_game_to_launch(controller);
-    ut3k_iterate_mainloop();
+    ut3k_pa_mainloop_iterate();
 
     gettimeofday(&tval_controller_end, NULL);
     // tval_controller_time is duration of controller_update
@@ -153,8 +153,8 @@ static char* run_mvc(config_t *cfg) {
   sleep(2);
 
   free_game_controller(controller);
-  free_game_view(view);
   free_game_model(model);
+  free_ut3k_view(view);
 
   return executable;
 }
@@ -243,7 +243,9 @@ int main(int argc, char **argv, char **envp) {
   load_audio_from_config(cfg, games_directory);
 
 
-  /* everything setup, run the mvc in a loop */
+  /* everything setup, run the mvc in a loop --
+   * TODO: this will later be while (1) forever, but for now...
+   */
   for (int i = 0; i < 3; ++i) {
     executable = run_mvc(cfg);
     launch_game(executable, envp);

@@ -20,12 +20,12 @@
 
 struct game_controller {
   struct game_model *model;
-  struct game_view *view;
+  struct ut3k_view *view;
   char *game_exec_to_launch;
 };
 
 
-struct game_controller* create_game_controller(struct game_model *model, struct game_view *view) {
+struct game_controller* create_game_controller(struct game_model *model, struct ut3k_view *view) {
   struct game_controller *this;
 
   this = (struct game_controller*) malloc(sizeof(struct game_controller));

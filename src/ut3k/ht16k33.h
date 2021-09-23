@@ -1,6 +1,6 @@
 /**
  * Copyright 2021 Kyle Farrell <ultratroninator3000@patentinvestor.com>
- * Based upn work from Dino Ciuffetti
+ * Based upon work from Dino Ciuffetti
  *
  * Copyright 2014 Dino Ciuffetti <dino@tuxweb.it>
  * 
