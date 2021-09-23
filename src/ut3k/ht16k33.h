@@ -104,7 +104,8 @@ typedef enum
 
 
 typedef uint8_t ht16k33keyscan_t[6];
-#define ht16k33keyscan_byte(keyscan_buffer, byte_num) ((*keyscan_buffer)[byte_num])
+
+#define ht16k33keyscan_byte(keyscan_buffer, byte_num) ((*(keyscan_buffer))[(byte_num)])
 
 #define HT16K33_KEY_DATA_RAM_BASE 0x40
 

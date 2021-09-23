@@ -47,8 +47,8 @@ char* get_game_to_launch(struct game_controller *this) {
   return game_to_launch;
 }
 
-void controller_update(struct game_controller *this) {
-  update_view(this->view, get_display_strategy(this->model));
+void controller_update(struct game_controller *this, uint32_t clock) {
+  update_view(this->view, get_display_strategy(this->model), clock);
 }
 
 
@@ -58,5 +58,18 @@ void controller_update(struct game_controller *this) {
  * implements f_view_control_panel_updates
  */
 void controller_callback_control_panel(struct control_panel *control_panel, void *userdata) {
-  printf("controller control panel callback\n");
+  struct game_controller *this = (struct game_controller*) userdata;
+
+  const struct button *green_button = get_green_button(control_panel);
+
+  if (green_button->state_count == 0) {
+    printf("green button changed from %d to %d after %d cycles\n",
+	   green_button->button_previous_state,
+	   green_button->button_state,
+	   green_button->button_previous_state_count);
+    if (green_button->button_state == 1) {
+      next_game(this->model);
+    }
+  }
+	 
 }

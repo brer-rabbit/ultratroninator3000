@@ -25,7 +25,61 @@
 
 #include "ht16k33.h"
 
+
+// ok, wierd hybrid of data hiding and exposure here.  The control_panel
+// is an opaque struct.  The various "get" methods return non-opaque
+// data defined below (button, selectors, etc).
+
 struct control_panel;
+
+
+// a basic button
+struct button {
+  uint8_t button_state; // what is it
+  uint32_t state_count; // number of cycles in this state: 0 means toggled: it only goes up from there!
+  uint8_t button_previous_state; // what was it
+  uint32_t button_previous_state_count; // how long was it pressed before changing
+};
+
+
+
+// these rotary encoders include a push button
+struct rotary_encoder {
+  uint8_t encoder_state;  // hold previous & current here, 4 bits
+  int8_t encoder_delta;  // -1, 0, 1: what you're probably most interested in
+
+  struct button button;  // the press button
+};
+
+
+
+// selector has one of four values
+enum selector_value { ZERO = 0, ONE = 1, TWO = 2, THREE = 3 };
+struct selector {
+  enum selector_value selector_state;
+  enum selector_value selector_previous_state;
+  uint32_t state_count; // number of cycles in this state: 0 means toggled
+};
+
+
+// joystick is only a single direction and includes a pushbutton
+enum direction { UP, DOWN, LEFT, RIGHT, CENTERED };
+struct joystick {
+  enum direction direction;
+  enum direction direction_previous;
+  uint32_t state_count;
+  struct button button;
+};
+
+
+// toggle switches we do as a single byte
+struct toggles {
+  uint8_t toggles_state;
+  uint8_t toggles_previous_state;
+  uint8_t toggles_toggled;  // never thought I'd write that
+  uint32_t state_count;
+};
+
 
 /** create_control_panel
  *
@@ -48,7 +102,15 @@ void free_control_panel(struct control_panel *this);
  * the counts that are provided in the various accessor methods
  * are based upon calls to update_panel to increment the counts.
  */
-int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan);
+int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan, uint32_t clock);
+
+
+/** get_green_button
+ * get the green button state.
+ * Caller gets a pointer to a struct back that should not be modified
+ * or free'd.
+ */
+const struct button* get_green_button(struct control_panel *this);
 
 
 /** get_green_selector

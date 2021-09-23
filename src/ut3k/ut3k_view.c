@@ -162,7 +162,7 @@ int free_ut3k_view(struct ut3k_view *this) {
  * callback to any hooks
  * update displays
  */
-void update_view(struct ut3k_view *this, struct display_strategy *display_strategy) {
+void update_view(struct ut3k_view *this, struct display_strategy *display_strategy, uint32_t clock) {
   ht16k33keyscan_t keyscan;
   int keyscan_rc;
 
@@ -176,7 +176,7 @@ void update_view(struct ut3k_view *this, struct display_strategy *display_strate
   //  	 keyscan[0], keyscan[1], keyscan[2], keyscan[3], keyscan[4], keyscan[5]);
 
   // update control panel here...
-  update_control_panel(this->control_panel, keyscan);
+  update_control_panel(this->control_panel, keyscan, clock);
 
   if (this->control_panel_listener) {
     (*this->control_panel_listener)(this->control_panel, this->control_panel_listener_userdata);

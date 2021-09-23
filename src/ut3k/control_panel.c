@@ -22,13 +22,37 @@
 
 
 // Addresses
-#define GREEN_ROTARY_ENCODER_BYTE 5
-#define GREEN_ROTARY_ENCODER_PUSHBUTTON_BIT 3
-#define GREEN_ROTARY_ENCODER_SIGA_BIT 1
+// Byte is offset from zero
+// Bit is number of bits to shift right to shift it to least significant
+static const int GREEN_ROTARY_ENCODER_BYTE = 5;
+static const int GREEN_ROTARY_ENCODER_SIGA_BIT = 1;
+static const int GREEN_ROTARY_ENCODER_PUSHBUTTON_BIT = 3;
 
-#define BLUE_ROTARY_ENCODER_BYTE 0
-#define BLUE_ROTARY_ENCODER_PUSHBUTTON_BIT 3
-#define BLUE_ROTARY_ENCODER_SIGA_BIT 1
+static const int GREEN_SELECTOR_BYTE = 2;
+static const int GREEN_SELECTOR_FIRST_BIT = 0;
+
+static const int GREEN_BUTTON_BYTE = 2;
+static const int GREEN_BUTTON_BIT = 0;
+
+
+static const int BLUE_SELECTOR_BYTE = 3;
+static const int BLUE_SELECTOR_FIRST_BIT = 0;
+
+static const int BLUE_ROTARY_ENCODER_BYTE = 0;
+static const int BLUE_ROTARY_ENCODER_SIGA_BIT = 1;
+static const int BLUE_ROTARY_ENCODER_PUSHBUTTON_BIT = 3;
+
+static const int BLUE_BUTTON_BYTE = 3;
+static const int BLUE_BUTTON_BIT = 1;
+
+
+static const int RED_ROTARY_ENCODER_BYTE = 0;
+static const int RED_ROTARY_ENCODER_SIGA_BIT = 4;
+static const int RED_ROTARY_ENCODER_PUSHBUTTON_BIT = 5;
+
+static const int RED_BUTTON_BYTE = 6;
+static const int RED_BUTTON_BIT = 0;
+
 
 // index via previous_state<<2 | current_state.
 // I tried many different mappings- this seemed to work best.
@@ -36,53 +60,6 @@
 const static int encoder_lookup_table[] = {0,1,-1,0,0,0,0,0,0,0,0,0,0,-1,1,0};
 
 
-
-
-
-
-// a basic button
-struct button {
-  uint8_t button_previous_state; // what was it
-  uint8_t button_state; // what is it
-  uint32_t state_count; // number of cycles in this state: 0 means toggled: it only goes up from there!
-};
-
-
-// these rotary encoders include a push button
-struct rotary_encoder {
-  uint8_t encoder_state;  // hold previous & current here, 4 bits
-  int8_t encoder_delta;  // -1, 0, 1: what you're probably most interested in
-
-  struct button button;  // the press button
-};
-
-
-
-// selector has one of four values
-enum selector_value { ZERO = 0, ONE = 1, TWO = 2, THREE = 3 };
-struct selector {
-  enum selector_value selector_state;
-  enum selector_value selector_previous_state;
-  uint32_t state_count; // number of cycles in this state: 0 means toggled
-};
-
-
-// joystick is only a single direction and includes a pushbutton
-enum direction { UP, DOWN, LEFT, RIGHT, CENTERED };
-struct joystick {
-  enum direction direction;
-  enum direction direction_previous;
-  uint32_t state_count;
-  struct button button;
-};
-
-
-// toggle switches we do as a single byte
-struct toggles {
-  uint8_t toggles_state;
-  uint8_t toggles_previous_state;
-  uint8_t toggles_toggled;  // never thought I'd write that
-};
 
 struct control_panel {
   struct selector green_selector;
@@ -104,6 +81,14 @@ struct control_panel {
 struct control_panel* create_control_panel() {
   struct control_panel *this = (struct control_panel*) malloc(sizeof(struct control_panel));
 
+  this->green_selector.selector_state = ZERO;
+  this->green_selector.selector_previous_state = ZERO;
+  this->green_selector.state_count = 0;
+
+  this->green_button.button_previous_state = 0;
+  this->green_button.button_state = 0;
+  this->green_button.state_count = 0;
+
   return this;
 }
 
@@ -113,7 +98,24 @@ void free_control_panel(struct control_panel *this) {
 }
 
 
-int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan) {
-  printf("updating panel...\n");
+int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan, uint32_t clock) {
+
+  if ((ht16k33keyscan_byte(&keyscan, GREEN_BUTTON_BYTE) >> GREEN_BUTTON_BIT & 0b1) != this->green_button.button_state) {
+    this->green_button.button_previous_state = this->green_button.button_state;
+    this->green_button.button_state = ht16k33keyscan_byte(&keyscan, GREEN_BUTTON_BYTE) >> GREEN_BUTTON_BIT & 0b1;
+    this->green_button.button_previous_state_count = this->green_button.state_count;
+    this->green_button.state_count = 0;
+  }
+  else {
+    this->green_button.state_count++;
+  }
+
+
   return 0;
+}
+
+
+
+const struct button* get_green_button(struct control_panel *this) {
+  return (const struct button*) &(this->green_button);
 }

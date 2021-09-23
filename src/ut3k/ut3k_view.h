@@ -46,19 +46,11 @@ int free_ut3k_view(struct ut3k_view *this);
  * update all 3 displays and any other visible components
  * Return current state of control panel.
  */
-void update_view(struct ut3k_view*, struct display_strategy*);
+void update_view(struct ut3k_view*, struct display_strategy*, uint32_t clock);
 
 
 /* Listeners / callback */
 
-/** callback for rotary encoder if something happened.
- * by something- either rotation or button push.  Callback provide:
- * delta (-1, 0, 1) for direction of change
- * 0/1 button state is not pushed / pushed
- * 0/1 if the button changed state
- * user data in a void* pointer
- */
-typedef void (*f_controller_update_rotary_encoder)(int8_t delta, uint8_t button_pushed, uint8_t button_changed, void*);
 typedef void (*f_view_control_panel_listener)(struct control_panel *control_panel, void *userdata);
 
 
@@ -66,8 +58,6 @@ typedef void (*f_view_control_panel_listener)(struct control_panel *control_pane
  /**
   * Register event handlers with the appropriate components
   */
-void register_green_encoder_listener(struct ut3k_view *view, f_controller_update_rotary_encoder f, void *userdata);
- 
 void register_control_panel_listener(struct ut3k_view *view, f_view_control_panel_listener f, void *userdata);
 
 

@@ -79,6 +79,7 @@ static char* run_mvc(config_t *cfg) {
   char *executable = NULL;
   struct timeval tval_controller_start, tval_controller_end, tval_controller_time, tval_fixed_loop_time, tval_sleep_time;
   int loop_time_ms;
+  uint32_t clock_iterations = 0; // count of iterations through event loop
 
   if (cfg != NULL &&
       config_lookup_int(cfg, CONFIG_EVENT_LOOP_DURATION_TIME_KEY, &loop_time_ms)) {
@@ -137,7 +138,7 @@ static char* run_mvc(config_t *cfg) {
     // could instead just make this a loop around update_view?
     gettimeofday(&tval_controller_start, NULL);
 
-    controller_update(controller);
+    controller_update(controller, clock_iterations);
     executable = get_game_to_launch(controller);
     ut3k_pa_mainloop_iterate();
 
@@ -147,6 +148,7 @@ static char* run_mvc(config_t *cfg) {
     timersub(&tval_controller_end, &tval_controller_start, &tval_controller_time);
     timersub(&tval_fixed_loop_time, &tval_controller_time, &tval_sleep_time);
 
+    clock_iterations++;
   }
 
 

@@ -37,7 +37,7 @@ void free_game_controller(struct game_controller *this);
  */
 char* get_game_to_launch(struct game_controller *this);
 
-void controller_update(struct game_controller *this);
+void controller_update(struct game_controller *this, uint32_t clock);
 
 void controller_callback_control_panel(struct control_panel *control_panel, void *userdata);
 
