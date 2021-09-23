@@ -111,7 +111,7 @@ static char* run_mvc(config_t *cfg) {
   }
 
 
-  register_green_encoder_listener(view, controller_callback_green_rotary_encoder, controller);
+  register_control_panel_listener(view, controller_callback_control_panel, controller);
 
 
   // init

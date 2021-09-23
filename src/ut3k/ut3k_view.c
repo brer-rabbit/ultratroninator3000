@@ -31,32 +31,6 @@
 #define DISPLAY_RED 2
 #define DISPLAY_ROWS 3
 
-#define GREEN_ROTARY_ENCODER_BYTE 5
-#define GREEN_ROTARY_ENCODER_PUSHBUTTON_BIT 3
-#define GREEN_ROTARY_ENCODER_SIGA_BIT 1
-
-#define BLUE_ROTARY_ENCODER_BYTE 0
-#define BLUE_ROTARY_ENCODER_PUSHBUTTON_BIT 3
-#define BLUE_ROTARY_ENCODER_SIGA_BIT 1
-
-// index via previous_state<<2 | current_state.
-// I tried many different mappings- this seemed to work best.
-// Maybe the ht16k33 scan rate & debouncing are coming into play?
-//const static int encoder_lookup_table[] = {0,1,-1,0,0,0,0,0,0,0,0,0,0,-1,1,0};
-const static int encoder_lookup_table[] = {0,1,-1,0,0,0,0,0,0,0,0,0,0,-1,1,0};
-
-struct rotary_encoder {
-  f_controller_update_rotary_encoder callback;
-  void *userdata;
-  uint8_t button_previous_state;
-  uint8_t button_state;
-  uint8_t encoder_state;  // hold previous & current here, 4 bits
-  uint8_t encoder_prev_state;  // hold previous & current here, 4 bits
-  int encoder_ignore_count; // rotary encoder seems to work best if ignored for 1 read after a change
-  int8_t encoder_delta;  // -1, 0, 1
-};
-
-static void read_rotary_encoder(struct rotary_encoder *encoder, uint8_t pushbutton, uint8_t rotary_encoder);
 
 
 // I've no idea why this is parameterized here like this...why did I do that?
@@ -79,7 +53,10 @@ struct ut3k_view {
   // bunch-o-knobs and the 3 sets of discrete LEDs are here
   HT16K33 *inputs_and_leds;
 
-  struct rotary_encoder green_encoder_listener;
+  struct control_panel *control_panel;
+  void *control_panel_listener_userdata;  // for callback
+  f_view_control_panel_listener control_panel_listener;  // the callback
+
 };
 
 
@@ -150,8 +127,7 @@ struct ut3k_view* create_alphanum_ut3k_view() {
   }
 
 
-  // clear all callbacks
-  this->green_encoder_listener.callback = NULL;
+  this->control_panel = create_control_panel();
 
   return this;
 }
@@ -162,6 +138,8 @@ int free_ut3k_view(struct ut3k_view *this) {
   if (this == NULL) {
     return 1;
   }
+
+  free_control_panel(this->control_panel);
 
   HT16K33_CLOSE(this->green_display);
   HT16K33_CLOSE(this->blue_display);
@@ -198,20 +176,10 @@ void update_view(struct ut3k_view *this, struct display_strategy *display_strate
   //  	 keyscan[0], keyscan[1], keyscan[2], keyscan[3], keyscan[4], keyscan[5]);
 
   // update control panel here...
+  update_control_panel(this->control_panel, keyscan);
 
-  if (this->green_encoder_listener.callback) {
-    uint8_t button_state_bit =
-      (keyscan[GREEN_ROTARY_ENCODER_BYTE] >> GREEN_ROTARY_ENCODER_PUSHBUTTON_BIT) & 0b1;
-    uint8_t rotary_encoder_bits =
-      (keyscan[GREEN_ROTARY_ENCODER_BYTE] >> GREEN_ROTARY_ENCODER_SIGA_BIT) & 0b11;
-
-    read_rotary_encoder(&this->green_encoder_listener, button_state_bit, rotary_encoder_bits);
-
-    (*this->green_encoder_listener.callback)(this->green_encoder_listener.encoder_delta,
-					     this->green_encoder_listener.button_state,
-					     this->green_encoder_listener.button_state ^ this->green_encoder_listener.button_previous_state,
-					     this->green_encoder_listener.userdata);
-
+  if (this->control_panel_listener) {
+    (*this->control_panel_listener)(this->control_panel, this->control_panel_listener_userdata);
   }
 
 
@@ -219,6 +187,7 @@ void update_view(struct ut3k_view *this, struct display_strategy *display_strate
   // maybe I should switch to an OO language?
   // show_displays is expected to update all visual info on the HT16K33s
   this->show_displays(this, display_strategy);
+
 }
 
 
@@ -226,19 +195,11 @@ void update_view(struct ut3k_view *this, struct display_strategy *display_strate
 
 /* Listeners ---------------------------------------------------------- */
 
- /**
-  * Register event handlers with the appropriate components.
-  * Un(de?)register by calling with NULL values
-  */
-void register_green_encoder_listener(struct ut3k_view *view, f_controller_update_rotary_encoder f, void *userdata) {
-  view->green_encoder_listener.callback = f;
-  view->green_encoder_listener.userdata = userdata;
-  view->green_encoder_listener.button_previous_state = 0;
-  view->green_encoder_listener.button_state = 0;
-  view->green_encoder_listener.encoder_state = 0;
-  view->green_encoder_listener.encoder_prev_state = 0;
-  view->green_encoder_listener.encoder_ignore_count = 0;
-  view->green_encoder_listener.encoder_delta = 0;
+
+
+void register_control_panel_listener(struct ut3k_view *view, f_view_control_panel_listener f, void *userdata) {
+  view->control_panel_listener = f;
+  view->control_panel_listener_userdata = userdata;
 }
 
 
@@ -414,31 +375,3 @@ static int initialize_backpack(HT16K33 *backpack) {
   return rc;
 }
 
-
-/* read_rotary_encoder
- * interpret the rotary encoder data and set fields on the
- * struct rotary_encoder
- *
- */
-static void read_rotary_encoder(struct rotary_encoder *encoder, uint8_t pushbutton, uint8_t rotary_encoder) {
-  uint8_t encoder_tmp_state = encoder->encoder_state << 2;
-
-  // TODO: this needs some improvement.  Interface isn't quite as
-  // fluid as it ought to be.
-
-  // track encoder state even if we're ignoring the result
-  // algorithm is influenced by
-  // http://makeatronics.blogspot.com/2013/02/efficiently-reading-quadrature-with.html
-  encoder_tmp_state = encoder_tmp_state | rotary_encoder;
-
-  if (encoder_tmp_state != encoder->encoder_prev_state) {
-    encoder->encoder_state = encoder_tmp_state & 0b1111;
-    encoder->encoder_prev_state = encoder->encoder_state;
-  }
-
-  encoder->encoder_delta = encoder_lookup_table[encoder->encoder_state];
-
-  // pushbutton
-  encoder->button_previous_state = encoder->button_state;
-  encoder->button_state = pushbutton;
-}

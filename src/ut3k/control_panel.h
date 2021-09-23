@@ -40,7 +40,7 @@ struct control_panel* create_control_panel();
 void free_control_panel(struct control_panel *this);
 
 
-/** update_panel
+/** update_control_panel
  *
  * take the 6 bytes from the HT16K33 and map it to something
  * interpretable in terms of buttons and cool stuff.
@@ -48,7 +48,7 @@ void free_control_panel(struct control_panel *this);
  * the counts that are provided in the various accessor methods
  * are based upon calls to update_panel to increment the counts.
  */
-int update_panel(struct control_panel *this, uint8_t keyscan[6]);
+int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan);
 
 
 /** get_green_selector

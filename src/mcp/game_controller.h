@@ -25,6 +25,7 @@ struct game_controller;
 
 #include "game_model.h"
 #include "ut3k_view.h"
+#include "control_panel.h"
 
 
 struct game_controller* create_game_controller(struct game_model*, struct ut3k_view*);
@@ -38,6 +39,6 @@ char* get_game_to_launch(struct game_controller *this);
 
 void controller_update(struct game_controller *this);
 
-void controller_callback_green_rotary_encoder(int8_t delta, uint8_t button_pushed, uint8_t button_changed, void *userdata);
+void controller_callback_control_panel(struct control_panel *control_panel, void *userdata);
 
 #endif

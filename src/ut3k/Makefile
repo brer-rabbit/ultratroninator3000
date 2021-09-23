@@ -1,13 +1,14 @@
-LIBTARGET = libht16k33.a
+LIBTARGET = libut3k.a
 INCLUDE = ../../include
 LIBDIR = ../../lib
-LIBS = -li2c -lpigpio
+# libs: just to note incase one is linking...
+LIBS = -lpulse -lsndfile 
 CC = gcc
 CFLAGS = -g -Wall
 
 .PHONY: default all clean
 
-default: $(LIBTARGET)
+default: install
 all: default
 
 OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))

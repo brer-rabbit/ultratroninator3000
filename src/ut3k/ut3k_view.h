@@ -25,7 +25,7 @@ struct ut3k_view;
 
 #include "display_strategy.h"
 #include "ht16k33.h"
-
+#include "control_panel.h"
 
 /** create_alphanum_ut3k_view
  *
@@ -44,7 +44,7 @@ int free_ut3k_view(struct ut3k_view *this);
 
 /** show the view of the model-
  * update all 3 displays and any other visible components
- * TBD: should this be responsible for reading as well? likely...
+ * Return current state of control panel.
  */
 void update_view(struct ut3k_view*, struct display_strategy*);
 
@@ -59,8 +59,8 @@ void update_view(struct ut3k_view*, struct display_strategy*);
  * user data in a void* pointer
  */
 typedef void (*f_controller_update_rotary_encoder)(int8_t delta, uint8_t button_pushed, uint8_t button_changed, void*);
+typedef void (*f_view_control_panel_listener)(struct control_panel *control_panel, void *userdata);
 
-/* TODO: callbacks ought to get a "control_panel" object so other state can be accessed */
 
 
  /**
@@ -68,6 +68,7 @@ typedef void (*f_controller_update_rotary_encoder)(int8_t delta, uint8_t button_
   */
 void register_green_encoder_listener(struct ut3k_view *view, f_controller_update_rotary_encoder f, void *userdata);
  
+void register_control_panel_listener(struct ut3k_view *view, f_view_control_panel_listener f, void *userdata);
 
 
 #endif

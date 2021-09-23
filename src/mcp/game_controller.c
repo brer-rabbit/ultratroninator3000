@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "control_panel.h"
 #include "game_controller.h"
 
 struct game_controller {
@@ -50,21 +51,12 @@ void controller_update(struct game_controller *this) {
   update_view(this->view, get_display_strategy(this->model));
 }
 
-void controller_callback_green_rotary_encoder(int8_t delta, uint8_t button_pushed, uint8_t button_changed, void *userdata) {
-  struct game_controller *this = (struct game_controller*) userdata;
-
-  if (button_pushed) { // launch game!
-    this->game_exec_to_launch = get_current_executable(this->model);
-    set_blink(this->model, 1);
-    return; // don't process any delta from the rotary encoder
-  }
-
-  if (delta > 0) {
-    next_game(this->model);
-  }
-  else if (delta < 0) {
-    previous_game(this->model);
-  }
 
 
+/** controller_callback_green_rotary_encoder
+ * 
+ * implements f_view_control_panel_updates
+ */
+void controller_callback_control_panel(struct control_panel *control_panel, void *userdata) {
+  printf("controller control panel callback\n");
 }

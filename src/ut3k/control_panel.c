@@ -21,6 +21,25 @@
 #include "control_panel.h"
 
 
+// Addresses
+#define GREEN_ROTARY_ENCODER_BYTE 5
+#define GREEN_ROTARY_ENCODER_PUSHBUTTON_BIT 3
+#define GREEN_ROTARY_ENCODER_SIGA_BIT 1
+
+#define BLUE_ROTARY_ENCODER_BYTE 0
+#define BLUE_ROTARY_ENCODER_PUSHBUTTON_BIT 3
+#define BLUE_ROTARY_ENCODER_SIGA_BIT 1
+
+// index via previous_state<<2 | current_state.
+// I tried many different mappings- this seemed to work best.
+// Maybe the ht16k33 scan rate & debouncing are coming into play?
+const static int encoder_lookup_table[] = {0,1,-1,0,0,0,0,0,0,0,0,0,0,-1,1,0};
+
+
+
+
+
+
 // a basic button
 struct button {
   uint8_t button_previous_state; // what was it
@@ -94,6 +113,7 @@ void free_control_panel(struct control_panel *this) {
 }
 
 
-int update_panel(struct control_panel *this, uint8_t keyscan[6]) {
+int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan) {
+  printf("updating panel...\n");
   return 0;
 }
