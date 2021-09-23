@@ -382,6 +382,7 @@ int HT16K33_UPDATE_ALPHANUM(HT16K33 *backpack, unsigned short digit, const unsig
   alphanum = ht16k33_alphanum[value];
   backpack->display_buffer.com[2*digit] = (uint8_t)alphanum;
   backpack->display_buffer.com[2*digit + 1] = (uint8_t) (alphanum >> 8);
+
   return 0;
 }
 

@@ -15,9 +15,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 #include <libconfig.h>
 
@@ -41,8 +43,9 @@
  */
 
 // configurable duration for event loop; default to 35ms
-#define EVENT_LOOP_DURATION_TIME_KEY "event_loop_duration"
+#define CONFIG_EVENT_LOOP_DURATION_TIME_KEY "event_loop_duration"
 #define EVENT_LOOP_DURATION_TIME_DEFAULT 35
+#define CONFIG_SOUND_LIST_KEY "sound_list"
 
 
 static void launch_game(char *executable, char **envp) {
@@ -78,7 +81,7 @@ static char* run_mvc(config_t *cfg) {
   int loop_time_ms;
 
   if (cfg != NULL &&
-      config_lookup_int(cfg, EVENT_LOOP_DURATION_TIME_KEY, &loop_time_ms)) {
+      config_lookup_int(cfg, CONFIG_EVENT_LOOP_DURATION_TIME_KEY, &loop_time_ms)) {
     printf("using config loop duration of %d\n", loop_time_ms);
     tval_fixed_loop_time.tv_sec = 0;
     tval_fixed_loop_time.tv_usec = loop_time_ms * 1000;
@@ -116,16 +119,17 @@ static char* run_mvc(config_t *cfg) {
   tval_sleep_time.tv_usec = 0;
   
 
+  // event loop
   // scroll through all the games.  Try and nail the loop timewise.
   while (executable == NULL) {
-    // do the usleep first, otherwise the game launch is delayed by ~30 ms
+    // do the usleep first, otherwise the game launch is delayed by way too long
 
     if (tval_sleep_time.tv_sec != 0) {
-       // this really shouldn't happen... loop takes ~6 ms.  Expect 0.025-0.029
-      printf("controller took wayyyy too long\n");
+       // this really shouldn't happen... loop takes <8 ms
+      printf("controller took %ld.%06ld; this is longer than event loop of %ld.%06ld seconds\n", tval_controller_time.tv_sec, tval_controller_time.tv_usec, tval_fixed_loop_time.tv_sec, tval_fixed_loop_time.tv_usec);
     }
     else {
-      // sleep for the fixed loop time minux the time for the controller
+      // sleep for the fixed loop time minus the time for the controller
       usleep(tval_sleep_time.tv_usec);
     }
 
@@ -135,8 +139,11 @@ static char* run_mvc(config_t *cfg) {
 
     controller_update(controller);
     executable = get_game_to_launch(controller);
+    ut3k_iterate_mainloop();
+
     gettimeofday(&tval_controller_end, NULL);
     // tval_controller_time is duration of controller_update
+    // tval_fixed_loop_time - tval_controller_time ==> time to sleep between iterations
     timersub(&tval_controller_end, &tval_controller_start, &tval_controller_time);
     timersub(&tval_fixed_loop_time, &tval_controller_time, &tval_sleep_time);
 
@@ -153,6 +160,49 @@ static char* run_mvc(config_t *cfg) {
 }
 
 
+/** the config file is a bit of an indirection-
+ * the lookup gets a list
+ * foreach item in the list:
+ *  lookup that list
+ *  load a random sound
+ */
+
+void load_audio_from_config(config_t *cfg, char *games_directory) {
+  int sound_array_setting_length, sound_samples_array_setting_length, random_sample_index;
+  config_setting_t *key_sound_array, *key_sound_samples_array;
+  const char *sound_type_key, *sample_name;
+  char sample_filename[256];
+
+  if (cfg == NULL) {
+    return;
+  }
+
+  key_sound_array = config_lookup(cfg, CONFIG_SOUND_LIST_KEY);
+
+  if (key_sound_array) {
+    if (config_setting_is_array(key_sound_array) == CONFIG_FALSE) {
+      printf("sound key array %s is not an array\n", CONFIG_SOUND_LIST_KEY);
+      return;
+    }
+
+    sound_array_setting_length = config_setting_length(key_sound_array);
+    printf("got array of length %d\n", sound_array_setting_length);
+
+    for (int sound_array_index = 0; sound_array_index < sound_array_setting_length; ++sound_array_index) {
+      sound_type_key = config_setting_get_string_elem(key_sound_array, sound_array_index);
+      key_sound_samples_array = config_lookup(cfg, sound_type_key);
+      sound_samples_array_setting_length = config_setting_length(key_sound_samples_array);
+      printf("for samples %s got array of length %d\n", sound_type_key, sound_samples_array_setting_length);
+      random_sample_index = rand() % sound_samples_array_setting_length;
+      sample_name = config_setting_get_string_elem(key_sound_samples_array, random_sample_index);
+      snprintf(sample_filename, 256, "%s%s%s", games_directory, SAMPLE_DIRNAME, sample_name);
+      printf("load %s --> %s --> %s\n", sound_type_key, sample_name, sample_filename);
+      ut3k_upload_wavfile(sample_filename, (char*) sound_type_key);
+    }
+  }
+}
+
+
 
 int main(int argc, char **argv, char **envp) {
   char *executable;
@@ -161,15 +211,20 @@ int main(int argc, char **argv, char **envp) {
 
   cfg = (config_t*)malloc(sizeof(config_t));
 
+  srand(time(NULL));
+
   config_init(cfg);
 
   if (! (games_directory = getenv(GAMES_LOCAL_ENV_VAR)) ) {
     games_directory = DEFAULT_GAMES_BASEDIR;
   }
 
-  snprintf(config_filename, 128, "%s%s", games_directory, CONFIG_FILENAME);
+  snprintf(config_filename, 128, "%s%s", games_directory, CONFIG_DIRNAME);
+  config_set_include_dir(cfg, config_filename);
 
+  strcat(config_filename, CONFIG_FILENAME);
   printf("looking for config: %s\n", config_filename);
+
 
   /* configuration file ought to exist here... */
   if(! config_read_file(cfg, config_filename))
@@ -181,7 +236,14 @@ int main(int argc, char **argv, char **envp) {
     cfg = NULL;
   }
 
+  /* start audio */
+  ut3k_new_audio_context();
+ 
+  /* load audio specified from config */
+  load_audio_from_config(cfg, games_directory);
 
+
+  /* everything setup, run the mvc in a loop */
   for (int i = 0; i < 3; ++i) {
     executable = run_mvc(cfg);
     launch_game(executable, envp);

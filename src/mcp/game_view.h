@@ -27,10 +27,9 @@ struct game_view;
 #include "ht16k33.h"
 
 
-typedef void (*f_show_displays)(struct game_view*, struct display_strategy*);
-
-/** initialize_game_view
+/** create_alphanum_game_view
  *
+ * "constructor"
  * start the view off with a particular view opens HT16K33.
  * 
  */
@@ -38,6 +37,7 @@ struct game_view* create_alphanum_game_view();
 
 
 /** free resources from game view
+ * well technically, all games are set to free play here...
  */
 int free_game_view(struct game_view *this);
 
@@ -59,6 +59,9 @@ void update_view(struct game_view*, struct display_strategy*);
  * user data in a void* pointer
  */
 typedef void (*f_controller_update_rotary_encoder)(int8_t delta, uint8_t button_pushed, uint8_t button_changed, void*);
+
+/* TODO: callbacks ought to get a "control_panel" object so other state can be accessed */
+
 
  /**
   * Register event handlers with the appropriate components

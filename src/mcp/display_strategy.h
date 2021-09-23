@@ -54,9 +54,15 @@ struct display_strategy;
  * params the implementor of this will take:
  * struct display_strategy* : "this" struct display_strategy
  * display_value* : value to display on the ht16k33, set as one type of a union
- * ht16k33blink_t : blink enum from ht16k33.h
- * ht16k33brightness_t : brightness enum from ht16k33.h
- * 
+ * ht16k33blink_t* : blink enum from ht16k33.h
+ * ht16k33brightness_t* : brightness enum from ht16k33.h
+ *
+ * Note that the last 3 args (display_value, blink, brightness) is
+ * expected to be set by the client on every call.  Leaving it unset
+ * will produce undefined results.
+ *
+ * for the LEDs, the only valid display_type is int.  The low 8 bits
+ * are for red, next 8 for blue, third 8 green.
  */
 typedef display_type (*f_get_display)(struct display_strategy*, display_value*, ht16k33blink_t*, ht16k33brightness_t*);
 
@@ -76,6 +82,11 @@ struct display_strategy {
   f_get_display get_red_display;
   ht16k33blink_t red_blink;
   ht16k33brightness_t red_brightness;
+
+  f_get_display get_leds_display;
+  ht16k33blink_t leds_blink;
+  ht16k33brightness_t leds_brightness;
+
 };
 
 

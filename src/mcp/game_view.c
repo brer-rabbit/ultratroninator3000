@@ -32,13 +32,18 @@
 #define DISPLAY_RED 2
 #define DISPLAY_ROWS 3
 
-#define GREEN_ROTARY_ENCODER_BYTE 0
-#define GREEN_ROTARY_ENCODER_PUSHBUTTON_BIT 4
-#define GREEN_ROTARY_ENCODER_SIGA_BIT 5
+#define GREEN_ROTARY_ENCODER_BYTE 5
+#define GREEN_ROTARY_ENCODER_PUSHBUTTON_BIT 3
+#define GREEN_ROTARY_ENCODER_SIGA_BIT 1
+
+#define BLUE_ROTARY_ENCODER_BYTE 0
+#define BLUE_ROTARY_ENCODER_PUSHBUTTON_BIT 3
+#define BLUE_ROTARY_ENCODER_SIGA_BIT 1
 
 // index via previous_state<<2 | current_state.
 // I tried many different mappings- this seemed to work best.
 // Maybe the ht16k33 scan rate & debouncing are coming into play?
+//const static int encoder_lookup_table[] = {0,1,-1,0,0,0,0,0,0,0,0,0,0,-1,1,0};
 const static int encoder_lookup_table[] = {0,1,-1,0,0,0,0,0,0,0,0,0,0,-1,1,0};
 
 struct rotary_encoder {
@@ -47,12 +52,19 @@ struct rotary_encoder {
   uint8_t button_previous_state;
   uint8_t button_state;
   uint8_t encoder_state;  // hold previous & current here, 4 bits
+  uint8_t encoder_prev_state;  // hold previous & current here, 4 bits
   int encoder_ignore_count; // rotary encoder seems to work best if ignored for 1 read after a change
   int8_t encoder_delta;  // -1, 0, 1
 };
 
 static void read_rotary_encoder(struct rotary_encoder *encoder, uint8_t pushbutton, uint8_t rotary_encoder);
 
+
+// I've no idea why this is parameterized here like this...why did I do that?
+typedef void (*f_show_displays)(struct game_view*, struct display_strategy*);
+
+// implements f_show_displays
+static void ht16k33_alphanum_display_game(struct game_view *this, struct display_strategy *display);
 
 struct game_view {
   f_show_displays show_displays;
@@ -73,8 +85,8 @@ struct game_view {
 
 
 
+
 static int initialize_backpack(HT16K33 *backpack);
-static void ht16k33_alphanum_display_game(struct game_view *this, struct display_strategy *display);
 
 
 
@@ -131,6 +143,7 @@ struct game_view* create_alphanum_game_view() {
   rc = HT16K33_COMMIT(this->green_display);
   rc -= HT16K33_COMMIT(this->blue_display);
   rc -= HT16K33_COMMIT(this->red_display);
+  rc -= HT16K33_COMMIT(this->inputs_and_leds);
 
   if (rc) {
     free(this);
@@ -182,6 +195,10 @@ void update_view(struct game_view *this, struct display_strategy *display_strate
     printf("keyscan failed with code %d\n", keyscan_rc);
   }
 
+  //  printf("keyscan: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X\n",
+  //  	 keyscan[0], keyscan[1], keyscan[2], keyscan[3], keyscan[4], keyscan[5]);
+
+  // update control panel here...
 
   if (this->green_encoder_listener.callback) {
     uint8_t button_state_bit =
@@ -220,6 +237,7 @@ void register_green_encoder_listener(struct game_view *view, f_controller_update
   view->green_encoder_listener.button_previous_state = 0;
   view->green_encoder_listener.button_state = 0;
   view->green_encoder_listener.encoder_state = 0;
+  view->green_encoder_listener.encoder_prev_state = 0;
   view->green_encoder_listener.encoder_ignore_count = 0;
   view->green_encoder_listener.encoder_delta = 0;
 }
@@ -238,7 +256,7 @@ static void ht16k33_alphanum_display_game(struct game_view *this, struct display
   char *display[3];
   ht16k33blink_t blink;
   ht16k33brightness_t brightness;
-
+  int led_display_value;
   
 
   switch(display_strategy->get_green_display(display_strategy, &union_result, &blink, &brightness)) {
@@ -321,6 +339,29 @@ static void ht16k33_alphanum_display_game(struct game_view *this, struct display
     HT16K33_COMMIT(this->display_array[backpack]);
   }
 
+
+  switch(display_strategy->get_leds_display(display_strategy, &union_result, &blink, &brightness)) {
+  case integer_display:
+    led_display_value = union_result.display_int;
+    break;
+  case glyph_display:
+  case string_display:
+    printf("only integer supported\n");
+    return;
+  }
+
+  if (brightness != this->inputs_and_leds->brightness) {
+    HT16K33_BRIGHTNESS(this->inputs_and_leds, brightness);
+  }
+  if (blink != this->inputs_and_leds->blink_state) {
+    HT16K33_BLINK(this->inputs_and_leds, blink);
+  }
+
+  HT16K33_UPDATE_RAW(this->inputs_and_leds, 4, (uint16_t)(led_display_value & 0x00FF));
+  HT16K33_UPDATE_RAW(this->inputs_and_leds, 5, (uint16_t)((led_display_value >> 8) & 0x00FF));
+  HT16K33_UPDATE_RAW(this->inputs_and_leds, 6, (uint16_t)((led_display_value >> 16) & 0x00FF));
+  HT16K33_COMMIT(this->inputs_and_leds);
+
 }
 
 
@@ -376,7 +417,7 @@ static int initialize_backpack(HT16K33 *backpack) {
 
   rc = HT16K33_INTERRUPT(backpack, HT16K33_ROW15_DRIVER);
   if (rc != 0) {
-    fprintf(stderr, "Error putting the HT16K33 led backpack to INTERRUPT_HIGH. Check your i2c bus (es. i2cdetect)\n");
+    fprintf(stderr, "Error putting the HT16K33 led backpack to ROW15 Driver. Check your i2c bus (es. i2cdetect)\n");
     // you don't need to HT16K33_OFF() if HT16K33_ON() failed, but it's safe doing it.
     HT16K33_OFF(backpack);
     HT16K33_CLOSE(backpack);
@@ -396,6 +437,9 @@ static int initialize_backpack(HT16K33 *backpack) {
   // halfway bright
   HT16K33_BRIGHTNESS(backpack, HT16K33_BRIGHTNESS_7);
 
+  // no blink
+  HT16K33_BLINK(backpack, HT16K33_BLINK_OFF);
+
   // power on the display
   HT16K33_DISPLAY(backpack, HT16K33_DISPLAY_ON);
 
@@ -409,24 +453,22 @@ static int initialize_backpack(HT16K33 *backpack) {
  *
  */
 static void read_rotary_encoder(struct rotary_encoder *encoder, uint8_t pushbutton, uint8_t rotary_encoder) {
+  uint8_t encoder_tmp_state = encoder->encoder_state << 2;
+
+  // TODO: this needs some improvement.  Interface isn't quite as
+  // fluid as it ought to be.
 
   // track encoder state even if we're ignoring the result
   // algorithm is influenced by
   // http://makeatronics.blogspot.com/2013/02/efficiently-reading-quadrature-with.html
-  encoder->encoder_state <<= 2;
-  encoder->encoder_state = (encoder->encoder_state | rotary_encoder) & 0x0F;
-    
-  if (encoder->encoder_ignore_count) {
-    encoder->encoder_ignore_count--;
-    encoder->encoder_delta = 0; // ignoring, so call the delta zero
-  }
-  else { // don't ignore the encoder
-    encoder->encoder_delta = encoder_lookup_table[encoder->encoder_state];
+  encoder_tmp_state = encoder_tmp_state | rotary_encoder;
 
-    if (encoder->encoder_delta != 0) {
-      encoder->encoder_ignore_count = 1;
-    }
+  if (encoder_tmp_state != encoder->encoder_prev_state) {
+    encoder->encoder_state = encoder_tmp_state & 0b1111;
+    encoder->encoder_prev_state = encoder->encoder_state;
   }
+
+  encoder->encoder_delta = encoder_lookup_table[encoder->encoder_state];
 
   // pushbutton
   encoder->button_previous_state = encoder->button_state;

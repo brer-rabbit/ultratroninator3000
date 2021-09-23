@@ -82,6 +82,7 @@ struct game_model* create_game_model() {
   return this;
 }
 
+
 void free_game_model(struct game_model *this) {
   free_display_strategy(this->display_strategy);
   return free(this);
@@ -94,12 +95,14 @@ void free_game_model(struct game_model *this) {
  */
 
 void next_game(struct game_model *this) {
+  //ut3k_play_sample("explosion_short");
   if (++this->game_index == this->num_games) {
     this->game_index = 0;
   }
 }
 
 void previous_game(struct game_model *this) {
+  //ut3k_play_sample("effect_alarm");
   if (--this->game_index < 0) {
     this->game_index = this->num_games - 1;
   }
@@ -200,6 +203,29 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
   return string_display;
 }
 
+// DELETE ME
+static int foo = 0;
+static int cur = 0x00040201;
+
+// implements f_get_display for the leds display
+display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+  struct game_model *this = (struct game_model*) display_strategy->userdata;
+
+  if (++foo % 15 == 0) {
+    cur = cur << 1;
+    cur = cur | (rand() & 0b1);
+  }
+  
+  (*value).display_int = cur;
+
+  // no change
+  *blink = display_strategy->leds_blink;
+  *brightness = display_strategy->leds_brightness;
+
+  return integer_display;
+}
+
+
 
 struct display_strategy* get_display_strategy(struct game_model *this) {
   return this->display_strategy;
@@ -208,6 +234,13 @@ struct display_strategy* get_display_strategy(struct game_model *this) {
 
 
 /* static ----------------------------------------------------------- */
+
+// qsort comparison function
+static int game_comp(const void *a, const void *b) {
+  struct game *game_a = (struct game*) a;
+  struct game *game_b = (struct game*) b;
+  return strcmp(game_a->game_executable, game_b->game_executable);
+}
 
 /**
  * get_games
@@ -261,6 +294,7 @@ static int get_games(char *directory, struct game *games_list, int max_games) {
 
   }
 
+  qsort(games_list, game_num, sizeof(struct game), game_comp);
   closedir(games_handle);
 
   return game_num;
@@ -279,6 +313,9 @@ static struct display_strategy* create_display_strategy(struct game_model *this)
   display_strategy->get_red_display = get_red_display;
   display_strategy->red_blink = HT16K33_BLINK_OFF;
   display_strategy->red_brightness = HT16K33_BRIGHTNESS_7;
+  display_strategy->get_leds_display = get_leds_display;
+  display_strategy->leds_blink = HT16K33_BLINK_OFF;
+  display_strategy->leds_brightness = HT16K33_BRIGHTNESS_15;
   return display_strategy;
 }
 

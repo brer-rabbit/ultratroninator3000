@@ -18,9 +18,13 @@
 #ifndef MCP_H
 #define MCP_H
 
+#include "ut3k_pulseaudio.h"
 
 #define GAMES_LOCAL_ENV_VAR "GAMES_LOCAL"
 #define DEFAULT_GAMES_BASEDIR "/usr/local/games/ultratroninator_3000"
-#define CONFIG_FILENAME "/etc/ultratroninator.config"
+#define CONFIG_DIRNAME "/etc/"
+#define CONFIG_FILENAME "mcp.config"
+#define SAMPLE_DIRNAME "/samples/"
+
 
 #endif
