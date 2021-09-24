@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "ut3k_view.h"
 
@@ -75,6 +76,8 @@ static int initialize_backpack(HT16K33 *backpack);
 struct ut3k_view* create_alphanum_ut3k_view() {
   struct ut3k_view *this;
   int rc = 0;
+  ht16k33keyscan_t keyscan;
+
 
   this = (struct ut3k_view*) malloc(sizeof(struct ut3k_view));
 
@@ -127,10 +130,20 @@ struct ut3k_view* create_alphanum_ut3k_view() {
   }
 
 
-  this->control_panel = create_control_panel();
+
+  // get current state of control panel.  Some switches may
+  // be set, so start off with the state reflecting that.
+  rc = HT16K33_READ(this->inputs_and_leds, keyscan);
+  if (rc != 0) {
+    printf("keyscan failed with code %d\n", rc);
+  }
+
+  this->control_panel = create_control_panel(keyscan);
 
   return this;
 }
+
+
 
 
 int free_ut3k_view(struct ut3k_view *this) {

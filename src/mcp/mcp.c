@@ -105,6 +105,7 @@ static char* run_mvc(config_t *cfg) {
     return NULL;
   }
 
+
   controller = create_game_controller(model, view);
   if (controller == NULL) {
     printf("error creating game controller\n");
@@ -114,9 +115,10 @@ static char* run_mvc(config_t *cfg) {
   register_control_panel_listener(view, controller_callback_control_panel, controller);
 
 
-  // init
+  // init and hack:
+  // start with a sleep since the view does a read from the ht16k33
   tval_sleep_time.tv_sec = 0;
-  tval_sleep_time.tv_usec = 0;
+  tval_sleep_time.tv_usec = tval_fixed_loop_time.tv_usec;
   
 
   // event loop
@@ -147,9 +149,12 @@ static char* run_mvc(config_t *cfg) {
     timersub(&tval_controller_end, &tval_controller_start, &tval_controller_time);
     timersub(&tval_fixed_loop_time, &tval_controller_time, &tval_sleep_time);
 
-    clock_iterations++;
-  }
 
+    clock_iterations++;
+
+    //printf("controller time: %ld.%06ld  sleep time avail: %ld.06%ld\n", tval_controller_time.tv_sec,tval_controller_time.tv_usec, tval_sleep_time.tv_sec,tval_sleep_time.tv_usec);
+
+  }
 
   sleep(2);
 
