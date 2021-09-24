@@ -45,10 +45,15 @@ struct button {
 
 // these rotary encoders include a push button
 struct rotary_encoder {
-  uint8_t encoder_state;  // hold previous & current here, 4 bits
   int8_t encoder_delta;  // -1, 0, 1: what you're probably most interested in
 
   struct button button;  // the press button
+
+  // guru meditation: these ought to be hidden from the user, they're
+  // implementation details
+  uint8_t encoder_state;  // hold previous & current here, 4 bits
+  int *encoder_lookup_table;
+  int clock_ticks_to_neutral;
 };
 
 
@@ -111,6 +116,16 @@ int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan, u
  * or free'd.
  */
 const struct button* get_green_button(struct control_panel *this);
+const struct button* get_blue_button(struct control_panel *this);
+const struct button* get_red_button(struct control_panel *this);
+
+
+/** get encoders
+ * green blue red
+ */
+const struct rotary_encoder* get_green_rotary_encoder(struct control_panel *this);
+const struct rotary_encoder* get_blue_rotary_encoder(struct control_panel *this);
+const struct rotary_encoder* get_red_rotary_encoder(struct control_panel *this);
 
 
 /** get_green_selector

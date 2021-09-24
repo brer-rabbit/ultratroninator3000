@@ -111,7 +111,6 @@ static char* run_mvc(config_t *cfg) {
     return NULL;
   }
 
-
   register_control_panel_listener(view, controller_callback_control_panel, controller);
 
 

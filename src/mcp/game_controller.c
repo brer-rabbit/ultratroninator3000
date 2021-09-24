@@ -53,23 +53,28 @@ void controller_update(struct game_controller *this, uint32_t clock) {
 
 
 
-/** controller_callback_green_rotary_encoder
+/** controller callback
  * 
  * implements f_view_control_panel_updates
  */
+static int count = 0;
 void controller_callback_control_panel(struct control_panel *control_panel, void *userdata) {
   struct game_controller *this = (struct game_controller*) userdata;
 
-  const struct button *green_button = get_green_button(control_panel);
+  const struct button *button = get_blue_button(control_panel);
+  const struct rotary_encoder *rotary_encoder = get_red_rotary_encoder(control_panel);
 
-  if (green_button->state_count == 0) {
-    printf("green button changed from %d to %d after %d cycles\n",
-	   green_button->button_previous_state,
-	   green_button->button_state,
-	   green_button->button_previous_state_count);
-    if (green_button->button_state == 1) {
-      next_game(this->model);
-    }
+  if (button->state_count == 0) {
+    printf("blue button changed from %d to %d after %d cycles\n",
+	   button->button_previous_state,
+	   button->button_state,
+	   button->button_previous_state_count);
   }
 	 
+  if (rotary_encoder->clock_ticks_to_neutral > -2) {
+    count += rotary_encoder->encoder_delta;
+    printf("clock: %d encoder state 0x%X delta %d (%d ticks to neutral, table %p) count %d\n", rotary_encoder->encoder_state, rotary_encoder->encoder_delta, rotary_encoder->clock_ticks_to_neutral, (void*)rotary_encoder->encoder_lookup_table, count);
+  }
+
+  
 }
