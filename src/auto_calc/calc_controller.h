@@ -14,31 +14,27 @@
  */
 
 
-/* game_controller.h
+/* calc_controller.h
  *
  */
 
-#ifndef GAME_CONTROLLER_H
-#define GAME_CONTROLLER_H
+#ifndef CALC_CONTROLLER_H
+#define CALC_CONTROLLER_H
 
-struct game_controller;
+struct calc_controller;
 
-#include "game_model.h"
+#include "calc_model.h"
 #include "ut3k_view.h"
 #include "control_panel.h"
 
 
-struct game_controller* create_game_controller(struct game_model*, struct ut3k_view*);
-void free_game_controller(struct game_controller *this);
+struct calc_controller* create_calc_controller(struct calc_model*, struct ut3k_view*);
+void free_calc_controller(struct calc_controller *this);
 
-/** get_game_to_launch
- * if a game was set, this will return it.
- * poll on this function to get it.
- */
-char* get_game_to_launch(struct game_controller *this);
 
-void controller_update(struct game_controller *this, uint32_t clock);
+void controller_update(struct calc_controller *this, uint32_t clock);
 
+void controller_initialize_control_panel(struct control_panel *control_panel, void *userdata);
 void controller_callback_control_panel(const struct control_panel *control_panel, void *userdata);
 
 #endif

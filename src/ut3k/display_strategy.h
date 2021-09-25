@@ -38,7 +38,7 @@
 
 typedef enum { integer_display, string_display, glyph_display } display_type;
 typedef union {
-  int display_int;
+  int32_t display_int;  // for the LED display the first 3 bytes are read
   char* display_string;
   uint16_t display_glyph[4];
 } display_value;

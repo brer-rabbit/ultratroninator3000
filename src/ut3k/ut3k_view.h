@@ -27,11 +27,18 @@ struct ut3k_view;
 #include "ht16k33.h"
 #include "control_panel.h"
 
+
+/* Listeners / callback */
+
+typedef void (*f_view_control_panel_listener)(const struct control_panel *control_panel, void *userdata);
+
 /** create_alphanum_ut3k_view
  *
  * "constructor"
  * start the view off with a particular view opens HT16K33.
- * 
+ * This does a read from the HT16K33: the caller must wait >~20 ms
+ * before any other reads against this chip.  Such as update_view().
+ *
  */
 struct ut3k_view* create_alphanum_ut3k_view();
 
@@ -43,22 +50,24 @@ int free_ut3k_view(struct ut3k_view *this);
 
 
 /** show the view of the model-
- * update all 3 displays and any other visible components
- * Return current state of control panel.
+ * Keyscan all controls, update all 3 displays, the rows of LEDs.
+ * Keyscan results are available via the callback.
+ * This function must only be called not more than every ~20ms,
+ * otherwise the caller risks getting invalid results from the chip.
  */
 void update_view(struct ut3k_view*, struct display_strategy*, uint32_t clock);
 
 
-/* Listeners / callback */
-
-typedef void (*f_view_control_panel_listener)(struct control_panel *control_panel, void *userdata);
-
-
-
  /**
-  * Register event handlers with the appropriate components
+  * Register event handlers with the appropriate components.
+  * The control_panel_listener will be called during update_view.
   */
 void register_control_panel_listener(struct ut3k_view *view, f_view_control_panel_listener f, void *userdata);
 
+
+/** get the control panel.  Useful for initialization or if you really
+ *   want to avoid the callback model.
+ */
+const struct control_panel* get_control_panel(struct ut3k_view*);
 
 #endif

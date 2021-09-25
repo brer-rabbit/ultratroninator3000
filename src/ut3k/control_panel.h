@@ -79,9 +79,9 @@ struct button {
  * Caller gets a pointer to a struct back that should not be modified
  * or free'd.
  */
-const struct button* get_green_button(struct control_panel *this);
-const struct button* get_blue_button(struct control_panel *this);
-const struct button* get_red_button(struct control_panel *this);
+const struct button* get_green_button(const struct control_panel *this);
+const struct button* get_blue_button(const struct control_panel *this);
+const struct button* get_red_button(const struct control_panel *this);
 
 
 
@@ -102,9 +102,9 @@ struct rotary_encoder {
 /** get encoders
  * green blue red
  */
-const struct rotary_encoder* get_green_rotary_encoder(struct control_panel *this);
-const struct rotary_encoder* get_blue_rotary_encoder(struct control_panel *this);
-const struct rotary_encoder* get_red_rotary_encoder(struct control_panel *this);
+const struct rotary_encoder* get_green_rotary_encoder(const struct control_panel *this);
+const struct rotary_encoder* get_blue_rotary_encoder(const struct control_panel *this);
+const struct rotary_encoder* get_red_rotary_encoder(const struct control_panel *this);
 
 
 
@@ -124,8 +124,8 @@ struct selector {
 /** get selectors
  * get the change in the selector value
  */
-const struct selector* get_green_selector(struct control_panel *this);
-const struct selector* get_blue_selector(struct control_panel *this);
+const struct selector* get_green_selector(const struct control_panel *this);
+const struct selector* get_blue_selector(const struct control_panel *this);
 
 
 
@@ -147,6 +147,6 @@ struct toggles {
   uint32_t state_count;
 };
 
-const struct toggles* get_toggles(struct control_panel *this);
+const struct toggles* get_toggles(const struct control_panel *this);
 
 #endif // CONTROL_PANEL_H

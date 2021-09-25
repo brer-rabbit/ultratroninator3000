@@ -201,42 +201,42 @@ int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan, u
 
 
 
-const struct button* get_green_button(struct control_panel *this) {
+const struct button* get_green_button(const struct control_panel *this) {
   return (const struct button*) &(this->green_button);
 }
 
-const struct button* get_blue_button(struct control_panel *this) {
+const struct button* get_blue_button(const struct control_panel *this) {
   return (const struct button*) &(this->blue_button);
 }
 
-const struct button* get_red_button(struct control_panel *this) {
+const struct button* get_red_button(const struct control_panel *this) {
   return (const struct button*) &(this->red_button);
 }
 
 
 
-const struct rotary_encoder* get_green_rotary_encoder(struct control_panel *this) {
+const struct rotary_encoder* get_green_rotary_encoder(const struct control_panel *this) {
   return (const struct rotary_encoder*) &(this->green_encoder);
 }
 
-const struct rotary_encoder* get_blue_rotary_encoder(struct control_panel *this) {
+const struct rotary_encoder* get_blue_rotary_encoder(const struct control_panel *this) {
     return (const struct rotary_encoder*) &(this->blue_encoder);
 }
 
-const struct rotary_encoder* get_red_rotary_encoder(struct control_panel *this) {
+const struct rotary_encoder* get_red_rotary_encoder(const struct control_panel *this) {
   return (const struct rotary_encoder*) &(this->red_encoder);
 }
 
 
-const struct selector* get_green_selector(struct control_panel *this) {
+const struct selector* get_green_selector(const struct control_panel *this) {
   return (const struct selector*) &(this->green_selector);
 }
 
-const struct selector* get_blue_selector(struct control_panel *this) {
+const struct selector* get_blue_selector(const struct control_panel *this) {
   return (const struct selector*) &(this->blue_selector);
 }
 
-const struct toggles* get_toggles(struct control_panel *this) {
+const struct toggles* get_toggles(const struct control_panel *this) {
   return (const struct toggles*) &(this->toggles);
 }
 

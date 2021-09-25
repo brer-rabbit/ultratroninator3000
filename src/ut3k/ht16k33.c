@@ -32,6 +32,7 @@
 #include <i2c/smbus.h>
 
 #include "ht16k33.h"
+#include "ht16k33_lookup_tables.h"
 
 /**
  * write one byte to i2c bus
@@ -398,6 +399,21 @@ int HT16K33_UPDATE_RAW(HT16K33 *backpack, unsigned short digit, const uint16_t v
   backpack->display_buffer.com[2*digit+1] = (uint8_t) (value >> 8);
   return 0;
 }
+
+
+// TODO: change types, extend this for -999 to 9999
+int HT16K33_DISPLAY_INTEGER(HT16K33 *backpack, uint8_t value) {
+  for (int digit = 3; digit > 0; --digit) {
+    backpack->display_buffer.com[2*digit] = (uint8_t) ht16k33_int_to_display[value][digit-1];
+    backpack->display_buffer.com[2*digit+1] = (uint8_t) (ht16k33_int_to_display[value][digit-1] >> 8);
+  }
+
+  backpack->display_buffer.com[0] = (uint8_t) 0;
+  backpack->display_buffer.com[1] = (uint8_t) 0;
+
+  return 0;
+}
+
 
 
 /**

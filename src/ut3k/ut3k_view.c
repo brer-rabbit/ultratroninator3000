@@ -57,7 +57,6 @@ struct ut3k_view {
   struct control_panel *control_panel;
   void *control_panel_listener_userdata;  // for callback
   f_view_control_panel_listener control_panel_listener;  // the callback
-
 };
 
 
@@ -192,7 +191,7 @@ void update_view(struct ut3k_view *this, struct display_strategy *display_strate
   update_control_panel(this->control_panel, keyscan, clock);
 
   if (this->control_panel_listener) {
-    (*this->control_panel_listener)(this->control_panel, this->control_panel_listener_userdata);
+    (*this->control_panel_listener)((const struct control_panel*)this->control_panel, this->control_panel_listener_userdata);
   }
 
 
@@ -216,7 +215,63 @@ void register_control_panel_listener(struct ut3k_view *view, f_view_control_pane
 }
 
 
+/* Accessors ---------------------------------------------------------- */
+
+const struct control_panel* get_control_panel(struct ut3k_view *this) {
+  return (const struct control_panel*) this->control_panel;
+}
+
+
+
 /* Static ------------------------------------------------------------- */
+
+
+/** commit_string
+ * 
+ * write a string to a specific HT16K33 display.  Only the first 4
+ * chars are written.  Commit is called.
+ */
+static void commit_string(HT16K33 *display, char *string) {
+  int digit;
+
+  for (digit = 0; digit < 4; ++digit) { // digit
+    if (string == NULL || string[digit] == '\0') {
+      break;
+    }
+    HT16K33_UPDATE_ALPHANUM(display, digit, string[digit], 0);
+  }
+
+  for (; digit < 4; ++digit) {
+    // clear any remaining digits
+    HT16K33_CLEAN_DIGIT(display, digit);
+  }
+
+  HT16K33_COMMIT(display);
+}
+
+
+/** commit_integer
+ * 
+ * write a string to a specific HT16K33 display.  Only the first 4
+ * chars are written.  Commit is called.
+ */
+static void commit_integer(HT16K33 *display, int16_t value) {
+
+  if (value >= 0 && value < 256) {
+    HT16K33_DISPLAY_INTEGER(display, (uint8_t)value);
+  }
+  else {
+    char buffer[5];
+    snprintf(buffer, 5, "%4hd", value);
+
+    for (int digit = 0; digit < 4; ++digit) { // digit
+      HT16K33_UPDATE_ALPHANUM(display, digit, buffer[digit], 0);
+    }
+  }
+
+  HT16K33_COMMIT(display);
+}
+
 
 
 /** ht16k33_alphanum_display_game: implements f_show_displays
@@ -224,9 +279,7 @@ void register_control_panel_listener(struct ut3k_view *view, f_view_control_pane
  */
 
 static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display_strategy *display_strategy) {
-  int backpack, digit;
   display_value union_result;
-  char *display[3];
   ht16k33blink_t blink;
   ht16k33brightness_t brightness;
   int led_display_value;
@@ -234,12 +287,13 @@ static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display
 
   switch(display_strategy->get_green_display(display_strategy, &union_result, &blink, &brightness)) {
   case integer_display:
+    commit_integer(this->display_array[0], union_result.display_int);
+    break;
   case glyph_display:
-    printf("integer and glyph not implemented\n");
-    display[0] = NULL;
+    printf("glyph not implemented\n");
     break;
   case string_display:
-    display[0] = union_result.display_string;
+    commit_string(this->display_array[0], union_result.display_string);
     break;
   }
 
@@ -254,12 +308,13 @@ static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display
 
   switch(display_strategy->get_blue_display(display_strategy, &union_result, &blink, &brightness)) {
   case integer_display:
+    commit_integer(this->display_array[1], union_result.display_int);
+    break;
   case glyph_display:
-    printf("integer and glyph not implemented\n");
-    display[1] = NULL;
+    printf("glyph not implemented\n");
     break;
   case string_display:
-    display[1] = union_result.display_string;
+    commit_string(this->display_array[1], union_result.display_string);
     break;
   }
 
@@ -274,12 +329,13 @@ static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display
 
   switch(display_strategy->get_red_display(display_strategy, &union_result, &blink, &brightness)) {
   case integer_display:
+    commit_integer(this->display_array[2], union_result.display_int);
+    break;
   case glyph_display:
-    printf("integer and glyph not implemented\n");
-    display[2] = NULL;
+    printf("glyph not implemented\n");
     break;
   case string_display:
-    display[2] = union_result.display_string;
+    commit_string(this->display_array[2], union_result.display_string);
     break;
   }
 
@@ -291,26 +347,6 @@ static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display
     HT16K33_BLINK(this->red_display, blink);
   }
 
-
-  for (backpack = 0; backpack < DISPLAY_ROWS; ++backpack) { // backpack
-
-    for (digit = 0; digit < 4; ++digit) { // digit
-      if (display[backpack] == NULL ||
-	  display[backpack][digit] == '\0') {
-	break;
-      }
-      // no colon sep on alphanum packs
-      HT16K33_UPDATE_ALPHANUM(this->display_array[backpack], digit, display[backpack][digit], 0);
-
-    }
-
-    for (; digit < 4; ++digit) {
-      // clear any remaining digits
-      HT16K33_CLEAN_DIGIT(this->display_array[backpack], digit);
-    }
-
-    HT16K33_COMMIT(this->display_array[backpack]);
-  }
 
 
   switch(display_strategy->get_leds_display(display_strategy, &union_result, &blink, &brightness)) {
