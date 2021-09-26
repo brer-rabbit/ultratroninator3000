@@ -38,24 +38,28 @@ void free_calc_model(struct calc_model*);
 // Supported model methods
 
 
-void update_green_integer(struct calc_model *this);
-void update_blue_integer(struct calc_model *this);
-void update_red_integer(struct calc_model *this);
+void update_green_register(struct calc_model *this);
+void update_blue_register(struct calc_model *this);
+void update_red_register(struct calc_model *this);
 
 
 // accessible here- but may be decoupled via the display_strategy
-int32_t get_green_integer(struct calc_model *this);
-int32_t get_blue_integer(struct calc_model *this);
-int32_t get_red_integer(struct calc_model *this);
+void set_green_register(struct calc_model *this, uint8_t value);
+int32_t get_green_register(struct calc_model *this);
+int32_t get_blue_register(struct calc_model *this);
+int32_t get_red_register(struct calc_model *this);
 
+// swap the two input registers
+void swap_registers(struct calc_model *this);
 
 
 // f_calc declarations
-typedef uint32_t (*f_calc)(uint8_t, uint8_t);
-uint32_t f_calc_add(uint8_t a, uint8_t b);
-uint32_t f_calc_sub(uint8_t a, uint8_t b);
-uint32_t f_calc_or(uint8_t a, uint8_t b);
-uint32_t f_calc_and(uint8_t a, uint8_t b);
+// int32_t is used to detect overflow to make it interesting
+typedef int32_t (*f_calc)(uint8_t, uint8_t);
+int32_t f_calc_add(uint8_t a, uint8_t b);
+int32_t f_calc_sub(uint8_t a, uint8_t b);
+int32_t f_calc_or(uint8_t a, uint8_t b);
+int32_t f_calc_and(uint8_t a, uint8_t b);
 void set_calc_function(struct calc_model *this, f_calc f_calculator);
 
 

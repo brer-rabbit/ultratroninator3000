@@ -26,6 +26,7 @@ struct calc_controller {
   int32_t green_cycle_time;
   int32_t blue_cycle_time;
 
+  uint8_t manual_green_register_flag;
   int32_t green_remaining_time;
   int32_t blue_remaining_time;
 };
@@ -50,6 +51,7 @@ struct calc_controller* create_calc_controller(struct calc_model *model, struct 
   this->blue_cycle_time = default_cycle_time * 1.05;
   this->green_remaining_time = this->green_cycle_time;
   this->blue_remaining_time = this->blue_cycle_time;
+  this->manual_green_register_flag = 0;
 
   initialize_model_from_control_panel(this, get_control_panel(view));
 
@@ -62,18 +64,18 @@ void free_calc_controller(struct calc_controller *this) {
 
 
 void controller_update(struct calc_controller *this, uint32_t clock) {
-  if (--this->green_remaining_time <= 0) {
+  if (--this->green_remaining_time <= 0 && this->manual_green_register_flag == 0) {
     // update green
-    update_green_integer(this->model);
+    update_green_register(this->model);
     this->green_remaining_time = this->green_cycle_time;
   }
   if (--this->blue_remaining_time <= 0) {
     // update blue
-    update_blue_integer(this->model);
+    update_blue_register(this->model);
     this->blue_remaining_time = this->blue_cycle_time;
   }
 
-  update_red_integer(this->model);
+  update_red_register(this->model);
 
   update_view(this->view, get_display_strategy(this->model), clock);
 }
@@ -83,6 +85,7 @@ static void initialize_model_from_control_panel(struct calc_controller *this, co
   const struct selector *green_selector = get_green_selector(control_panel);
   const struct selector *blue_selector = get_blue_selector(control_panel);
   const struct toggles *toggles = get_toggles(control_panel);
+
   
   switch(green_selector->selector_state) {
   case SELECTOR_THREE:
@@ -124,49 +127,57 @@ static void initialize_model_from_control_panel(struct calc_controller *this, co
 void controller_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
   struct calc_controller *this = (struct calc_controller*) userdata;
 
-  const struct button *button = get_blue_button(control_panel);
   const struct rotary_encoder *green_rotary_encoder = get_green_rotary_encoder(control_panel);
   const struct rotary_encoder *blue_rotary_encoder = get_blue_rotary_encoder(control_panel);
-  const struct rotary_encoder *red_rotary_encoder = get_red_rotary_encoder(control_panel);
   const struct selector *green_selector = get_green_selector(control_panel);
   const struct selector *blue_selector = get_blue_selector(control_panel);
   const struct toggles *toggles = get_toggles(control_panel);
+  const struct button *red_button = get_red_button(control_panel);
 
-  if (button->state_count == 0) {
-    printf("blue button changed from %d to %d after %d cycles\n",
-	   button->button_previous_state,
-	   button->button_state,
-	   button->button_previous_state_count);
-  }
-	 
 
+
+  // green rotary encoder is speed of green register changes --
+  // unless it's in manual mode
   if (green_rotary_encoder->encoder_delta > 0) {
     if (this->green_cycle_time < 2000) {
       this->green_cycle_time += 5;
-      printf("green_cycle_time %d\n", this->green_cycle_time);
+      printf("green_cycle_time inc %d\n", this->green_cycle_time);
     }
   }
   else if (green_rotary_encoder->encoder_delta < 0) {
     if (this->green_cycle_time > 1) {
       this->green_cycle_time -= 5;
-      printf("green_cycle_time %d\n", this->green_cycle_time);
+      printf("green_cycle_time dec %d\n", this->green_cycle_time);
     }
     // since we're increasing speed: auto-move to next
     this->green_remaining_time = 0;
   }
 
+  // pushing green rotary push button toggles auto/manual mode
+  if (green_rotary_encoder->button.state_count == 0 &&
+      green_rotary_encoder->button.button_state) {
+    this->manual_green_register_flag = !this->manual_green_register_flag;
 
+    // and set them if we're just entering the state
+    if (this->manual_green_register_flag) {
+      set_green_register(this->model, toggles->toggles_state);
+    }
+  }
+
+
+
+  // blue rotary encoder is speed of blue register changes
   if (blue_rotary_encoder->encoder_delta > 0) {
     if (this->blue_cycle_time < 2000) {
       this->blue_cycle_time += 5;
-      printf("blue_cycle_time %d\n", this->blue_cycle_time);
+      printf("blue_cycle_time inc %d\n", this->blue_cycle_time);
     }
 
   }
   else if (blue_rotary_encoder->encoder_delta < 0) {
     if (this->blue_cycle_time > 1) {
       this->blue_cycle_time -= 5;
-      printf("blue_cycle_time %d\n", this->blue_cycle_time);
+      printf("blue_cycle_time dec %d\n", this->blue_cycle_time);
     }
     // since we're increasing speed: auto-move to next
     this->blue_remaining_time = 0;
@@ -174,17 +185,8 @@ void controller_callback_control_panel(const struct control_panel *control_panel
 
 
 
-  if (red_rotary_encoder->button.state_count == 0) {
-    printf("rotary encoder button changed from %d to %d after %d cycles\n",
-	   red_rotary_encoder->button.button_previous_state,
-	   red_rotary_encoder->button.button_state,
-	   red_rotary_encoder->button.button_previous_state_count);
-  }
-
-
-
+  // green select changes the calculation function
   if (green_selector->state_count == 0) {
-    printf("green selector changed from %d to %d count %d bits 0x%X\n",green_selector->selector_previous_state,green_selector->selector_state,green_selector->state_count,green_selector->selector_state_bits);
     switch(green_selector->selector_state) {
     case SELECTOR_THREE:
       set_calc_function(this->model, f_calc_and);
@@ -202,8 +204,8 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   }
 
 
+  // blue select changes the next blue value function
   if (blue_selector->state_count == 0) {
-    printf("blue selector changed from %d to %d count %d bits 0x%X\n",blue_selector->selector_previous_state,blue_selector->selector_state,blue_selector->state_count,blue_selector->selector_state_bits);
     switch(blue_selector->selector_state) {
     case SELECTOR_THREE:
       set_next_value_blue_function(this->model, f_next_random);
@@ -222,12 +224,15 @@ void controller_callback_control_panel(const struct control_panel *control_panel
 
 
 
+  // Red button swaps the blue & green registers
+  if (red_button->state_count == 0 && red_button->button_state) {
+    swap_registers(this->model);
+  }
 
-  if (toggles->state_count == 0) {
-    printf("toggles changed from 0x%X to 0x%X (change: 0x%X)\n",
-	   toggles->toggles_previous_state,
-	   toggles->toggles_state,
-	   toggles->toggles_toggled);
+
+
+  if (toggles->state_count == 0 && this->manual_green_register_flag) {
+    set_green_register(this->model, toggles->toggles_state);
   }
 
 

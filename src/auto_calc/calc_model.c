@@ -31,7 +31,7 @@ struct calc_model {
   uint8_t green_register;
   uint8_t blue_register;
   uint8_t red_register;
-  uint32_t red_register_uint32;
+  int32_t red_register_int32;
   f_calc f_calculator;
   f_next_value f_next_value_blue;
 
@@ -45,19 +45,19 @@ static struct display_strategy* create_display_strategy(struct calc_model *this)
 static void free_display_strategy(struct display_strategy *display_strategy); 
 
 // Four different f_calc implementations
-uint32_t f_calc_add(uint8_t a, uint8_t b) {
+int32_t f_calc_add(uint8_t a, uint8_t b) {
   return a+b;
 }
 
-uint32_t f_calc_sub(uint8_t a, uint8_t b) {
+int32_t f_calc_sub(uint8_t a, uint8_t b) {
   return a-b;
 }
 
-uint32_t f_calc_or(uint8_t a, uint8_t b) {
+int32_t f_calc_or(uint8_t a, uint8_t b) {
   return a|b;
 }
 
-uint32_t f_calc_and(uint8_t a, uint8_t b) {
+int32_t f_calc_and(uint8_t a, uint8_t b) {
   return a&b;
 }
 
@@ -108,40 +108,57 @@ void set_next_value_blue_function(struct calc_model *this, f_next_value f_next_v
 }
 
 
-void update_green_integer(struct calc_model *this) {
+void update_green_register(struct calc_model *this) {
   this->green_register++;
 }
 
-void update_blue_integer(struct calc_model *this) {
+void update_blue_register(struct calc_model *this) {
   this->blue_register = this->f_next_value_blue(this->blue_register);
 }
 
-void update_red_integer(struct calc_model *this) {
-  this->red_register_uint32 = (this->f_calculator)(this->green_register, this->blue_register);
-  this->red_register = this->red_register_uint32;
+void update_red_register(struct calc_model *this) {
+  this->red_register_int32 = (this->f_calculator)(this->green_register, this->blue_register);
+  this->red_register = this->red_register_int32;
 }
 
 
-int32_t get_green_integer(struct calc_model *this) {
+void set_green_register(struct calc_model *this, uint8_t value) {
+  if (this) {
+    this->green_register = value;
+  }
+}
+
+int32_t get_green_register(struct calc_model *this) {
   if (this) {
     return this->green_register;
   }
   return 0;
 }
 
-int32_t get_blue_integer(struct calc_model *this) {
+int32_t get_blue_register(struct calc_model *this) {
   if (this) {
     return this->blue_register;
   }
   return 0;
 }
 
-int32_t get_red_integer(struct calc_model *this) {
+int32_t get_red_register(struct calc_model *this) {
   if (this) {
     return this->red_register;
   }
   return 0;
 }
+
+
+void swap_registers(struct calc_model *this) {
+  uint8_t tmp;
+  if (this) {
+    tmp = this->green_register;
+    this->green_register = this->blue_register;
+    this->blue_register = tmp;
+  }
+}
+
 
 
 // implements f_get_display for the red display
@@ -152,7 +169,7 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
 
   *brightness = HT16K33_BRIGHTNESS_12;
 
-  if (this->red_register_uint32 > this->red_register) {
+  if (this->red_register_int32 != this->red_register) {
     *blink = HT16K33_BLINK_FAST;
   }
   else {
@@ -200,9 +217,9 @@ display_type get_leds_display(struct display_strategy *display_strategy, display
   struct calc_model *this = (struct calc_model*) display_strategy->userdata;
     
   (*value).display_int =
-    (get_green_integer(this) << 16) |
-    (get_blue_integer(this) << 8) |
-    (get_red_integer(this));
+    (get_green_register(this) << 16) |
+    (get_blue_register(this) << 8) |
+    (get_red_register(this));
 
   // no change
   *blink = HT16K33_BLINK_OFF;
