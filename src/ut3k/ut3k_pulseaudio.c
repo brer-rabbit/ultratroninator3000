@@ -126,16 +126,16 @@ char* ut3k_upload_wavfile(char *filename, char *sample_name) {
 
     switch(ss.format) {
     case PA_SAMPLE_S16LE:
-        file_stream_bytes = 2 * info.channels * info.frames;;
+        file_stream_bytes = 2 * info.channels * info.frames;
         break;
     case PA_SAMPLE_S24LE: // this isn't likely right for 24 bit...
     case PA_SAMPLE_S32LE:
     case PA_SAMPLE_FLOAT32LE:
-        file_stream_bytes = 4 * info.channels * info.frames;;
+        file_stream_bytes = 4 * info.channels * info.frames;
         break;
     case PA_SAMPLE_U8:
     default:
-        file_stream_bytes = 1 * info.channels * info.frames;;
+        file_stream_bytes = 1 * info.channels * info.frames;
         break;
     }
 
@@ -157,7 +157,7 @@ char* ut3k_upload_wavfile(char *filename, char *sample_name) {
     stream = pa_stream_new(context, pulse_audio_stream_name, &ss, NULL);
     pa_stream_ref(stream);
     assert(pa_stream_connect_upload(stream, file_stream_bytes) == 0);
-    
+
     // wait for it to be ready
     pa_stream_state_t stream_state;
     do {
@@ -289,20 +289,23 @@ static int ut3k_write_stream(pa_stream *stream, pa_sample_spec *ss, size_t file_
 
         switch (ss->format) {
         case PA_SAMPLE_S16LE:
-            sf_frames_read = sf_readf_short(f_sndfile, (short*)buffer, pa_bytes_allowed / 2);
+            sf_frames_read = sf_read_short(f_sndfile, (short*)buffer, pa_bytes_allowed / 2);
             // compute what sndfile returned as bytes- it ought to match
-            assert(sf_frames_read * ss->channels * 2 == pa_bytes_allowed);
+            // I'd think the assertion should be
+            // sf_frames_read * ss->channels * 2 == pa_bytes_allowed
+            // but channels doesn't seem to work
+            assert(sf_frames_read * 2 == pa_bytes_allowed);
             break;
         case PA_SAMPLE_S32LE:
         case PA_SAMPLE_FLOAT32LE:
         case PA_SAMPLE_S24LE:  // not sure if this is correct for 24 bit...
             sf_frames_read = sf_readf_int(f_sndfile, (int*)buffer, pa_bytes_allowed / 4);
-            assert(sf_frames_read * ss->channels * 4 == pa_bytes_allowed);
+            assert(sf_frames_read * 4 == pa_bytes_allowed);
           break;
         case PA_SAMPLE_U8:
         default:
             sf_frames_read = sf_read_raw(f_sndfile, (void*)buffer, pa_bytes_allowed);
-            assert(sf_frames_read * ss->channels * 1 == pa_bytes_allowed);
+            assert(sf_frames_read == pa_bytes_allowed);
 
         }
 
@@ -314,7 +317,7 @@ static int ut3k_write_stream(pa_stream *stream, pa_sample_spec *ss, size_t file_
         ut3k_pa_mainloop_iterate();
     }
 
-    printf("finished stream write with file_bytes_remaining = %d\n", file_bytes_remaining);
+    printf("finished stream write with file_bytes_remaining = %ld\n", file_bytes_remaining);
 
     return 0;
 }
