@@ -18,6 +18,8 @@
 
 #include "control_panel.h"
 #include "calc_controller.h"
+#include "ut3k_pulseaudio.h"
+
 
 struct calc_controller {
   struct calc_model *model;
@@ -29,6 +31,18 @@ struct calc_controller {
   uint8_t manual_green_register_flag;
   int32_t green_remaining_time;
   int32_t blue_remaining_time;
+
+
+  // audio time countdowns-- can replay when they are zero
+  int32_t green_rotary_audio_timedown;
+  int32_t blue_rotary_audio_timedown;
+  int32_t green_selector_audio_timedown;
+  int32_t blue_selector_audio_timedown;
+
+  // display timeouts -- message changes to the user
+  uint8_t green_display_timeout;
+  uint8_t blue_display_timeout;
+
 };
 
 
@@ -38,6 +52,8 @@ static void initialize_model_from_control_panel(struct calc_controller *this, co
 
 // start a default of 120 cycles (~3 seconds) between integer changes
 static const int32_t default_cycle_time = 50;
+static const int32_t audio_timedown_default = 50;
+static const uint8_t default_display_timeout = 10;
 
 
 struct calc_controller* create_calc_controller(struct calc_model *model, struct ut3k_view *view) {
@@ -53,6 +69,8 @@ struct calc_controller* create_calc_controller(struct calc_model *model, struct 
   this->blue_remaining_time = this->blue_cycle_time;
   this->manual_green_register_flag = 0;
 
+  this->green_rotary_audio_timedown = 0;
+  this->blue_rotary_audio_timedown = 0;
   initialize_model_from_control_panel(this, get_control_panel(view));
 
   return this;
@@ -77,6 +95,13 @@ void controller_update(struct calc_controller *this, uint32_t clock) {
 
   update_red_register(this->model);
 
+  // housekeeping on adjusting any timers.  Assume these won't
+  // roll around to positive
+  this->green_rotary_audio_timedown--;
+  this->blue_rotary_audio_timedown--;
+  this->green_selector_audio_timedown--;
+  this->blue_selector_audio_timedown--;
+
   update_view(this->view, get_display_strategy(this->model), clock);
 }
 
@@ -84,7 +109,6 @@ void controller_update(struct calc_controller *this, uint32_t clock) {
 static void initialize_model_from_control_panel(struct calc_controller *this, const struct control_panel *control_panel) {
   const struct selector *green_selector = get_green_selector(control_panel);
   const struct selector *blue_selector = get_blue_selector(control_panel);
-  const struct toggles *toggles = get_toggles(control_panel);
 
   
   switch(green_selector->selector_state) {
@@ -138,16 +162,22 @@ void controller_callback_control_panel(const struct control_panel *control_panel
 
   // green rotary encoder is speed of green register changes --
   // unless it's in manual mode
-  if (green_rotary_encoder->encoder_delta > 0) {
+  if (green_rotary_encoder->encoder_delta > 0 && !this->manual_green_register_flag) {
     if (this->green_cycle_time < 2000) {
       this->green_cycle_time += 5;
-      printf("green_cycle_time inc %d\n", this->green_cycle_time);
+      if (this->green_rotary_audio_timedown <= 0) {
+	ut3k_play_sample("green_rotary");
+	this->green_rotary_audio_timedown = audio_timedown_default;
+      }
     }
   }
-  else if (green_rotary_encoder->encoder_delta < 0) {
+  else if (green_rotary_encoder->encoder_delta < 0 && !this->manual_green_register_flag) {
     if (this->green_cycle_time > 1) {
       this->green_cycle_time -= 5;
-      printf("green_cycle_time dec %d\n", this->green_cycle_time);
+      if (this->green_rotary_audio_timedown <= 0) {
+	ut3k_play_sample("green_rotary");
+	this->green_rotary_audio_timedown = audio_timedown_default;
+      }
     }
     // since we're increasing speed: auto-move to next
     this->green_remaining_time = 0;
@@ -161,6 +191,7 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     // and set them if we're just entering the state
     if (this->manual_green_register_flag) {
       set_green_register(this->model, toggles->toggles_state);
+      ut3k_play_sample("green_rotary_manual");
     }
   }
 
@@ -171,6 +202,10 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     if (this->blue_cycle_time < 2000) {
       this->blue_cycle_time += 5;
       printf("blue_cycle_time inc %d\n", this->blue_cycle_time);
+      if (this->blue_rotary_audio_timedown <= 0) {
+	ut3k_play_sample("blue_rotary");
+	this->blue_rotary_audio_timedown = audio_timedown_default;
+      }
     }
 
   }
@@ -178,6 +213,10 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     if (this->blue_cycle_time > 1) {
       this->blue_cycle_time -= 5;
       printf("blue_cycle_time dec %d\n", this->blue_cycle_time);
+      if (this->blue_rotary_audio_timedown <= 0) {
+	ut3k_play_sample("blue_rotary");
+	this->blue_rotary_audio_timedown = audio_timedown_default;
+      }
     }
     // since we're increasing speed: auto-move to next
     this->blue_remaining_time = 0;
@@ -201,6 +240,12 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     default:
       set_calc_function(this->model, f_calc_add);
     }
+
+    printf("green selector changed\n");
+    if (this->green_selector_audio_timedown <= 0) {
+      ut3k_play_sample("green_selector");
+      this->green_selector_audio_timedown = audio_timedown_default;
+    }
   }
 
 
@@ -220,6 +265,12 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     default:
       set_next_value_blue_function(this->model, f_next_plus_one);
     }
+
+    if (this->blue_selector_audio_timedown <= 0) {
+      ut3k_play_sample("blue_selector");
+      this->blue_selector_audio_timedown = audio_timedown_default;
+    }
+    printf("blue selector changed\n");
   }
 
 
@@ -227,12 +278,14 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   // Red button swaps the blue & green registers
   if (red_button->state_count == 0 && red_button->button_state) {
     swap_registers(this->model);
+    ut3k_play_sample("swap_register");
   }
 
 
 
   if (toggles->state_count == 0 && this->manual_green_register_flag) {
     set_green_register(this->model, toggles->toggles_state);
+    ut3k_play_sample("toggle_switch");
   }
 
 

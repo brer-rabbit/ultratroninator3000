@@ -25,6 +25,7 @@
 #include <ctype.h>
 
 #include "calc_model.h"
+#include "ut3k_pulseaudio.h"
 
 
 struct calc_model {
@@ -35,6 +36,14 @@ struct calc_model {
   f_calc f_calculator;
   f_next_value f_next_value_blue;
 
+  // audio related
+  int played_overflow_sound;
+
+  display_type green_display_type;
+  char green_display[4];
+
+  display_type blue_display_type;
+  char blue_display[4];
 
   struct display_strategy *display_strategy;
 };
@@ -89,6 +98,9 @@ struct calc_model* create_calc_model() {
   this->red_register = (this->f_calculator)(this->green_register, this->blue_register);
 
   this->display_strategy = create_display_strategy(this);
+  this->played_overflow_sound = 0;
+
+
   return this;
 }
 
@@ -171,9 +183,16 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
 
   if (this->red_register_int32 != this->red_register) {
     *blink = HT16K33_BLINK_FAST;
+    // audio: signal overflow
+    if (this->played_overflow_sound == 0) {
+      ut3k_play_sample("overflow");
+      this->played_overflow_sound = 1;
+    }
+
   }
   else {
     *blink = HT16K33_BLINK_OFF;
+    this->played_overflow_sound = 0;
   }
     
 

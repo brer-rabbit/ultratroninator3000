@@ -35,7 +35,7 @@
 
 // configurable duration for event loop; default to 35ms
 #define CONFIG_EVENT_LOOP_DURATION_TIME_KEY "event_loop_duration"
-#define EVENT_LOOP_DURATION_TIME_DEFAULT 35
+#define EVENT_LOOP_DURATION_TIME_DEFAULT 25
 #define CONFIG_SOUND_LIST_KEY "sound_list"
 
 

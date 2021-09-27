@@ -401,15 +401,62 @@ int HT16K33_UPDATE_RAW(HT16K33 *backpack, unsigned short digit, const uint16_t v
 }
 
 
-// TODO: change types, extend this for -999 to 9999
-int HT16K33_DISPLAY_INTEGER(HT16K33 *backpack, uint8_t value) {
-  for (int digit = 3; digit > 0; --digit) {
-    backpack->display_buffer.com[2*digit] = (uint8_t) ht16k33_int_to_display[value][digit-1];
-    backpack->display_buffer.com[2*digit+1] = (uint8_t) (ht16k33_int_to_display[value][digit-1] >> 8);
-  }
+// should probably dump the special handling for 8 bit ints and stick
+// with the snprintf branch for all.  The snprintf is slower by 10~50
+// microseconds per iteration, but the other version require a big
+// table plus my code is likely buggy.
+int HT16K33_DISPLAY_INTEGER(HT16K33 *backpack, int16_t value) {
+  int digit;
+  uint8_t value8 = value;
 
-  backpack->display_buffer.com[0] = (uint8_t) 0;
-  backpack->display_buffer.com[1] = (uint8_t) 0;
+  // test for an 8 bit value.
+  // this legitemately won't display the value 65280 correctly, but
+  // that's greater than what we can show on a 4 digit display
+  // anyway, so I'm fine with that.
+  if ((value & 0xff00) == 0) {
+    // non-negative 0-256
+    for (digit = 3; digit > 0; --digit) {
+      backpack->display_buffer.com[2*digit] = (uint8_t) ht16k33_int_to_display[value8][digit-1];
+      backpack->display_buffer.com[2*digit+1] = (uint8_t) (ht16k33_int_to_display[value8][digit-1] >> 8);
+    }
+    
+    backpack->display_buffer.com[0] = (uint8_t) 0;
+    backpack->display_buffer.com[1] = (uint8_t) 0;
+  }
+  else if (value == (int8_t)value) {
+    // negative value: -1 -- -128.  TODO: this ought to work to -255.
+    // stop if/when we get to a zero value in the display and use a
+    // minus sign instead
+    value8 = value * -1;
+
+    for (digit = 3; digit > 0; --digit) {
+      if (ht16k33_int_to_display[value8][digit-1] == 0) {
+	break;
+      }
+      backpack->display_buffer.com[2*digit] = (uint8_t) ht16k33_int_to_display[value8][digit-1];
+      backpack->display_buffer.com[2*digit+1] = (uint8_t) (ht16k33_int_to_display[value8][digit-1] >> 8);
+    }
+    
+    // precede with a minus sign since it's negative
+    backpack->display_buffer.com[2 * digit] = (uint8_t) ht16k33_alphanum['-'];
+    backpack->display_buffer.com[2 * digit + 1] = (uint8_t) (ht16k33_alphanum['-'] >> 8);
+
+    // fill in any remaining digits with spaces
+    for (digit = digit - 1; digit >= 0; --digit) {
+      backpack->display_buffer.com[2 * digit] = 0;
+      backpack->display_buffer.com[2 * digit + 1] = 0;
+    }
+  }
+  else {
+    // optimize this later...
+    unsigned char display[5];
+    snprintf((char*)display, 5, "%4.hd", value);
+    for (digit = 0; digit < 4; ++digit) {
+      backpack->display_buffer.com[2*digit] = (uint8_t)ht16k33_alphanum[display[digit]];
+      backpack->display_buffer.com[2*digit + 1] = (uint8_t)(ht16k33_alphanum[display[digit]] >> 8);
+    }
+    
+  }
 
   return 0;
 }

@@ -224,7 +224,7 @@ int HT16K33_UPDATE_RAW(HT16K33 *backpack, unsigned short digit, const uint16_t v
 /** write all the digits of an integer to the display
  * call HT16K33_COMMIT to display
  */
-int HT16K33_DISPLAY_INTEGER(HT16K33 *backpack, uint8_t value);
+int HT16K33_DISPLAY_INTEGER(HT16K33 *backpack, int16_t value);
 
 /**
  * Clean a single display digit, identified by the digit parameter, starting from 0.
