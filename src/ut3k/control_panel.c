@@ -66,14 +66,6 @@ static void update_selector(struct selector *selector, uint8_t value);
 static void update_toggles(struct toggles *toggles, uint8_t value);
 
 
-// rotary encoder table -- see comnet on the update function for ugly details
-static int encoder_lookup_table_neutral[] = {0,-1,1,0,0,0,0,0,0,0,0,0,0,0,-1,0};
-static int encoder_lookup_table_ccw[] = {0,0,-1,-1,0,0,0,0,-1,0,0,0,0,-1,-1,0};
-static int encoder_lookup_table_cw[] = {0,-1,1,1,1,0,0,0,0,0,0,0,0,1,1,0};
-const static int clock_ticks_for_temp_table = 3;
-
-
-
 struct control_panel {
   struct selector green_selector;
   struct rotary_encoder green_encoder;
@@ -127,7 +119,6 @@ struct control_panel* create_control_panel(ht16k33keyscan_t keyscan) {
 
   this->green_encoder.encoder_delta = 0;
   this->green_encoder.encoder_state = 0;
-  this->green_encoder.encoder_lookup_table = encoder_lookup_table_neutral;
   this->green_encoder.clock_ticks_to_neutral = 0;
   this->green_encoder.button.button_previous_state = 0;
   this->green_encoder.button.button_state = 0;
@@ -135,7 +126,6 @@ struct control_panel* create_control_panel(ht16k33keyscan_t keyscan) {
 
   this->blue_encoder.encoder_delta = 0;
   this->blue_encoder.encoder_state = 0;
-  this->blue_encoder.encoder_lookup_table = encoder_lookup_table_neutral;
   this->blue_encoder.clock_ticks_to_neutral = 0;
   this->blue_encoder.button.button_previous_state = 0;
   this->blue_encoder.button.button_state = 0;
@@ -143,7 +133,6 @@ struct control_panel* create_control_panel(ht16k33keyscan_t keyscan) {
 
   this->red_encoder.encoder_delta = 0;
   this->red_encoder.encoder_state = 0;
-  this->red_encoder.encoder_lookup_table = encoder_lookup_table_neutral;
   this->red_encoder.clock_ticks_to_neutral = 0;
   this->red_encoder.button.button_previous_state = 0;
   this->red_encoder.button.button_state = 0;
@@ -264,26 +253,101 @@ static void update_button(struct button *button, uint8_t value, uint32_t clock) 
 
 
 // index via previous_state<<2 | current_state.
-// I tried many different mappings- this seemed to work best.
-// Part of the problem is the ht16k33 debounces and requires two
-// stable readings.  The scan rate is ~20 ms.  Too slow to read
-// every single transition from rotary encoders.
 
-// Complete total hack: use a modified lookup table (statistically
-// determined by lots of spinning slow, fast, medium).  If we find
-// the encoder is moving CW or CCW, switch to a direction-specific
-// table for one or two reads.  Each subsequent move resets the timer
-// on the direction-specific table.
-// The direction specific tables allow for some invalid states to register
-// as legit.  Total hack, but it works quite nice with this particular
-// keyscan chip.
+// I tried many different mappings- this seemed to work best.  Part of
+// the problem is the ht16k33 debounces and requires two stable
+// readings.  Each keyscan reading is done once for 256us every 9.5ms.
+// A lot of potentially missed rotary encoder states.  So to trigger a
+// key we need the encoder to hold state for quite awhile.
+//
+// Complete total hack: use an expanded lookup table (statistically
+// determined by lots of spinning slow, fast, medium).  Track current
+// state and the previous two states; 6 bits total / 64 entries in
+// table.  The additional state is useful for tracking faster
+// movement.  Timeout and remove the upper two bits of state once
+// movement stops/slows.
+
+
+static int8_t encoder_lookup_table[] =
+       {
+           0,  // 0 000000
+          -1,  // 1 000001 // last four bits are strong: don't care on upper 2
+           1,  // 2 000010 // last four bits are strong: don't care on upper 2
+           0,  // 3 000011
+           0,  // 4 000100
+           0,  // 5 000101
+           0,  // 6 000110
+           0,  // 7 000111
+           0,  // 8 001000
+           0,  // 9 001001
+           0,  // 10 001010
+           0,  // 11 001011
+           0,  // 12 001100
+           1,  // 13 001101
+           0,  // 14 001110
+           0,  // 15 001111
+
+           0,  // 16 010000
+          -1,  // 17 010001
+           1,  // 18 010010
+           0,  // 19 010011
+           0,  // 20 010100
+           0,  // 21 010101
+           0,  // 22 010110
+          -1,  // 23 010111
+          -1,  // 24 011000
+          -1,  // 25 011001
+           0,  // 26 011010
+           1,  // 27 011011
+           0,  // 28 011100
+          -1,  // 29 011101
+           0,  // 30 011110
+           0,  // 31 011111
+
+           0,  // 32 100000
+          -1,  // 33 100001
+           1,  // 34 100010
+           0,  // 35 100011
+           0,  // 36 100100
+           0,  // 37 100101
+           0,  // 38 100110
+          -1,  // 39 100111
+           0,  // 40 101000
+           1,  // 41 101001
+           0,  // 42 101010
+           1,  // 43 101011
+           0,  // 44 101100
+           1,  // 45 101101
+           0,  // 46 101110
+           0,  // 47 101111
+
+           0,  // 48 110000
+          -1,  // 49 110001
+           1,  // 50 110010
+           0,  // 51 110011
+           0,  // 52 110100
+           0,  // 53 110101
+           0,  // 54 110110
+          -1,  // 55 110111
+          -1,  // 56 111000
+          -1,  // 57 111001
+           0,  // 58 111010
+           1,  // 59 111011
+           0,  // 60 111100
+           0,  // 61 111101
+           0,  // 62 111110
+           0   // 63 111111
+       }; 
+
+const static int clock_ticks_for_temp_table = 3;
 
 
 static void update_rotary_encoder(struct rotary_encoder *encoder, uint8_t value) {
 
   // technically this could underflow, but whatevz
   if (--encoder->clock_ticks_to_neutral <= 0) {
-    encoder->encoder_lookup_table = encoder_lookup_table_neutral;
+    // delete history minus most recent bits
+    encoder->encoder_state = encoder->encoder_state & 0b11;
   }
 
   // first check to see if the bits are the same or different
@@ -296,17 +360,15 @@ static void update_rotary_encoder(struct rotary_encoder *encoder, uint8_t value)
   // else something changed.
   // move encoder state up two bits
   encoder->encoder_state = encoder->encoder_state << 2;
-  encoder->encoder_state = (encoder->encoder_state | value) & 0b1111;
+  encoder->encoder_state = encoder->encoder_state | value;
 
-  switch (encoder->encoder_lookup_table[encoder->encoder_state]) {
+  switch (encoder_lookup_table[(encoder->encoder_state & 0b111111)]) {
   case -1:
     encoder->encoder_delta = -1;
-    encoder->encoder_lookup_table = encoder_lookup_table_ccw;
     encoder->clock_ticks_to_neutral = clock_ticks_for_temp_table;
     break;
   case 1:
     encoder->encoder_delta = 1;
-    encoder->encoder_lookup_table = encoder_lookup_table_cw;
     encoder->clock_ticks_to_neutral = clock_ticks_for_temp_table;
     break;    
   case 0:
