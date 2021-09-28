@@ -157,6 +157,7 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   const struct selector *blue_selector = get_blue_selector(control_panel);
   const struct toggles *toggles = get_toggles(control_panel);
   const struct button *red_button = get_red_button(control_panel);
+  const struct joystick *joystick = get_joystick(control_panel);
 
 
 
@@ -286,6 +287,15 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   if (toggles->state_count == 0 && this->manual_green_register_flag) {
     set_green_register(this->model, toggles->toggles_state);
     ut3k_play_sample("toggle_switch");
+  }
+
+
+  if (joystick->state_count == 0) {
+    printf("joystick changed from %d to %d\n", joystick->direction_previous, joystick->direction);
+  }
+
+  if (joystick->button.state_count == 0) {
+    printf("joystick button toggled\n");
   }
 
 

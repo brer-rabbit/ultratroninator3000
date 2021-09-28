@@ -95,7 +95,6 @@ struct rotary_encoder {
   // guru meditation: these ought to be hidden from the user, they're
   // implementation details
   uint8_t encoder_state;  // hold previous & current here, 4 bits
-  int *encoder_lookup_table;
   int clock_ticks_to_neutral;
 };
 
@@ -135,8 +134,11 @@ struct joystick {
   enum direction direction;
   enum direction direction_previous;
   uint32_t state_count;
+  uint8_t previous_bits;
   struct button button;
 };
+
+const struct joystick* get_joystick(const struct control_panel *this);
 
 
 // toggle switches we do as a single byte

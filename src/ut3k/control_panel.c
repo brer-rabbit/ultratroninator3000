@@ -54,8 +54,9 @@ static const int RED_BUTTON_BYTE = 5;
 static const int RED_BUTTON_BIT = 0;
 
 
-static const int JOYSTICK_BYTE = 1;
-static const int JOYSTICK_PUSHBUTTON_BIT = 1;
+static const int JOYSTICK_BYTE0 = 0;
+static const int JOYSTICK_BYTE1 = 1;
+static const int JOYSTICK_PUSHBUTTON_BIT = 3;
 
 
 static const int TOGGLES_BYTE = 4;
@@ -64,6 +65,7 @@ static void update_button(struct button *button, uint8_t value, uint32_t clock);
 static void update_rotary_encoder(struct rotary_encoder *encoder, uint8_t value);
 static void update_selector(struct selector *selector, uint8_t value);
 static void update_toggles(struct toggles *toggles, uint8_t value);
+static void update_joystick(struct joystick *joystick, uint8_t value);
 
 
 struct control_panel {
@@ -170,9 +172,6 @@ int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan, u
   update_button(&(this->blue_encoder.button), ht16k33keyscan_byte(&keyscan, BLUE_ROTARY_ENCODER_BYTE) >> BLUE_ROTARY_ENCODER_PUSHBUTTON_BIT & 0b1, clock);
   update_button(&(this->red_encoder.button), ht16k33keyscan_byte(&keyscan, RED_ROTARY_ENCODER_BYTE) >> RED_ROTARY_ENCODER_PUSHBUTTON_BIT & 0b1, clock);
 
-  // along with the joystick pushbutton
-  update_button(&(this->red_joystick.button), ht16k33keyscan_byte(&keyscan, JOYSTICK_BYTE) >> JOYSTICK_PUSHBUTTON_BIT & 0b1, clock);
-
   // the three encoders
   update_rotary_encoder(&(this->green_encoder), ht16k33keyscan_byte(&keyscan, GREEN_ROTARY_ENCODER_BYTE) >> GREEN_ROTARY_ENCODER_SIGA_BIT & 0b11);
   update_rotary_encoder(&(this->blue_encoder), ht16k33keyscan_byte(&keyscan, BLUE_ROTARY_ENCODER_BYTE) >> BLUE_ROTARY_ENCODER_SIGA_BIT & 0b11);
@@ -184,6 +183,16 @@ int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan, u
 
   // toggle switches
   update_toggles(&(this->toggles), ht16k33keyscan_byte(&keyscan, TOGGLES_BYTE));
+
+  // joystick pushbutton
+  update_button(&(this->red_joystick.button), ht16k33keyscan_byte(&keyscan, JOYSTICK_BYTE1) >> JOYSTICK_PUSHBUTTON_BIT & 0b1, clock);
+
+  // and finally the joystick
+  // the joystick is 5 bits across two bytes.  Probably should have
+  // thought of that before wiring everything up, but hey, here it is.
+  update_joystick(&(this->red_joystick),
+		  (ht16k33keyscan_byte(&keyscan, JOYSTICK_BYTE1) & 0b111) |
+		  (ht16k33keyscan_byte(&keyscan, JOYSTICK_BYTE0) & 0b10000000));
 
   return 0;
 }
@@ -229,6 +238,9 @@ const struct toggles* get_toggles(const struct control_panel *this) {
   return (const struct toggles*) &(this->toggles);
 }
 
+const struct joystick* get_joystick(const struct control_panel *this) {
+  return (const struct joystick*) &(this->red_joystick);
+}
 
 /* internal functions ***************************************************/
 
@@ -435,4 +447,38 @@ static void update_toggles(struct toggles *toggles, uint8_t value) {
   else {
     toggles->state_count++;
   }
+}
+
+
+static void update_joystick(struct joystick *joystick, uint8_t value) {
+  if (joystick->previous_bits != value) {
+    printf("joystick previous: 0x%X now 0x%X\n", joystick->previous_bits, value);
+    // something changed, assume it's a single bit and
+    // that the joystick can only point one direction
+    joystick->direction_previous = joystick->direction;
+    joystick->state_count = 0;
+    joystick->previous_bits = value;
+    switch (value) {
+    case 0b0000:
+    default:
+      joystick->direction = CENTERED;
+      break;
+    case 0b0001:
+      joystick->direction = UP;
+      break;
+    case 0b0010:
+      joystick->direction = DOWN;
+      break;
+    case 0b0100:
+      joystick->direction = LEFT;
+      break;
+    case 0b10000000:
+      joystick->direction = RIGHT;
+      break;
+    }
+  }
+  else {
+    joystick->state_count++;
+  }
+
 }
