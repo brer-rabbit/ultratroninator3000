@@ -250,6 +250,24 @@ static void commit_string(HT16K33 *display, char *string) {
 }
 
 
+
+/** commit_glyph
+ *
+ * raw read of four 16 bit ints sent straight to the update raw method.
+ * more than enough rope to hang yourself with this.
+ */
+static void commit_glyph(HT16K33 *display, uint16_t glyph[]) {
+  int digit;
+
+  for (digit = 0; digit < 4; ++digit) { // digit
+    HT16K33_UPDATE_RAW(display, digit, glyph[digit]);
+  }
+
+  HT16K33_COMMIT(display);
+}
+
+
+
 /** commit_integer
  * 
  * write a string to a specific HT16K33 display.  Only the first 4
@@ -274,6 +292,8 @@ static void commit_integer(HT16K33 *display, int16_t value) {
 
 
 
+
+
 /** ht16k33_alphanum_display_game: implements f_show_displays
  * specific implementation for the Adafruit alphanum display
  */
@@ -290,7 +310,7 @@ static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display
     commit_integer(this->display_array[0], union_result.display_int);
     break;
   case glyph_display:
-    printf("glyph not implemented\n");
+    commit_glyph(this->display_array[0], union_result.display_glyph);
     break;
   case string_display:
     commit_string(this->display_array[0], union_result.display_string);
@@ -311,7 +331,7 @@ static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display
     commit_integer(this->display_array[1], union_result.display_int);
     break;
   case glyph_display:
-    printf("glyph not implemented\n");
+    commit_glyph(this->display_array[1], union_result.display_glyph);
     break;
   case string_display:
     commit_string(this->display_array[1], union_result.display_string);
@@ -332,7 +352,7 @@ static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display
     commit_integer(this->display_array[2], union_result.display_int);
     break;
   case glyph_display:
-    printf("glyph not implemented\n");
+    commit_glyph(this->display_array[2], union_result.display_glyph);
     break;
   case string_display:
     commit_string(this->display_array[2], union_result.display_string);
