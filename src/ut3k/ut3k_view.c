@@ -179,21 +179,23 @@ void update_view(struct ut3k_view *this, struct display_strategy *display_strate
   int keyscan_rc;
 
 
-  keyscan_rc = HT16K33_READ(this->inputs_and_leds, keyscan);
-  if (keyscan_rc != 0) {
-    printf("keyscan failed with code %d\n", keyscan_rc);
+  // only read every other clock cycle
+  if (clock & 0b1) {
+    keyscan_rc = HT16K33_READ(this->inputs_and_leds, keyscan);
+    if (keyscan_rc != 0) {
+      printf("keyscan failed with code %d\n", keyscan_rc);
+    }
+
+    //  printf("keyscan: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X\n",
+    //  	 keyscan[0], keyscan[1], keyscan[2], keyscan[3], keyscan[4], keyscan[5]);
+
+    // update control panel here...
+    update_control_panel(this->control_panel, keyscan, clock);
+
+    if (this->control_panel_listener) {
+      (*this->control_panel_listener)((const struct control_panel*)this->control_panel, this->control_panel_listener_userdata);
+    }
   }
-
-  //  printf("keyscan: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X\n",
-  //  	 keyscan[0], keyscan[1], keyscan[2], keyscan[3], keyscan[4], keyscan[5]);
-
-  // update control panel here...
-  update_control_panel(this->control_panel, keyscan, clock);
-
-  if (this->control_panel_listener) {
-    (*this->control_panel_listener)((const struct control_panel*)this->control_panel, this->control_panel_listener_userdata);
-  }
-
 
   // odd..but abstract out implementation while passing object state.
   // maybe I should switch to an OO language?

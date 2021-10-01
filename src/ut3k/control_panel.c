@@ -452,7 +452,6 @@ static void update_toggles(struct toggles *toggles, uint8_t value) {
 
 static void update_joystick(struct joystick *joystick, uint8_t value) {
   if (joystick->previous_bits != value) {
-    printf("joystick previous: 0x%X now 0x%X\n", joystick->previous_bits, value);
     // something changed, assume it's a single bit and
     // that the joystick can only point one direction
     joystick->direction_previous = joystick->direction;

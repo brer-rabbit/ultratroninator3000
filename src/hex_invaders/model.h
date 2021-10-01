@@ -36,18 +36,34 @@ struct model* create_model();
 void free_model(struct model*);
 
 // Supported model methods
-typedef enum { GAME_OVER, GAME_PLAYING } game_state_t;
-typedef enum { READY, FIRED, CHARGING } laser_state_t;
-typedef enum { FORMING, ACTIVE, INACTIVE } invader_state_t;
 
+// high level state changes
 void game_start(struct model*);
+void game_over(struct model*);
+void game_attract(struct model*);
+
 
 void player_left(struct model*);
 void player_right(struct model*);
-void start_invader(struct model*);
-void update_invaders(struct model*);
+void set_player_laser_value(struct model *this, uint8_t value);
+int player_shield_hit(struct model *this);
+int set_player_as_hexdigit(struct model*);
+int set_player_as_glyph(struct model*);
 
-// accessors here- but these may be decoupled via the display_strategy
+void clocktick_player_laser(struct model*);
+int set_player_laser_fired(struct model*);
+
+void start_invader(struct model*);
+void clocktick_invaders(struct model*);
+void destroy_invader(struct model*, int invader_id_collision);
+
+const struct level get_level(struct model *this);
+void set_level_up(struct model *this);
+
+
+int check_collision_invaders_player(struct model*);
+int check_collision_player_laser_to_aliens(struct model*);
+int check_collision_invaders_laser_to_player(struct model*);
 
 
 // critical to implement
