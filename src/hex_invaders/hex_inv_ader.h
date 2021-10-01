@@ -1,4 +1,4 @@
-/* auto_calc definitions
+/* hex invaders defs
  * Copyright 2021 Kyle Farrell
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -15,8 +15,8 @@
  */
 
 
-#ifndef ROTA_ENCO_H
-#define ROTA_ENCO_H
+#ifndef HEX_INV_ADER_H
+#define HEX_INV_ADER_H
 
 #include "ut3k_pulseaudio.h"
 

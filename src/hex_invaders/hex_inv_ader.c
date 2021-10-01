@@ -23,13 +23,12 @@
 #include <unistd.h>
 #include <libconfig.h>
 
-#include "rota_enco.h"
 #include "model.h"
 #include "controller.h"
 #include "ut3k_view.h"
+#include "hex_inv_ader.h"
 
-
-/** rotary encoder demo
+/** hex invaders
  *
  */
 
