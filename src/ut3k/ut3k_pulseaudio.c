@@ -184,7 +184,7 @@ char* ut3k_upload_wavfile(char *filename, char *sample_name) {
 }
 
 
-void ut3k_play_sample(char *sample_name) {
+void ut3k_play_sample(const char *sample_name) {
     if (pa_operation_most_recent != NULL) {
         pa_operation_unref(pa_operation_most_recent);
     }

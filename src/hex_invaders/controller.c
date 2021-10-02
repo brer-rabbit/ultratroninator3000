@@ -19,7 +19,7 @@
 #include "control_panel.h"
 #include "controller.h"
 #include "ut3k_pulseaudio.h"
-
+#include "hex_inv_ader.h"
 
 struct controller {
   struct model *model;
@@ -53,33 +53,43 @@ void free_controller(struct controller *this) {
 
 void controller_update(struct controller *this, uint32_t clock) {
   int invader_id_collision, invader_id_destroyed;
+  int shield_remaining;
 
   clocktick_invaders(this->model);
 
   invader_id_collision = check_collision_invaders_player(this->model);
   if (invader_id_collision >= 0) {
     // collion, shield takes a hit
-    if (player_shield_hit(this->model) == 0) {
+    shield_remaining = player_shield_hit(this->model);
+    destroy_invader(this->model, invader_id_collision);
+    if (shield_remaining == 0) {
       // game over!
+      ut3k_play_sample(gameover_soundkey);
       game_over(this->model);
     }
     else {
       // destroy invader, no points
-      destroy_invader(this->model, invader_id_collision);
+      if (shield_remaining == 1) {
+	ut3k_play_sample(shieldlow_soundkey);
+      }
+      else {
+	ut3k_play_sample(shieldhit_soundkey);
+      }
     }
   }
 
   invader_id_destroyed = check_collision_player_laser_to_aliens(this->model);
   if (invader_id_destroyed >= 0) {
     destroy_invader(this->model, invader_id_destroyed);
-    printf("destryoed %i\n", invader_id_destroyed);
+    ut3k_play_sample(laser_hit_invader_soundkey);
   }
   else if (invader_id_destroyed == -2) {
-    printf("wrong hex value!\n");
+    ut3k_play_sample(laser_hit_shielded_invader_soundkey);
   }
 
     
-  check_collision_invaders_laser_to_player(this->model);
+  // invaders aren't firing lasers
+  //check_collision_invaders_laser_to_player(this->model);
 
   clocktick_player_laser(this->model);
 
@@ -111,9 +121,9 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   }
 
   const struct toggles *toggles = get_toggles(control_panel);
-  if (toggles->toggles_toggled) {
+  if (toggles->state_count == 0) {
     set_player_laser_value(this->model, toggles->toggles_state & 0xF);
-    // play toggled sound
+    ut3k_play_sample(laser_toggled_soundkey);
   }
 
 
@@ -122,14 +132,13 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     // red button: show the actual Hex digit the player's laser is set to
     // if the model allows it-
     if (set_player_as_hexdigit(this->model)) {
-      // play sound
+      ut3k_play_sample(showhex_soundkey);
     }
   }
   else {
-    // red button: show the actual Hex digit the player's laser is set to
-    // if the model allows it-
     if (set_player_as_glyph(this->model)) {
       // play revert sound
+      ut3k_play_sample(hidehex_soundkey);
     }
   }
 
@@ -139,6 +148,7 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     // if the model allows it-
     if (set_player_laser_fired(this->model)) {
       // play fire laser sound
+      ut3k_play_sample(playerfire_soundkey);
     }
   }
 

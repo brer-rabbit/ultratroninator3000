@@ -2,7 +2,8 @@ TARGET = hex_inv8_ders
 INCLUDE = -I../../include
 LIBS = -li2c -lconfig -lpulse -lsndfile   -L../../lib/ -lut3k
 CC = gcc
-CFLAGS = -g -Wall
+#CFLAGS = -g -Wall
+CFLAGS = -O2 -Wall
 
 .PHONY: default all clean
 

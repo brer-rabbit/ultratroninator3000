@@ -24,6 +24,7 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "hex_inv_ader.h"
 #include "model.h"
 #include "ut3k_pulseaudio.h"
 
@@ -77,8 +78,8 @@ struct invader {
 
 struct level {
   uint8_t level_number;
-  uint8_t level_invader_speed;
-  uint8_t level_invader_speed_clock;
+  uint8_t invader_speed;
+  uint8_t invader_speed_clockticks_til_move;
   uint8_t total_invaders;
   uint8_t remaining_invaders_to_form;
 };
@@ -143,8 +144,8 @@ struct model* create_model() {
 
 void game_start(struct model *this) {
   this->level.level_number = 1;
-  this->level.level_invader_speed = 255;
-  this->level.level_invader_speed_clock = this->level.level_invader_speed;
+  this->level.invader_speed = 255;
+  this->level.invader_speed_clockticks_til_move = this->level.invader_speed;
   this->level.remaining_invaders_to_form = 8;
   this->level.total_invaders = this->level.remaining_invaders_to_form;
   this->player.position = 9;
@@ -360,7 +361,6 @@ void set_player_laser_value(struct model *this, uint8_t value) {
 int player_shield_hit(struct model *this) {
   if (this->player.shield > 0) {
     this->player.shield = this->player.shield >> 1;
-    // TODO: PLAY SOUND
   }
   return this->player.shield;
 }
@@ -484,23 +484,24 @@ void start_invader(struct model *this) {
 // draw the invaders.  Possibly advance them to the next square.
 void clocktick_invaders(struct model *this) {
   int i;
-  int move_invaders, form_invaders;
+  int move_invaders, form_invaders = 0, active_invaders = 0;
   int is_forming = 0; // do we have one forming? can only have 1 forming at a time
 
-  if (--this->level.level_invader_speed_clock == 0) {
+  if (--this->level.invader_speed_clockticks_til_move == 0) {
     // advance invaders
-    this->level.level_invader_speed_clock = this->level.level_invader_speed;
+    this->level.invader_speed_clockticks_til_move = this->level.invader_speed;
     move_invaders = 1;
   }
   else {
     move_invaders = 0;
     form_invaders =
-      this->level.level_invader_speed_clock < 0.5 * this->level.level_invader_speed ? 1 : 0;
+      this->level.invader_speed_clockticks_til_move < 0.5 * this->level.invader_speed ? 1 : 0;
   }
 
 
   for (i = 0; i < num_invaders; ++i) {
     if (this->invaders[i].invader_state == ACTIVE) {
+      active_invaders++;
       if (move_invaders) {
 	// this should be checked-- it'll collide with player at some point
 	this->invaders[i].steps++;
@@ -515,7 +516,7 @@ void clocktick_invaders(struct model *this) {
 	this->invaders[i].glyph = invader_hex_glyphs[this->invaders[i].hex_value];
       }
       else {
-	// change glyph
+	// change glyph as it forms
 	++this->invaders[i].glyph_index;
 	if (this->invaders[i].glyph_index ==
 	    (sizeof(invader_forming_glyphs) / sizeof(uint16_t))) {
@@ -527,10 +528,18 @@ void clocktick_invaders(struct model *this) {
   }
 
   // if it's a movement turn AND nothing is forming AND we've got
-  // invaders to still introduce, make it so
-  if (move_invaders == 1 && is_forming == 0 && this->level.remaining_invaders_to_form > 0) {
-    this->level.remaining_invaders_to_form--;
-    start_invader(this);
+  // invaders to still introduce, so form one up
+  if (move_invaders == 1) {
+    if (is_forming == 0 && this->level.remaining_invaders_to_form > 0) {
+      this->level.remaining_invaders_to_form--;
+      start_invader(this);
+      ut3k_play_sample(invader_forming_soundkey);
+    }
+    else {
+      if (active_invaders) {
+	ut3k_play_sample(moveinvaders1_soundkey);
+      }
+    }
   }
 
 }
@@ -552,8 +561,8 @@ const struct level get_level(struct model *this) {
 // the numbers are arbitrary...will adjust
 void set_level_up(struct model *this) {
   this->level.level_number++;
-  if (this->level.level_invader_speed > 10) {
-      this->level.level_invader_speed--;
+  if (this->level.invader_speed > 10) {
+      this->level.invader_speed--;
   }
   this->level.total_invaders += 2;
 }
@@ -596,6 +605,7 @@ int check_collision_player_laser_to_aliens(struct model *this) {
 }
 
 int check_collision_invaders_laser_to_player(struct model *this) {
+  // we don't have the invaders firing lasers...
   return 0;
 }
 

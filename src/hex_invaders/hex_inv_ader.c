@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +37,24 @@
 #define CONFIG_EVENT_LOOP_DURATION_TIME_KEY "event_loop_duration"
 #define EVENT_LOOP_DURATION_TIME_DEFAULT 25
 #define CONFIG_SOUND_LIST_KEY "sound_list"
+
+
+// config keys for various sounds
+const char *laser_toggled_soundkey = "laser_toggled";
+const char *showhex_soundkey = "showhex";
+const char *hidehex_soundkey = "hidehex";
+const char *playerfire_soundkey = "playerfire";
+const char *gameover_soundkey = "gameover";
+const char *attract_soundkey = "attract";
+const char *shieldhit_soundkey = "shieldhit";
+const char *shieldlow_soundkey = "shieldlow";
+const char *moveinvaders1_soundkey = "moveinvaders1";
+const char *moveinvaders2_soundkey = "moveinvaders2";
+const char *invader_forming_soundkey = "invader_forming";
+const char *laser_hit_invader_soundkey = "laser_hit_invader";
+const char *laser_hit_shielded_invader_soundkey = "laser_hit_shielded_invader";
+const char *levelup_soundkey = "level";
+const char *start_game_soundkey = "start_game";
 
 
 
@@ -158,6 +177,7 @@ void load_audio_from_config(config_t *cfg, char *games_directory) {
     for (int sound_array_index = 0; sound_array_index < sound_array_setting_length; ++sound_array_index) {
       sound_type_key = config_setting_get_string_elem(key_sound_array, sound_array_index);
       key_sound_samples_array = config_lookup(cfg, sound_type_key);
+      assert(key_sound_samples_array);
       sound_samples_array_setting_length = config_setting_length(key_sound_samples_array);
       printf("for samples %s got array of length %d\n", sound_type_key, sound_samples_array_setting_length);
       random_sample_index = rand() % sound_samples_array_setting_length;

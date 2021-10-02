@@ -23,8 +23,26 @@
 #define GAMES_LOCAL_ENV_VAR "GAMES_LOCAL"
 #define DEFAULT_GAMES_BASEDIR "/usr/local/games/ultratroninator_3000"
 #define CONFIG_DIRNAME "/etc/"
-#define CONFIG_FILENAME "ultratroninator.config"
+#define CONFIG_FILENAME "hex_invaders.config"
 #define SAMPLE_DIRNAME "/samples/"
+
+
+// config keys for various sounds
+extern const char *laser_toggled_soundkey;
+extern const char *showhex_soundkey;
+extern const char *hidehex_soundkey;
+extern const char *playerfire_soundkey;
+extern const char *gameover_soundkey;
+extern const char *attract_soundkey;
+extern const char *shieldhit_soundkey;
+extern const char *shieldlow_soundkey;
+extern const char *moveinvaders1_soundkey;
+extern const char *moveinvaders2_soundkey;
+extern const char *invader_forming_soundkey;
+extern const char *laser_hit_invader_soundkey;
+extern const char *laser_hit_shielded_invader_soundkey;
+extern const char *levelup_soundkey;
+extern const char *start_game_soundkey;
 
 
 #endif

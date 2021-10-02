@@ -7,7 +7,7 @@ void ut3k_pa_mainloop_iterate();
 void ut3k_disconnect_audio_context();
 
 char* ut3k_upload_wavfile(char *filename, char *sample_name);
-void ut3k_play_sample(char *sample_name);
+void ut3k_play_sample(const char *sample_name);
 void ut3k_remove_sample(char *sample_name);
 
 void ut3k_wait_last_operation();
