@@ -13,15 +13,20 @@
  * limitations under the License.
  */
 
+#include <errno.h>
+#include <fcntl.h>
+#include <libconfig.h>
+#include <linux/gpio.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#include <libconfig.h>
 
 #include "mcp.h"
 #include "game_model.h"
@@ -47,13 +52,18 @@
 #define EVENT_LOOP_DURATION_TIME_DEFAULT 35
 #define CONFIG_SOUND_LIST_KEY "sound_list"
 
+static const char *gpio_devfile = "/dev/gpiochip0";
+static const int gpio_reset_button_bcm = 23;
 
 static void launch_game(char *executable, char **envp) {
   char *argv[2];
   argv[0] = executable;
   argv[1] = NULL;
+  struct gpiohandle_request gpio_request;
+  struct gpiohandle_data gpio_data;
+  int gpio_fd, ret, waitpid_return, reset_button;  
+  
 
-  pid_t parent = getpid();
   pid_t pid = fork();
 
   if (pid == -1) {
@@ -61,8 +71,54 @@ static void launch_game(char *executable, char **envp) {
   } 
   else if (pid > 0) {
     int status;
-    waitpid(pid, &status, 0);
-    printf("waited on %d with return status %d\n", pid, status);
+    // parent process: check for reset button, otherwise wait for
+    // process to finish.
+    // waitpid return zero if child still running.
+    // reset button has inverted logic there: zero if it is pushed
+    gpio_fd = open(gpio_devfile, O_RDONLY);
+    gpio_request.lineoffsets[0] = gpio_reset_button_bcm;
+    gpio_request.lines = 1;
+    gpio_request.flags = GPIOHANDLE_REQUEST_INPUT | GPIOHANDLE_REQUEST_BIAS_PULL_UP;
+
+    ret = ioctl(gpio_fd, GPIO_GET_LINEHANDLE_IOCTL, &gpio_request);
+    if (ret == -1) {
+      printf("unable to get line value via ioctl: %s\n", strerror(errno));
+    }
+
+    waitpid_return = 0;
+    reset_button = 1;
+    do {
+      ret = ioctl(gpio_request.fd, GPIOHANDLE_GET_LINE_VALUES_IOCTL, &gpio_data);
+      if (ret == -1) {
+	printf("Unable to get line value using ioctl : %s", strerror(errno));
+      }
+      reset_button = gpio_data.values[0];
+
+      waitpid_return = waitpid(pid, &status, WNOHANG);
+      usleep(10000);
+    } while (waitpid_return == 0 && reset_button == 1);
+    
+    printf("waited on %d: exited with waitpid_return %d and reset_button %d\n", pid, waitpid_return, reset_button);
+
+    // if reset button pushed send child a signal
+    if (reset_button == 0) {
+      ret = kill(pid, SIGTERM);
+      if (ret != 0) {
+	printf("can't send SIGTERM to process %d: %s\n", pid, strerror(errno));
+      }
+      // wait it out
+      waitpid(pid, &status, 0);
+
+      // TODO: loop, send a sigkill if necessary
+    }
+
+    ret = close(gpio_fd);
+    if (ret != 0) {
+      printf("close returned %d: %s\n", ret, strerror(errno));
+    }
+    else {
+      printf("gpio closed\n");
+    }
   }
   else  {
     // we are the child
@@ -156,7 +212,7 @@ static char* run_mvc(config_t *cfg) {
 
   }
 
-  sleep(2);
+  sleep(1);
 
   free_game_controller(controller);
   free_game_model(model);

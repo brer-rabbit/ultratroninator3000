@@ -74,7 +74,7 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   }
 	 
   if (rotary_encoder->encoder_delta > 0) {
-    printf("encoder state 0x%X delta %d (%d ticks to neutral, table %p) count %d\n", rotary_encoder->encoder_state, rotary_encoder->encoder_delta, rotary_encoder->clock_ticks_to_neutral, (void*)rotary_encoder->encoder_lookup_table, count);
+    printf("encoder state 0x%X delta %d count %d\n", rotary_encoder->encoder_state, rotary_encoder->encoder_delta, count);
     next_game(this->model);
   }
   else if (rotary_encoder->encoder_delta < 0) {
@@ -82,24 +82,17 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   }
 
 
+  // hey, a game is picked!
   if (rotary_encoder->button.state_count == 0) {
-    printf("rotary encoder button changed from %d to %d after %d cycles\n",
-	   rotary_encoder->button.button_previous_state,
-	   rotary_encoder->button.button_state,
-	   rotary_encoder->button.button_previous_state_count);
+    this->game_exec_to_launch = get_current_executable(this->model);
   }
 
 
   if (selector->state_count == 0) {
-    printf("selector changed from %d to %d count %d bits 0x%X\n", selector->selector_previous_state, selector->selector_state, selector->state_count, selector->selector_state_bits);
   }
 
 
   if (toggles->state_count == 0) {
-    printf("toggles changed from 0x%X to 0x%X (change: 0x%X)\n",
-	   toggles->toggles_previous_state,
-	   toggles->toggles_state,
-	   toggles->toggles_toggled);
   }
 
 
