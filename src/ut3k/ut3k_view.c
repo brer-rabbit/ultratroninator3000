@@ -153,6 +153,11 @@ int free_ut3k_view(struct ut3k_view *this) {
 
   free_control_panel(this->control_panel);
 
+  HT16K33_OFF(this->green_display);
+  HT16K33_OFF(this->blue_display);
+  HT16K33_OFF(this->red_display);
+  HT16K33_OFF(this->inputs_and_leds);
+
   HT16K33_CLOSE(this->green_display);
   HT16K33_CLOSE(this->blue_display);
   HT16K33_CLOSE(this->red_display);
@@ -304,7 +309,7 @@ static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display
   display_value union_result;
   ht16k33blink_t blink;
   ht16k33brightness_t brightness;
-  int led_display_value;
+  uint32_t led_display_value = 0;
   
 
   switch(display_strategy->get_green_display(display_strategy, &union_result, &blink, &brightness)) {

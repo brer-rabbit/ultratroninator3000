@@ -55,13 +55,17 @@
 static const char *gpio_devfile = "/dev/gpiochip0";
 static const int gpio_reset_button_bcm = 23;
 
+// gpio data
+static int gpio_fd = -1; // set to an invalid fd
+static struct gpiohandle_request gpio_request;
+static struct gpiohandle_data gpio_data;
+
+
 static void launch_game(char *executable, char **envp) {
   char *argv[2];
   argv[0] = executable;
   argv[1] = NULL;
-  struct gpiohandle_request gpio_request;
-  struct gpiohandle_data gpio_data;
-  int gpio_fd, ret, waitpid_return, reset_button;  
+  int ret, waitpid_return, reset_button;  
   
 
   pid_t pid = fork();
@@ -75,15 +79,6 @@ static void launch_game(char *executable, char **envp) {
     // process to finish.
     // waitpid return zero if child still running.
     // reset button has inverted logic there: zero if it is pushed
-    gpio_fd = open(gpio_devfile, O_RDONLY);
-    gpio_request.lineoffsets[0] = gpio_reset_button_bcm;
-    gpio_request.lines = 1;
-    gpio_request.flags = GPIOHANDLE_REQUEST_INPUT | GPIOHANDLE_REQUEST_BIAS_PULL_UP;
-
-    ret = ioctl(gpio_fd, GPIO_GET_LINEHANDLE_IOCTL, &gpio_request);
-    if (ret == -1) {
-      printf("unable to get line value via ioctl: %s\n", strerror(errno));
-    }
 
     waitpid_return = 0;
     reset_button = 1;
@@ -112,13 +107,6 @@ static void launch_game(char *executable, char **envp) {
       // TODO: loop, send a sigkill if necessary
     }
 
-    ret = close(gpio_fd);
-    if (ret != 0) {
-      printf("close returned %d: %s\n", ret, strerror(errno));
-    }
-    else {
-      printf("gpio closed\n");
-    }
   }
   else  {
     // we are the child
@@ -305,10 +293,25 @@ int main(int argc, char **argv, char **envp) {
   load_audio_from_config(cfg, games_directory);
 
 
+  // setup the gpio pin for reading
+  gpio_fd = open(gpio_devfile, O_RDONLY);
+  if (gpio_fd == -1) {
+    printf("can't open gpio devfile, %s\n", strerror(errno));
+  }
+
+  gpio_request.lineoffsets[0] = gpio_reset_button_bcm;
+  gpio_request.lines = 1;
+  gpio_request.flags = GPIOHANDLE_REQUEST_INPUT | GPIOHANDLE_REQUEST_BIAS_PULL_UP;
+  
+  if (ioctl(gpio_fd, GPIO_GET_LINEHANDLE_IOCTL, &gpio_request) == -1) {
+    printf("unable to get line value via ioctl: %s\n", strerror(errno));
+  }
+
+
   /* everything setup, run the mvc in a loop --
    * TODO: this will later be while (1) forever, but for now...
    */
-  for (int i = 0; i < 3; ++i) {
+  while (1) {
     executable = run_mvc(cfg);
     launch_game(executable, envp);
   }
@@ -318,6 +321,7 @@ int main(int argc, char **argv, char **envp) {
     free(cfg);
   }
 
+  close(gpio_fd);
 
   return 0;
 }
