@@ -97,7 +97,6 @@ static void run_mvc(config_t *cfg) {
     return;
   }
 
-  register_control_panel_listener(view, controller_callback_control_panel, controller);
 
   // init and hack:
   // start with a sleep since the view does a read from the ht16k33

@@ -42,7 +42,9 @@ typedef enum { FORMING, ACTIVE, INACTIVE, DESTROYED } invader_state_t;
 //  4  5  6  7  (blue)
 //  8  9 10 11  (red)
 //
-static uint8_t invaders_marching_orders[] = { 0, 1, 2, 3, 7, 6, 5, 4, 8, 9, 10, 11 };
+// swap direction on each level
+static uint8_t invaders_marching_orders1[] = { 0, 1, 2, 3, 7, 6, 5, 4, 8, 9, 10, 11 };
+static uint8_t invaders_marching_orders2[] = { 3, 2, 1, 0, 4, 5, 6, 7, 11, 10, 9, 8 };
 
 const static uint8_t laser_fired_clockticks = 4;
 const static uint8_t laser_charge_clockticks = 8;
@@ -80,19 +82,21 @@ struct level {
   uint8_t level_number;
   uint8_t invader_speed;
   uint8_t invader_speed_clockticks_til_move;
-  uint8_t total_invaders;
+  uint8_t invaders_to_destroy;
   uint8_t remaining_invaders_to_form;
+  uint8_t *invaders_marching_orders;
+  uint8_t invaders_level_bitmask;
 };
 
 // what to display during game over
-#define GAME_OVER_MESSAGE_LENGTH 32
-struct game_over {
+#define MESSAGING_MAX_LENGTH 32
+struct messaging {
   // have longer messages, and point to which character in message to display
-  char green_display_message[GAME_OVER_MESSAGE_LENGTH];
+  char green_display_message[MESSAGING_MAX_LENGTH];
   char *green_display;
-  char blue_display_message[GAME_OVER_MESSAGE_LENGTH];
+  char blue_display_message[MESSAGING_MAX_LENGTH];
   char *blue_display;
-  char red_display_message[GAME_OVER_MESSAGE_LENGTH];
+  char red_display_message[MESSAGING_MAX_LENGTH];
   char *red_display;
   int scroll_index;
 };
@@ -107,11 +111,12 @@ struct model {
   struct player player;
   struct laser laser;
   struct invader invaders[NUM_INVADERS];  // oh C...must I use a define?
-  struct game_over game_over;
+  struct messaging messaging;
 };
 
 
 
+static void set_level_up(struct model *this);
 static struct display_strategy* create_display_strategy(struct model *this);
 static void free_display_strategy(struct display_strategy *display_strategy); 
 
@@ -123,6 +128,7 @@ static uint16_t laser_low_glyph = 0b0001000000000000;
 const static uint16_t invader_forming_glyphs[] =
   { 0x0040, 0x0100, 0x0200, 0x0400, 0x0080, 0x2000, 0x1000, 0x0800 };
    
+const static uint8_t level_one_invader_glyph_index = 16;
 const static uint16_t invader_hex_glyphs[] =
   {
    0b0000110000111111, // 0
@@ -140,7 +146,8 @@ const static uint16_t invader_hex_glyphs[] =
    0b0000000000111001, // C
    0b0001001000001111, // D
    0b0000000011111001, // E
-   0b0000000001110001  // F
+   0b0000000001110001,  // F
+   0b0010110111100010  // X(sort of) -- level 1 invader
   };
 
 
@@ -163,10 +170,12 @@ game_state_t get_game_state(struct model *this) {
 
 void game_start(struct model *this) {
   this->level.level_number = 1;
-  this->level.invader_speed = 255;
+  this->level.invader_speed = 255;  // clockticks decs to zero then reset to this
   this->level.invader_speed_clockticks_til_move = this->level.invader_speed;
   this->level.remaining_invaders_to_form = 8;
-  this->level.total_invaders = this->level.remaining_invaders_to_form;
+  this->level.invaders_to_destroy = this->level.remaining_invaders_to_form;
+  this->level.invaders_marching_orders = invaders_marching_orders1;
+  this->level.invaders_level_bitmask = 0;
   this->player.position = 9;
   this->player.shield = 0xFF;
   this->player.score = 0;
@@ -187,59 +196,111 @@ void game_start(struct model *this) {
 
 
 void game_level_up(struct model *this) {
+  if (this->game_state != GAME_PLAYING ||
+      this->level.invaders_to_destroy != 0) {
+    return;
+  }
+
+  set_level_up(this);
+  snprintf(this->messaging.green_display_message, MESSAGING_MAX_LENGTH,
+	   "   LEVEL %-2d   ", this->level.level_number);
+  this->messaging.green_display = this->messaging.green_display_message;
+
+  // increase shield by 1
+  if (this->player.shield != 0xFF) {
+    this->player.shield = this->player.shield << 1 | 0b1;
+  }
+  if (this->player.shield == 0xFF) {
+    snprintf(this->messaging.blue_display_message, MESSAGING_MAX_LENGTH,
+	   "    SHIELD MAXIMUM   ");
+  }
+  else {
+    snprintf(this->messaging.blue_display_message, MESSAGING_MAX_LENGTH,
+	   "    SHIELD INCREASED   ");
+  }
+  this->messaging.blue_display = this->messaging.blue_display_message;
+
+
   this->game_state = GAME_LEVEL_UP;
 }
 
 
-void game_over(struct model *this) {
-    
-  this->game_state = GAME_OVER;
-  snprintf(this->game_over.green_display_message, GAME_OVER_MESSAGE_LENGTH,
-	   "GAMEGAMEOVEROVER");
-  // magic number...since it flip flops first time in, start with "OVER"
-  this->game_over.green_display = &(this->game_over.green_display_message[12]);
-  snprintf(this->game_over.blue_display_message, GAME_OVER_MESSAGE_LENGTH,
-	   "    SCORE %-4d   ", this->player.score);
-  this->game_over.blue_display = this->game_over.blue_display_message;
-  snprintf(this->game_over.red_display_message, GAME_OVER_MESSAGE_LENGTH,
-	   "    RANK CADET   ");
-  this->game_over.red_display = this->game_over.red_display_message;
-  this->game_over.scroll_index = 0;
+// level_up scroller
+void level_up_scroll(struct model *this) {
+  this->messaging.green_display =
+    (this->messaging.green_display[4] == '\0') ?
+    this->messaging.green_display_message :
+    this->messaging.green_display + 1;
+
+  this->messaging.blue_display =
+    (this->messaging.blue_display[4] == '\0') ?
+    this->messaging.blue_display_message :
+    this->messaging.blue_display + 1;
+
+  // pointer arithmetic made this less useful than I first
+  // thought it'd be.  Can still use this for the LED lights
+  // to flash the increase in shield
+  if (this->messaging.scroll_index < MESSAGING_MAX_LENGTH) {
+    ++this->messaging.scroll_index;
+  }
+  else {
+    this->messaging.scroll_index = 0;
+  }
+
+
 }
 
 
+
+
+// continue from level_up state
+void game_resume(struct model *this) {
+  this->game_state = GAME_PLAYING;
+}
+
+void game_over(struct model *this) {
+    
+  // hack of a message..get it to display over two cycles
+  snprintf(this->messaging.green_display_message, MESSAGING_MAX_LENGTH,
+	   "GAMEGAMEOVEROVER");
+  // magic number...since it flip flops first time in, start with "OVER"
+  this->messaging.green_display = &(this->messaging.green_display_message[12]);
+  snprintf(this->messaging.blue_display_message, MESSAGING_MAX_LENGTH,
+	   "    SCORE %-4d   ", this->player.score);
+  this->messaging.blue_display = this->messaging.blue_display_message;
+  snprintf(this->messaging.red_display_message, MESSAGING_MAX_LENGTH,
+	   "      RANK CADET   ");
+  this->messaging.red_display = this->messaging.red_display_message;
+  this->game_state = GAME_OVER;
+}
+
+
+
+// scrolling specific the game_over
 void game_over_scroll(struct model *this) {
-  if (this->game_over.scroll_index < GAME_OVER_MESSAGE_LENGTH - 4) {
-    ++this->game_over.scroll_index;
-  }
-  else {
-    this->game_over.scroll_index = 0;
-  }
 
   // green game over just flip flops between "GAME" and "OVER"...
   // pointer arithmetic with strings, this isn't a good idea...
-  if (this->game_over.green_display - 12 == this->game_over.green_display_message) {
-    this->game_over.green_display = this->game_over.green_display_message;
+  if (this->messaging.green_display - 12 == this->messaging.green_display_message) {
+    this->messaging.green_display = this->messaging.green_display_message;
   }
   else {
-    this->game_over.green_display = this->game_over.green_display + 4;
+    this->messaging.green_display = this->messaging.green_display + 4;
   }
 
-  this->game_over.blue_display =
-    (this->game_over.blue_display[4] == '\0') ?
-    this->game_over.blue_display_message :
-    this->game_over.blue_display + 1;
+  this->messaging.blue_display =
+    (this->messaging.blue_display[4] == '\0') ?
+    this->messaging.blue_display_message :
+    this->messaging.blue_display + 1;
 
-  this->game_over.red_display =
-    (this->game_over.red_display[4] == '\0') ?
-    this->game_over.red_display_message :
-    this->game_over.red_display + 1;
+  this->messaging.red_display =
+    (this->messaging.red_display[4] == '\0') ?
+    this->messaging.red_display_message :
+    this->messaging.red_display + 1;
 
-  /* this->game_over.red_display = */
-  /*   (this->game_over.red_display_message[this->game_over.scroll_index + 1] == '\0') ? */
-  /*   this->game_over.red_display_message : */
-  /*   &(this->game_over.red_display_message[this->game_over.scroll_index]); */
 }
+
+
 
 
 void game_attract(struct model *this) {
@@ -266,7 +327,8 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
   *brightness = HT16K33_BRIGHTNESS_12;
   *blink = HT16K33_BLINK_OFF;
 
-  if (this->game_state == GAME_PLAYING) {
+  if (this->game_state == GAME_PLAYING ||
+      this->game_state == GAME_LEVEL_UP) {
     // clean existing display
     (*value).display_glyph[0] = 0;
     (*value).display_glyph[1] = 0;
@@ -293,11 +355,11 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
     return glyph_display;
   }
   else if (this->game_state == GAME_OVER) {
-    (*value).display_string = this->game_over.red_display;
+    (*value).display_string = this->messaging.red_display;
     return string_display;
   }
   else {
-    (*value).display_string = "3";
+    (*value).display_string = "NOOP";
     return string_display;
   }
 }
@@ -333,8 +395,9 @@ display_type get_blue_display(struct display_strategy *display_strategy, display
 
     return glyph_display;
   }
-  else if (this->game_state == GAME_OVER) {
-    (*value).display_string = this->game_over.blue_display;
+  else if (this->game_state == GAME_OVER ||
+	   this->game_state == GAME_LEVEL_UP) {
+    (*value).display_string = this->messaging.blue_display;
     return string_display;
   }
 
@@ -375,8 +438,9 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
 
     return glyph_display;
   }
-  else if (this->game_state == GAME_OVER) {
-    (*value).display_string = this->game_over.green_display;
+  else if (this->game_state == GAME_OVER ||
+	   this->game_state == GAME_LEVEL_UP) {
+    (*value).display_string = this->messaging.green_display;
     return string_display;
   }
 
@@ -392,8 +456,13 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
 // implements f_get_display for the leds display
 display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
-    
-  (*value).display_int = (this->player.shield << 16) | (this->player.laser_charge << 8) | this->player.laser_value;
+  uint8_t shield = this->player.shield;
+  // flash the increase in shield if we're levelling up and increasing shield
+  if (this->game_state == GAME_LEVEL_UP && shield != 0xFF && this->messaging.scroll_index % 2) {
+    shield = shield >> 1;
+  }
+
+  (*value).display_int = (shield << 16) | (this->player.laser_charge << 8) | this->player.laser_value;
   *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_12;
 
@@ -454,21 +523,27 @@ int player_shield_hit(struct model *this) {
 /** set_player_as_hexdigit
  *
  * attempt to show what hex digit will be fired.  Can only show
- * if the laser has charge and the laser is not fired.  Drains
- * the laser to show this.
+ * if the laser has charge.  Slowly drains the laser to show this.
  * return 1 if a state change occured to drain the laser.
  */
 int set_player_as_hexdigit(struct model *this) {
   int rc;
+  if (this->game_state != GAME_PLAYING) {
+    return 0;
+  }
+
   if (this->player.laser_charge > 0) {
     this->player.glyph = invader_hex_glyphs[this->player.laser_value];
-    ut3k_play_sample(showhex_soundkey);
   }
   else {
       this->player.glyph = player_ship_glyph;  
   }
 
   rc = this->player.laser_charge_state == DRAINING ? 0 : 1; // return code is state change
+  if (rc) { // only play sample if state changed
+    ut3k_play_sample(showhex_soundkey);
+  }
+
   this->player.laser_charge_state = DRAINING;
   return rc;  
 }
@@ -560,8 +635,13 @@ void start_invader(struct model *this) {
     if (this->invaders[i].invader_state == INACTIVE) {
       this->invaders[i].invader_state = FORMING;
       this->invaders[i].glyph_index = 0;
-      this->invaders[i].hex_value = rand() % 16;
-      this->invaders[i].position = 0;
+      // hex value is dependent on game level.  Higher levels get more bits.
+      // index 16
+      this->invaders[i].hex_value =
+	(this->level.level_number == 1) ?
+	level_one_invader_glyph_index :
+	(rand() % 16) & this->level.invaders_level_bitmask;
+      this->invaders[i].position = this->level.invaders_marching_orders[0];
       this->invaders[i].steps = 0;
       return;
     }
@@ -591,9 +671,10 @@ void clocktick_invaders(struct model *this) {
     if (this->invaders[i].invader_state == ACTIVE) {
       active_invaders++;
       if (move_invaders) {
-	// this should be checked-- it'll collide with player at some point
+	// advance invaders to next step
+	// probably ought to assert it's
 	this->invaders[i].steps++;
-	this->invaders[i].position = invaders_marching_orders[this->invaders[i].steps];
+	this->invaders[i].position = this->level.invaders_marching_orders[this->invaders[i].steps];
       }
     }
     else if (this->invaders[i].invader_state == FORMING) {
@@ -637,7 +718,13 @@ void destroy_invader(struct model *this, int invader_id_collision) {
   this->invaders[invader_id_collision].invader_state = DESTROYED;
   this->invaders[invader_id_collision].position = 0;
   this->invaders[invader_id_collision].steps = 0;
+  this->level.invaders_to_destroy--;
 }
+
+int get_invaders_remaining(struct model *this) {
+  return this->level.invaders_to_destroy;
+}
+
 
 
 /* levels ----------------------------------------------------------- */
@@ -646,17 +733,44 @@ const struct level get_level(struct model *this) {
   return this->level;
 }
 
-// the numbers are arbitrary...will adjust
-void set_level_up(struct model *this) {
-  this->level.level_number++;
+// set the data for the next level
+static void set_level_up(struct model *this) {
   if (this->level.invader_speed > 10) {
-      this->level.invader_speed--;
+    this->level.invader_speed = this->level.invader_speed - 20;
   }
-  this->level.total_invaders += 2;
+
+  // level 1 starts with no mask, then add a bit on each level to finally end at 0xF
+  if (this->level.level_number == 1) {
+    this->level.invaders_level_bitmask = 1;
+  }
+  else if  (this->level.level_number < 5) {
+    this->level.invaders_level_bitmask = (this->level.invaders_level_bitmask << 1) | 0b1;
+  }
+    
+  // switch directions-- point to the opposite table as previous
+  this->level.invaders_marching_orders =
+    this->level.invaders_marching_orders == invaders_marching_orders1 ?
+    invaders_marching_orders2 : invaders_marching_orders1;
+
+  this->level.remaining_invaders_to_form = 8;
+  this->level.invaders_to_destroy = this->level.remaining_invaders_to_form;
+  for (int i = 0; i < num_invaders; ++i) {
+    this->invaders[i].invader_state = INACTIVE;
+    this->invaders[i].position = 0;
+    this->invaders[i].steps = 0;
+  }
+
+  this->level.level_number++;
 }
 
 
 /* collision detection --------------------------------------------- */
+
+/** check_collision_invaders_player
+ *
+ * check if the invader and player collided.  Return -1 for no collision,
+ * or an index/handle for the invader that collided.
+ */
 int check_collision_invaders_player(struct model *this) {
   for (int i = 0; i < num_invaders; ++i) {
     if (this->invaders[i].position == this->player.position &&
@@ -680,7 +794,9 @@ int check_collision_player_laser_to_aliens(struct model *this) {
 	this->invaders[i].invader_state == ACTIVE &&
 	this->laser.laser_state == FIRED) {
       this->laser.laser_state = READY;
-      if (this->laser.value == this->invaders[i].hex_value) {
+      // level 1 requires no hex value
+      if (this->laser.value == this->invaders[i].hex_value ||
+	  this->level.level_number == 1) {
 	// return the invader index
 	// player score + 1
 	this->player.score++;

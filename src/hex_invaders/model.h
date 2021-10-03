@@ -43,6 +43,8 @@ game_state_t get_game_state(struct model*);
 void game_start(struct model*);
 void game_over(struct model*);
 void game_attract(struct model*);
+void game_level_up(struct model*);
+void game_resume(struct model*);  // resume from level up
 
 
 void player_left(struct model*);
@@ -58,9 +60,7 @@ int set_player_laser_fired(struct model*);
 void start_invader(struct model*);
 void clocktick_invaders(struct model*);
 void destroy_invader(struct model*, int invader_id_collision);
-
-const struct level get_level(struct model *this);
-void set_level_up(struct model *this);
+int get_invaders_remaining(struct model*);
 
 
 int check_collision_invaders_player(struct model*);
@@ -68,6 +68,7 @@ int check_collision_player_laser_to_aliens(struct model*);
 int check_collision_invaders_laser_to_player(struct model*);
 
 void game_over_scroll(struct model *this);
+void level_up_scroll(struct model *this);
 
 // critical to implement
 struct display_strategy* get_display_strategy(struct model *this);

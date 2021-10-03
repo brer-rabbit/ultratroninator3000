@@ -21,6 +21,10 @@
 #include "ut3k_pulseaudio.h"
 #include "hex_inv_ader.h"
 
+
+static const int32_t in_state_next_event_time = 20;
+static const int32_t transition_to_next_state_time = 800;
+
 struct controller {
   struct model *model;
   struct ut3k_view *view;
@@ -32,8 +36,9 @@ struct controller {
 
 /* start off with accurate front panel state */
 static void initialize_model_from_control_panel(struct controller *this, const struct control_panel *control_panel);
-static void controller_update_game_playing(struct controller *this, uint32_t clock);
 static void controller_update_game_over(struct controller *this, uint32_t clock);
+static void controller_update_game_playing(struct controller *this, uint32_t clock);
+static void controller_update_level_up(struct controller *this, uint32_t clock);
 
 
 /* functions ---------------------------------------------------*/
@@ -47,6 +52,7 @@ struct controller* create_controller(struct model *model, struct ut3k_view *view
   this->clock_to_next_event = 0;
   this->clock_to_next_state = 0;
 
+  register_control_panel_listener(this->view, controller_callback_control_panel, this);
   initialize_model_from_control_panel(this, get_control_panel(view));
 
   return this;
@@ -58,7 +64,7 @@ void free_controller(struct controller *this) {
 
 
 void controller_update(struct controller *this, uint32_t clock) {
-  game_state_t game_state = get_game_state(this->model);
+  game_state_t game_state = get_game_state(this->model), new_game_state;
   
   switch (game_state) {
   case GAME_OVER:
@@ -67,17 +73,20 @@ void controller_update(struct controller *this, uint32_t clock) {
   case GAME_PLAYING:
     controller_update_game_playing(this, clock);
     break;
-  case GAME_ATTRACT:
   case GAME_LEVEL_UP:
+    controller_update_level_up(this, clock);
+    break;
+  case GAME_ATTRACT:
     printf("not implemented\n");
   }
 
   update_view(this->view, get_display_strategy(this->model), clock);
 
-  // this may need some rework with respect to update_view
-  if (get_game_state(this->model) != game_state) { // state changed
-    this->clock_to_next_event = 0;
-    this->clock_to_next_state = 0;
+  new_game_state = get_game_state(this->model);
+  if (new_game_state != game_state) { // state changed
+    this->clock_to_next_event = in_state_next_event_time;
+    this->clock_to_next_state = transition_to_next_state_time;
+    // if new game state...register a different control panel listener or take other actions
   }
 }
 
@@ -136,6 +145,7 @@ static void controller_update_game_playing(struct controller *this, uint32_t clo
   int shield_remaining;
 
   clocktick_invaders(this->model);
+  clocktick_player_laser(this->model);
 
   invader_id_collision = check_collision_invaders_player(this->model);
   // most of this ought to be refactored into model
@@ -159,6 +169,8 @@ static void controller_update_game_playing(struct controller *this, uint32_t clo
     }
   }
 
+  // the check collision for the laser either returns a handle to the
+  // alien destroyed, -1 for a miss, or -2 for a shielded hit
   invader_id_destroyed = check_collision_player_laser_to_aliens(this->model);
   if (invader_id_destroyed >= 0) {
     destroy_invader(this->model, invader_id_destroyed);
@@ -168,23 +180,32 @@ static void controller_update_game_playing(struct controller *this, uint32_t clo
     ut3k_play_sample(laser_hit_shielded_invader_soundkey);
   }
 
-    
-  // invaders aren't firing lasers
-  //check_collision_invaders_laser_to_player(this->model);
-
-  clocktick_player_laser(this->model);
+  // the model will transition state if and only if conditions are met
+  game_level_up(this->model);
 }
 
 
-static const int32_t game_over_event_time = 20;
-static const int32_t game_over_state_time = 1500;
 static void controller_update_game_over(struct controller *this, uint32_t clock) {
   if (--this->clock_to_next_event <= 0) {
-    this->clock_to_next_event = game_over_event_time;
+    this->clock_to_next_event = in_state_next_event_time;
     game_over_scroll(this->model);
   }
 
   if (--this->clock_to_next_state <= 0) {
     // set state to attract
   }
+}
+
+
+
+static void controller_update_level_up(struct controller *this, uint32_t clock) {
+  if (--this->clock_to_next_event <= 0) {
+    this->clock_to_next_event = in_state_next_event_time;
+    level_up_scroll(this->model);
+  }
+
+  if (--this->clock_to_next_state <= 0) {
+    game_resume(this->model);
+  }
+  
 }
