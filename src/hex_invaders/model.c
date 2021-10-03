@@ -28,10 +28,10 @@
 #include "model.h"
 #include "ut3k_pulseaudio.h"
 
-typedef enum { GAME_ATTRACT, GAME_OVER, GAME_PLAYING } game_state_t;
+
 typedef enum { FIRED, READY } laser_state_t;
 typedef enum { CHARGING, DRAINING } player_laser_state_t;
-typedef enum { FORMING, ACTIVE, INACTIVE } invader_state_t;
+typedef enum { FORMING, ACTIVE, INACTIVE, DESTROYED } invader_state_t;
 
 
 
@@ -84,6 +84,19 @@ struct level {
   uint8_t remaining_invaders_to_form;
 };
 
+// what to display during game over
+#define GAME_OVER_MESSAGE_LENGTH 32
+struct game_over {
+  // have longer messages, and point to which character in message to display
+  char green_display_message[GAME_OVER_MESSAGE_LENGTH];
+  char *green_display;
+  char blue_display_message[GAME_OVER_MESSAGE_LENGTH];
+  char *blue_display;
+  char red_display_message[GAME_OVER_MESSAGE_LENGTH];
+  char *red_display;
+  int scroll_index;
+};
+
 #define NUM_INVADERS 8
 const static int num_invaders = NUM_INVADERS;
 
@@ -94,6 +107,7 @@ struct model {
   struct player player;
   struct laser laser;
   struct invader invaders[NUM_INVADERS];  // oh C...must I use a define?
+  struct game_over game_over;
 };
 
 
@@ -142,6 +156,11 @@ struct model* create_model() {
 }
 
 
+game_state_t get_game_state(struct model *this) {
+  return this->game_state;
+}
+
+
 void game_start(struct model *this) {
   this->level.level_number = 1;
   this->level.invader_speed = 255;
@@ -167,9 +186,59 @@ void game_start(struct model *this) {
 }
 
 
+void game_level_up(struct model *this) {
+  this->game_state = GAME_LEVEL_UP;
+}
+
+
 void game_over(struct model *this) {
+    
   this->game_state = GAME_OVER;
-  // show score, play game over sound
+  snprintf(this->game_over.green_display_message, GAME_OVER_MESSAGE_LENGTH,
+	   "GAMEGAMEOVEROVER");
+  // magic number...since it flip flops first time in, start with "OVER"
+  this->game_over.green_display = &(this->game_over.green_display_message[12]);
+  snprintf(this->game_over.blue_display_message, GAME_OVER_MESSAGE_LENGTH,
+	   "    SCORE %-4d   ", this->player.score);
+  this->game_over.blue_display = this->game_over.blue_display_message;
+  snprintf(this->game_over.red_display_message, GAME_OVER_MESSAGE_LENGTH,
+	   "    RANK CADET   ");
+  this->game_over.red_display = this->game_over.red_display_message;
+  this->game_over.scroll_index = 0;
+}
+
+
+void game_over_scroll(struct model *this) {
+  if (this->game_over.scroll_index < GAME_OVER_MESSAGE_LENGTH - 4) {
+    ++this->game_over.scroll_index;
+  }
+  else {
+    this->game_over.scroll_index = 0;
+  }
+
+  // green game over just flip flops between "GAME" and "OVER"...
+  // pointer arithmetic with strings, this isn't a good idea...
+  if (this->game_over.green_display - 12 == this->game_over.green_display_message) {
+    this->game_over.green_display = this->game_over.green_display_message;
+  }
+  else {
+    this->game_over.green_display = this->game_over.green_display + 4;
+  }
+
+  this->game_over.blue_display =
+    (this->game_over.blue_display[4] == '\0') ?
+    this->game_over.blue_display_message :
+    this->game_over.blue_display + 1;
+
+  this->game_over.red_display =
+    (this->game_over.red_display[4] == '\0') ?
+    this->game_over.red_display_message :
+    this->game_over.red_display + 1;
+
+  /* this->game_over.red_display = */
+  /*   (this->game_over.red_display_message[this->game_over.scroll_index + 1] == '\0') ? */
+  /*   this->game_over.red_display_message : */
+  /*   &(this->game_over.red_display_message[this->game_over.scroll_index]); */
 }
 
 
@@ -213,7 +282,8 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
 
     // draw any invaders on this display
     for (int i = 0; i < num_invaders; ++i) {
-      if (this->invaders[i].invader_state != INACTIVE &&
+      if ((this->invaders[i].invader_state == ACTIVE ||
+	   this->invaders[i].invader_state == FORMING) &&
 	  this->invaders[i].position >= 8) {
 	(*value).display_glyph[this->invaders[i].position - 8] =
 	  this->invaders[i].glyph;
@@ -221,6 +291,10 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
     }
 
     return glyph_display;
+  }
+  else if (this->game_state == GAME_OVER) {
+    (*value).display_string = this->game_over.red_display;
+    return string_display;
   }
   else {
     (*value).display_string = "3";
@@ -243,7 +317,8 @@ display_type get_blue_display(struct display_strategy *display_strategy, display
     (*value).display_glyph[3] = 0;
     // draw any invaders on this display
     for (int i = 0; i < num_invaders; ++i) {
-      if (this->invaders[i].invader_state != INACTIVE &&
+      if ((this->invaders[i].invader_state == ACTIVE ||
+	   this->invaders[i].invader_state == FORMING) &&
 	  this->invaders[i].position >= 4 &&
 	  this->invaders[i].position < 8) {
 	(*value).display_glyph[this->invaders[i].position - 4] =
@@ -257,6 +332,10 @@ display_type get_blue_display(struct display_strategy *display_strategy, display
     }
 
     return glyph_display;
+  }
+  else if (this->game_state == GAME_OVER) {
+    (*value).display_string = this->game_over.blue_display;
+    return string_display;
   }
 
   (*value).display_string = "2";
@@ -281,7 +360,8 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
 
     // draw any invaders on this display
     for (int i = 0; i < num_invaders; ++i) {
-      if (this->invaders[i].invader_state != INACTIVE &&
+      if ((this->invaders[i].invader_state == ACTIVE ||
+	   this->invaders[i].invader_state == FORMING) &&
 	  this->invaders[i].position < 4) {
 	(*value).display_glyph[this->invaders[i].position] =
 	  this->invaders[i].glyph;
@@ -294,6 +374,10 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
     }
 
     return glyph_display;
+  }
+  else if (this->game_state == GAME_OVER) {
+    (*value).display_string = this->game_over.green_display;
+    return string_display;
   }
 
 
@@ -354,6 +438,7 @@ void player_right(struct model *this) {
 
 void set_player_laser_value(struct model *this, uint8_t value) {
   this->player.laser_value = value;
+  ut3k_play_sample(laser_toggled_soundkey);
 }
 
 // reduce the player shield by one and return the amount of shield left
@@ -377,6 +462,7 @@ int set_player_as_hexdigit(struct model *this) {
   int rc;
   if (this->player.laser_charge > 0) {
     this->player.glyph = invader_hex_glyphs[this->player.laser_value];
+    ut3k_play_sample(showhex_soundkey);
   }
   else {
       this->player.glyph = player_ship_glyph;  
@@ -392,6 +478,7 @@ int set_player_as_glyph(struct model *this) {
   this->player.glyph = player_ship_glyph;  
   if (this->player.laser_charge_state == DRAINING) {
     this->player.laser_charge_state = CHARGING;
+    ut3k_play_sample(hidehex_soundkey);
     return 1; // state changed
   }
   return 0;
@@ -452,6 +539,7 @@ int set_player_laser_fired(struct model *this) {
     this->laser.position = this->player.position;
     this->player.laser_charge = 0;
     this->player.glyph = laser_high_glyph;
+    ut3k_play_sample(playerfire_soundkey);
     return 1;
   }
   return 0;
@@ -546,7 +634,7 @@ void clocktick_invaders(struct model *this) {
 
 
 void destroy_invader(struct model *this, int invader_id_collision) {
-  this->invaders[invader_id_collision].invader_state = INACTIVE;
+  this->invaders[invader_id_collision].invader_state = DESTROYED;
   this->invaders[invader_id_collision].position = 0;
   this->invaders[invader_id_collision].steps = 0;
 }
@@ -594,6 +682,8 @@ int check_collision_player_laser_to_aliens(struct model *this) {
       this->laser.laser_state = READY;
       if (this->laser.value == this->invaders[i].hex_value) {
 	// return the invader index
+	// player score + 1
+	this->player.score++;
 	return i;
       }
       else {

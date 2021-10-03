@@ -69,6 +69,14 @@ struct game_model* create_game_model() {
 
   snprintf(games_bin_directory, 128, "%s/bin/", games_base_directory);
 
+  // clear everything out
+  for (int i = 0; i < MAX_GAMES; ++i) {
+    this->games[i].game_executable = NULL;
+    this->games[i].display_name[0] = NULL;
+    this->games[i].display_name[1] = NULL;
+    this->games[i].display_name[2] = NULL;
+  }
+
   this->num_games = get_games(games_bin_directory, this->games, MAX_GAMES);
   this->game_index = 0;
 

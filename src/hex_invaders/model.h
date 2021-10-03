@@ -38,6 +38,8 @@ void free_model(struct model*);
 // Supported model methods
 
 // high level state changes
+typedef enum { GAME_ATTRACT, GAME_OVER, GAME_PLAYING, GAME_LEVEL_UP } game_state_t;
+game_state_t get_game_state(struct model*);
 void game_start(struct model*);
 void game_over(struct model*);
 void game_attract(struct model*);
@@ -65,6 +67,7 @@ int check_collision_invaders_player(struct model*);
 int check_collision_player_laser_to_aliens(struct model*);
 int check_collision_invaders_laser_to_player(struct model*);
 
+void game_over_scroll(struct model *this);
 
 // critical to implement
 struct display_strategy* get_display_strategy(struct model *this);
