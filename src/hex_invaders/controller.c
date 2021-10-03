@@ -121,8 +121,9 @@ void controller_callback_control_panel(const struct control_panel *control_panel
 
 
   const struct button *red_button = get_red_button(control_panel);
-  if (red_button->button_state == 1) {
-    // red button: show the actual Hex digit the player's laser is set to
+  const struct button *blue_button = get_blue_button(control_panel);
+  if (blue_button->button_state == 1) {
+    // blue button: show the actual Hex digit the player's laser is set to
     // if the model allows it-
     set_player_as_hexdigit(this->model);
   }
@@ -130,10 +131,8 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     set_player_as_glyph(this->model);
   }
 
-  const struct button *blue_button = get_blue_button(control_panel);
-  if (blue_button->state_count == 0 && blue_button->button_state == 1) {
-    // red button: show the actual Hex digit the player's laser is set to
-    // if the model allows it-
+  if (red_button->state_count == 0 && red_button->button_state == 1) {
+    // red button: fire the laser
     set_player_laser_fired(this->model);
   }
 
@@ -204,8 +203,12 @@ static void controller_update_level_up(struct controller *this, uint32_t clock) 
     level_up_scroll(this->model);
   }
 
-  if (--this->clock_to_next_state <= 0) {
+  --this->clock_to_next_state;
+  if (this->clock_to_next_state <= 0) {
     game_resume(this->model);
+  }
+  else if (this->clock_to_next_state == 50) { // getting close, prep player
+      ut3k_play_sample(levelup_soundkey);
   }
   
 }

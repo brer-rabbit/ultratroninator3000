@@ -201,9 +201,10 @@ void game_level_up(struct model *this) {
     return;
   }
 
+  
   set_level_up(this);
   snprintf(this->messaging.green_display_message, MESSAGING_MAX_LENGTH,
-	   "   LEVEL %-2d   ", this->level.level_number);
+	   "   LEVEL %-2d COMPLETE  ", this->level.level_number - 1);
   this->messaging.green_display = this->messaging.green_display_message;
 
   // increase shield by 1
@@ -269,7 +270,7 @@ void game_over(struct model *this) {
 	   "    SCORE %-4d   ", this->player.score);
   this->messaging.blue_display = this->messaging.blue_display_message;
   snprintf(this->messaging.red_display_message, MESSAGING_MAX_LENGTH,
-	   "      RANK CADET   ");
+	   "      RANK SPACE CADET   ");
   this->messaging.red_display = this->messaging.red_display_message;
   this->game_state = GAME_OVER;
 }
