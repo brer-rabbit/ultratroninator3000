@@ -22,7 +22,7 @@
 #include "hex_inv_ader.h"
 
 
-static const int32_t in_state_next_event_time = 20;
+static const int32_t in_state_next_event_time = 25;
 static const int32_t transition_to_next_state_time = 800;
 
 struct controller {
@@ -97,6 +97,8 @@ void controller_update(struct controller *this, uint32_t clock) {
 static void initialize_model_from_control_panel(struct controller *this, const struct control_panel *control_panel) {
   start_invader(this->model);
   const struct toggles *toggles = get_toggles(control_panel);
+  // bug (feature): this plays the toggled sound on startup.
+  // could easily fix, but not really wanting to...
   set_player_laser_value(this->model, toggles->toggles_state & 0xF);
 }
 
@@ -239,9 +241,10 @@ static void controller_update_level_up(struct controller *this, uint32_t clock) 
 }
 
 static void controller_update_attract(struct controller *this, uint32_t clock) {
+
   if (--this->clock_to_next_event <= 0) {
+    game_attract_scroll(this->model);
     this->clock_to_next_event = in_state_next_event_time;
-    //level_up_scroll(this->model);
   }
 
   // no timed exit from this state-- stay in attract mode

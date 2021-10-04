@@ -69,6 +69,7 @@ int check_collision_invaders_laser_to_player(struct model*);
 
 void game_over_scroll(struct model *this);
 void level_up_scroll(struct model *this);
+void game_attract_scroll(struct model *this);
 
 // critical to implement
 struct display_strategy* get_display_strategy(struct model *this);

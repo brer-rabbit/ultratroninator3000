@@ -31,7 +31,7 @@
 
 typedef enum { FIRED, READY } laser_state_t;
 typedef enum { CHARGING, DRAINING } player_laser_state_t;
-typedef enum { FORMING, ACTIVE, INACTIVE, DESTROYED } invader_state_t;
+typedef enum { FORMING, ACTIVE, INACTIVE, EXPLOSION1, EXPLOSION2, DESTROYED } invader_state_t;
 
 
 
@@ -45,6 +45,8 @@ typedef enum { FORMING, ACTIVE, INACTIVE, DESTROYED } invader_state_t;
 // swap direction on each level
 static uint8_t invaders_marching_orders1[] = { 0, 1, 2, 3, 7, 6, 5, 4, 8, 9, 10, 11 };
 static uint8_t invaders_marching_orders2[] = { 3, 2, 1, 0, 4, 5, 6, 7, 11, 10, 9, 8 };
+
+static uint8_t attract_movement_backandforth[] = { 0, 1, 2, 3, 2, 1 };
 
 const static uint8_t laser_fired_clockticks = 4;
 const static uint8_t laser_charge_clockticks = 8;
@@ -99,7 +101,7 @@ struct messaging {
   char *blue_display;
   char red_display_message[MESSAGING_MAX_LENGTH];
   char *red_display;
-  int scroll_index;
+  int clockticks;
 };
 
 #define NUM_INVADERS 8
@@ -130,7 +132,9 @@ const static uint16_t invader_forming_glyphs[] =
   { 0x0040, 0x0100, 0x0200, 0x0400, 0x0080, 0x2000, 0x1000, 0x0800 };
    
 
-const static uint16_t invader_hex_glyph_unshielded =  0b0010110111100010;  // X(sort of) -- unshielded invader
+const static uint16_t invader_hex_glyph_explosion1 = 0b0001001011111111;
+const static uint16_t invader_hex_glyph_explosion2 = 0b0011111111111111;
+const static uint16_t invader_hex_glyph_unshielded = 0b0010110111100010;  // X(sort of) -- unshielded invader
 const static uint16_t invader_hex_glyphs[] =
   {
    0b0000110000111111, // 0
@@ -159,7 +163,6 @@ struct model* create_model() {
   this->display_strategy = create_display_strategy(this);
 
   game_attract(this);
-  //game_start(this);
 
   return this;
 }
@@ -240,17 +243,7 @@ void level_up_scroll(struct model *this) {
     this->messaging.blue_display_message :
     this->messaging.blue_display + 1;
 
-  // pointer arithmetic made this less useful than I first
-  // thought it'd be.  Can still use this for the LED lights
-  // to flash the increase in shield
-  if (this->messaging.scroll_index < MESSAGING_MAX_LENGTH) {
-    ++this->messaging.scroll_index;
-  }
-  else {
-    this->messaging.scroll_index = 0;
-  }
-
-
+  ++this->messaging.clockticks;
 }
 
 
@@ -307,9 +300,23 @@ void game_over_scroll(struct model *this) {
 
 
 void game_attract(struct model *this) {
+
+  snprintf(this->messaging.blue_display_message, MESSAGING_MAX_LENGTH,
+	   "    HEX INVADERS   ");
+  this->messaging.blue_display = this->messaging.blue_display_message;
+
   this->game_state = GAME_ATTRACT;
 }
 
+
+void game_attract_scroll(struct model *this) {
+  this->messaging.blue_display =
+    (this->messaging.blue_display[4] == '\0') ?
+    this->messaging.blue_display_message :
+    this->messaging.blue_display + 1;
+
+  ++this->messaging.clockticks;
+}
 
 
 void free_model(struct model *this) {
@@ -319,164 +326,6 @@ void free_model(struct model *this) {
 
 
   
-
-
-
-
-// implements f_get_display for the red display
-display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
-  struct model *this = (struct model*) display_strategy->userdata;
-
-  *brightness = HT16K33_BRIGHTNESS_12;
-  *blink = HT16K33_BLINK_OFF;
-
-  if (this->game_state == GAME_PLAYING ||
-      this->game_state == GAME_LEVEL_UP) {
-    // clean existing display
-    (*value).display_glyph[0] = 0;
-    (*value).display_glyph[1] = 0;
-    (*value).display_glyph[2] = 0;
-    (*value).display_glyph[3] = 0;
-
-    // player position is in the range 8-11.  Subtract 8 to get index to this
-    (*value).display_glyph[this->player.position - 8] = this->player.glyph;
-    // if laser is here draw it too
-    if (this->laser.laser_state == FIRED && this->laser.position > 7) {
-      (*value).display_glyph[this->laser.position - 8] |= this->laser.glyph;
-    }
-
-    // draw any invaders on this display
-    for (int i = 0; i < num_invaders; ++i) {
-      if ((this->invaders[i].invader_state == ACTIVE ||
-	   this->invaders[i].invader_state == FORMING) &&
-	  this->invaders[i].position >= 8) {
-	(*value).display_glyph[this->invaders[i].position - 8] =
-	  this->invaders[i].glyph;
-      }
-    }
-
-    return glyph_display;
-  }
-  else if (this->game_state == GAME_OVER) {
-    (*value).display_string = this->messaging.red_display;
-    return string_display;
-  }
-  else {
-    (*value).display_string = "NOOP";
-    return string_display;
-  }
-}
-
-// implements f_get_display for the blue display
-display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
-  struct model *this = (struct model*) display_strategy->userdata;
-
-  *brightness = HT16K33_BRIGHTNESS_12;
-  *blink = HT16K33_BLINK_OFF;
-
-  if (this->game_state == GAME_PLAYING) {
-    // clean existing display
-    (*value).display_glyph[0] = 0;
-    (*value).display_glyph[1] = 0;
-    (*value).display_glyph[2] = 0;
-    (*value).display_glyph[3] = 0;
-    // draw any invaders on this display
-    for (int i = 0; i < num_invaders; ++i) {
-      if ((this->invaders[i].invader_state == ACTIVE ||
-	   this->invaders[i].invader_state == FORMING) &&
-	  this->invaders[i].position >= 4 &&
-	  this->invaders[i].position < 8) {
-	(*value).display_glyph[this->invaders[i].position - 4] =
-	  this->invaders[i].glyph;
-      }
-    }
-
-    if ((this->laser.position >= 4 && this->laser.position < 8) &&
-	this->laser.laser_state == FIRED) {
-      (*value).display_glyph[this->laser.position - 4] = this->laser.glyph;
-    }
-
-    return glyph_display;
-  }
-  else if (this->game_state == GAME_OVER ||
-	   this->game_state == GAME_LEVEL_UP) {
-    (*value).display_string = this->messaging.blue_display;
-    return string_display;
-  }
-
-  (*value).display_string = "2";
-
-  return string_display;
-}
-
-// implements f_get_display for the green display
-display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
-  struct model *this = (struct model*) display_strategy->userdata;
-
-
-  *blink = HT16K33_BLINK_OFF;
-  *brightness = HT16K33_BRIGHTNESS_12;
-
-  if (this->game_state == GAME_PLAYING) {
-    // clean existing display
-    (*value).display_glyph[0] = 0;
-    (*value).display_glyph[1] = 0;
-    (*value).display_glyph[2] = 0;
-    (*value).display_glyph[3] = 0;
-
-    // draw any invaders on this display
-    for (int i = 0; i < num_invaders; ++i) {
-      if ((this->invaders[i].invader_state == ACTIVE ||
-	   this->invaders[i].invader_state == FORMING) &&
-	  this->invaders[i].position < 4) {
-	(*value).display_glyph[this->invaders[i].position] =
-	  this->invaders[i].glyph;
-      }
-    }
-
-    // draw any lasers
-    if (this->laser.position < 4 && this->laser.laser_state == FIRED) {
-      (*value).display_glyph[this->laser.position] = this->laser.glyph;
-    }
-
-    return glyph_display;
-  }
-  else if (this->game_state == GAME_OVER ||
-	   this->game_state == GAME_LEVEL_UP) {
-    (*value).display_string = this->messaging.green_display;
-    return string_display;
-  }
-
-
-  (*value).display_string = "1";
-
-  return string_display;
-}
-
-
-
-
-// implements f_get_display for the leds display
-display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
-  struct model *this = (struct model*) display_strategy->userdata;
-  uint8_t shield = this->player.shield;
-  // flash the increase in shield if we're levelling up and increasing shield
-  if (this->game_state == GAME_LEVEL_UP && shield != 0xFF && this->messaging.scroll_index % 2) {
-    shield = shield >> 1;
-  }
-
-  (*value).display_int = (shield << 16) | (this->player.laser_charge << 8) | this->player.laser_value;
-  *blink = HT16K33_BLINK_OFF;
-  *brightness = HT16K33_BRIGHTNESS_12;
-
-  return integer_display;
-}
-
-
-
-struct display_strategy* get_display_strategy(struct model *this) {
-  return this->display_strategy;
-}
 
 
 
@@ -634,6 +483,7 @@ void start_invader(struct model *this) {
     if (this->invaders[i].invader_state == INACTIVE) {
       this->invaders[i].invader_state = FORMING;
       this->invaders[i].glyph_index = 0;
+      this->invaders[i].glyph = invader_forming_glyphs[this->invaders[i].glyph_index];
       // hex value is dependent on game level.  Higher levels get more bits.
       // index 16
       this->invaders[i].hex_value =
@@ -652,7 +502,7 @@ void start_invader(struct model *this) {
 // draw the invaders.  Possibly advance them to the next square.
 void clocktick_invaders(struct model *this) {
   int i;
-  int move_invaders, form_invaders = 0, active_invaders = 0;
+  int move_invaders, half_move_cycle = 0, active_invaders = 0;
   int is_forming = 0; // do we have one forming? can only have 1 forming at a time
 
   if (--this->level.invader_speed_clockticks_til_move == 0) {
@@ -662,7 +512,7 @@ void clocktick_invaders(struct model *this) {
   }
   else {
     move_invaders = 0;
-    form_invaders =
+    half_move_cycle =
       this->level.invader_speed_clockticks_til_move < 0.5 * this->level.invader_speed ? 1 : 0;
   }
 
@@ -679,7 +529,7 @@ void clocktick_invaders(struct model *this) {
     }
     else if (this->invaders[i].invader_state == FORMING) {
       is_forming++;
-      if (form_invaders) {
+      if (half_move_cycle) {
 	// change state
 	this->invaders[i].invader_state = ACTIVE;
 	this->invaders[i].glyph =
@@ -695,6 +545,21 @@ void clocktick_invaders(struct model *this) {
 	  this->invaders[i].glyph_index = 0;
 	}
 	this->invaders[i].glyph = invader_forming_glyphs[this->invaders[i].glyph_index];
+      }
+    }
+    else if (this->invaders[i].invader_state == EXPLOSION1) {
+      this->invaders[i].glyph = invader_hex_glyph_explosion1;
+      if (move_invaders) {
+	this->invaders[i].invader_state = DESTROYED;
+      }
+      else if (half_move_cycle) {
+	this->invaders[i].invader_state = EXPLOSION2;
+      }
+    }
+    else if (this->invaders[i].invader_state == EXPLOSION2) {
+      this->invaders[i].glyph = invader_hex_glyph_explosion2;
+      if (move_invaders) {
+	this->invaders[i].invader_state = DESTROYED;
       }
     }
   }
@@ -718,9 +583,7 @@ void clocktick_invaders(struct model *this) {
 
 
 void destroy_invader(struct model *this, int invader_id_collision) {
-  this->invaders[invader_id_collision].invader_state = DESTROYED;
-  this->invaders[invader_id_collision].position = 0;
-  this->invaders[invader_id_collision].steps = 0;
+  this->invaders[invader_id_collision].invader_state = EXPLOSION1;
   this->level.invaders_to_destroy--;
 }
 
@@ -825,7 +688,207 @@ int check_collision_invaders_laser_to_player(struct model *this) {
 
 
 
-/* static ----------------------------------------------------------- */
+/* display ----------------------------------------------------------- */
+
+
+// implements f_get_display for the red display
+display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+  struct model *this = (struct model*) display_strategy->userdata;
+
+  *brightness = HT16K33_BRIGHTNESS_12;
+  *blink = HT16K33_BLINK_OFF;
+
+  if (this->game_state == GAME_PLAYING ||
+      this->game_state == GAME_LEVEL_UP) {
+    // clean existing display
+    (*value).display_glyph[0] = 0;
+    (*value).display_glyph[1] = 0;
+    (*value).display_glyph[2] = 0;
+    (*value).display_glyph[3] = 0;
+
+    // player position is in the range 8-11.  Subtract 8 to get index to this
+    (*value).display_glyph[this->player.position - 8] = this->player.glyph;
+    // if laser is here draw it too
+    if (this->laser.laser_state == FIRED && this->laser.position > 7) {
+      (*value).display_glyph[this->laser.position - 8] |= this->laser.glyph;
+    }
+
+    // draw any invaders on this display
+    for (int i = 0; i < num_invaders; ++i) {
+      if (this->invaders[i].position >= 8) {
+	if ( ! (this->invaders[i].invader_state == INACTIVE ||
+		this->invaders[i].invader_state == DESTROYED)) {
+	  (*value).display_glyph[this->invaders[i].position - 8] = this->invaders[i].glyph;
+	}
+      }      
+    }
+
+    return glyph_display;
+  }
+  else if (this->game_state == GAME_OVER) {
+    (*value).display_string = this->messaging.red_display;
+    return string_display;
+  }
+  else if (this->game_state == GAME_ATTRACT) {
+    (*value).display_glyph[0] = 0;
+    (*value).display_glyph[1] = 0;
+    (*value).display_glyph[2] = 0;
+    (*value).display_glyph[3] = 0;
+    (*value).display_glyph[attract_movement_backandforth[this->messaging.clockticks % 6]] = player_ship_glyph;
+    return glyph_display;
+  }
+  else {
+    (*value).display_string = "TEST";
+    return string_display;
+  }
+}
+
+// implements f_get_display for the blue display
+display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+  struct model *this = (struct model*) display_strategy->userdata;
+
+  *brightness = HT16K33_BRIGHTNESS_12;
+  *blink = HT16K33_BLINK_OFF;
+
+  if (this->game_state == GAME_PLAYING) {
+    // clean existing display
+    (*value).display_glyph[0] = 0;
+    (*value).display_glyph[1] = 0;
+    (*value).display_glyph[2] = 0;
+    (*value).display_glyph[3] = 0;
+    // draw any invaders on this display
+    for (int i = 0; i < num_invaders; ++i) {
+      if (this->invaders[i].position >= 4 &&
+	  this->invaders[i].position < 8) {
+	if ( ! (this->invaders[i].invader_state == INACTIVE ||
+		this->invaders[i].invader_state == DESTROYED)) {
+	  (*value).display_glyph[this->invaders[i].position - 4] =
+	    this->invaders[i].glyph;
+	}
+      }
+    }
+
+    if ((this->laser.position >= 4 && this->laser.position < 8) &&
+	this->laser.laser_state == FIRED) {
+      (*value).display_glyph[this->laser.position - 4] = this->laser.glyph;
+    }
+
+    return glyph_display;
+  }
+  else if (this->game_state == GAME_OVER ||
+	   this->game_state == GAME_LEVEL_UP ||
+	   this->game_state == GAME_ATTRACT) {
+    (*value).display_string = this->messaging.blue_display;
+    return string_display;
+  }
+
+  (*value).display_string = "INVA";
+
+  return string_display;
+}
+
+// implements f_get_display for the green display
+display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+  struct model *this = (struct model*) display_strategy->userdata;
+
+
+  *blink = HT16K33_BLINK_OFF;
+  *brightness = HT16K33_BRIGHTNESS_12;
+
+  if (this->game_state == GAME_PLAYING) {
+    // clean existing display
+    (*value).display_glyph[0] = 0;
+    (*value).display_glyph[1] = 0;
+    (*value).display_glyph[2] = 0;
+    (*value).display_glyph[3] = 0;
+
+    // draw any invaders on this display
+    for (int i = 0; i < num_invaders; ++i) {
+      if (this->invaders[i].position < 4) {
+	if ( ! (this->invaders[i].invader_state == INACTIVE ||
+		this->invaders[i].invader_state == DESTROYED)) {
+	  (*value).display_glyph[this->invaders[i].position] =
+	    this->invaders[i].glyph;
+	}
+      }
+    }
+
+    // draw any lasers
+    if (this->laser.position < 4 && this->laser.laser_state == FIRED) {
+      (*value).display_glyph[this->laser.position] = this->laser.glyph;
+    }
+
+    return glyph_display;
+  }
+  else if (this->game_state == GAME_OVER ||
+	   this->game_state == GAME_LEVEL_UP) {
+    (*value).display_string = this->messaging.green_display;
+    return string_display;
+  }
+  else if (this->game_state == GAME_ATTRACT) {
+    (*value).display_glyph[0] = 0;
+    (*value).display_glyph[1] = 0;
+    (*value).display_glyph[2] = 0;
+    (*value).display_glyph[3] = 0;
+    (*value).display_glyph[attract_movement_backandforth[(this->messaging.clockticks + 3) % 6]] = invader_hex_glyph_unshielded;
+    return glyph_display;
+  }
+
+  (*value).display_string = "HEX";
+
+  return string_display;
+}
+
+
+static const int32_t attract_leds[] =
+  { 0xFFFFFFFF,
+    0xE7E7E7E7,
+    0xC3C3C3C3,
+    0x81818181,
+    0x00000000,
+    0x81818181,
+    0xC3C3C3C3,
+    0xE7E7E7E7
+  };
+
+// implements f_get_display for the leds display
+display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+  struct model *this = (struct model*) display_strategy->userdata;
+  uint8_t shield = this->player.shield;
+  // flash the increase in shield if we're levelling up and increasing shield
+  if (this->game_state == GAME_LEVEL_UP && shield != 0xFF && this->messaging.clockticks % 2) {
+    shield = shield >> 1;
+  }
+
+  if (this->game_state == GAME_PLAYING ||
+      this->game_state == GAME_LEVEL_UP) {
+    (*value).display_int = (shield << 16) | (this->player.laser_charge << 8) | this->player.laser_value;
+  }
+  else if (this->game_state == GAME_ATTRACT) {
+    int max_index = sizeof(attract_leds) / sizeof(int32_t);
+    int i = this->messaging.clockticks % (2 * max_index);
+    if (i >= max_index) {
+      (*value).display_int = ~attract_leds[i - max_index];
+    }
+    else {
+      (*value).display_int = attract_leds[i];
+    }
+  }
+  else {
+    (*value).display_int = 0;
+  }
+
+  *blink = HT16K33_BLINK_OFF;
+  *brightness = HT16K33_BRIGHTNESS_12;
+  return integer_display;
+}
+
+
+
+struct display_strategy* get_display_strategy(struct model *this) {
+  return this->display_strategy;
+}
+
 
 
 static struct display_strategy* create_display_strategy(struct model *this) {
