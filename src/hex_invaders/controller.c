@@ -22,8 +22,10 @@
 #include "hex_inv_ader.h"
 
 
-static const int32_t in_state_next_event_time = 25;
+static const int32_t in_state_next_event_time = 22;
 static const int32_t transition_to_next_state_time = 800;
+static const int32_t game_over_to_attract_time = 1000;
+static const int32_t attract_sample_play_time = 2000;
 
 struct controller {
   struct model *model;
@@ -89,7 +91,13 @@ void controller_update(struct controller *this, uint32_t clock) {
   new_game_state = get_game_state(this->model);
   if (new_game_state != game_state) { // state changed
     this->clock_to_next_event = in_state_next_event_time;
-    this->clock_to_next_state = transition_to_next_state_time;
+
+    if (new_game_state == GAME_OVER) {
+      this->clock_to_next_state = game_over_to_attract_time;
+    }
+    else {
+      this->clock_to_next_state = transition_to_next_state_time;
+    }
   }
 }
 
@@ -198,8 +206,7 @@ static void controller_update_game_playing(struct controller *this, uint32_t clo
     ut3k_play_sample(laser_hit_invader_soundkey);
   }
   else if (invader_id_destroyed == -3) {
-    // TODO: CHANGE THIS
-    ut3k_play_sample(laser_hit_shielded_invader_soundkey);
+    ut3k_play_sample(laser_hit_invader_shield_destroyed_soundkey);
   }
   else if (invader_id_destroyed == -2) {
     ut3k_play_sample(laser_hit_shielded_invader_soundkey);
@@ -249,7 +256,7 @@ static void controller_update_attract(struct controller *this, uint32_t clock) {
 
   // no timed exit from this state-- stay in attract mode
   if (--this->clock_to_next_state <= 0) {
-    this->clock_to_next_state = transition_to_next_state_time;
+    this->clock_to_next_state = attract_sample_play_time;
     ut3k_play_sample(attract_soundkey);
   }  
 }

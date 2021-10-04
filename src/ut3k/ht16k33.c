@@ -390,11 +390,16 @@ int HT16K33_UPDATE_ALPHANUM(HT16K33 *backpack, unsigned short digit, const unsig
   return 0;
 }
 
-int HT16K33_UPDATE_RAW(HT16K33 *backpack, unsigned short digit, const uint16_t value) {
-  if (digit > 7) {
-    return -1;
-  }
 
+int HT16K33_UPDATE_RAW(HT16K33 *backpack, const uint16_t value[]) {
+  for (int digit = 0; digit < 4; ++digit) {
+    backpack->display_buffer.com[2*digit] = (uint8_t) value[digit];
+    backpack->display_buffer.com[2*digit+1] = (uint8_t) ((value[digit]) >> 8);
+  }
+  return 0;
+}
+
+int HT16K33_UPDATE_RAW_BYDIGIT(HT16K33 *backpack, unsigned short digit, const uint16_t value) {
   backpack->display_buffer.com[2*digit] = (uint8_t) value;
   backpack->display_buffer.com[2*digit+1] = (uint8_t) (value >> 8);
   return 0;
@@ -487,18 +492,13 @@ int HT16K33_CLEAN_DIGIT(HT16K33 *backpack, unsigned short digit) {
  * Data must be saved to the buffer calling HT16K33_UPDATE_DIGIT() before calling this one.
  */
 int HT16K33_COMMIT(HT16K33 *backpack) {
-	int i;
+  if(backpack->adapter_fd == -1) {
+    backpack->lasterr = -1;
+    return -1;
+  }
 	
-	if(backpack->adapter_fd == -1) {
-		backpack->lasterr = -1;
-		return -1;
-	}
-	
-	// commit data to the i2c bus
-	i = i2c_smbus_write_i2c_block_data(backpack->adapter_fd, 0x00, 16, backpack->display_buffer.com);
-	if (i == 0) return 0;
-	
-	return -1;
+  // commit data to the i2c bus
+  return i2c_smbus_write_i2c_block_data(backpack->adapter_fd, 0x00, 16, backpack->display_buffer.com);
 }
 
 

@@ -52,7 +52,8 @@ const char *moveinvaders1_soundkey = "moveinvaders1";
 const char *moveinvaders2_soundkey = "moveinvaders2";
 const char *invader_forming_soundkey = "invader_forming";
 const char *laser_hit_invader_soundkey = "laser_hit_invader";
-const char *laser_hit_shielded_invader_soundkey = "laser_hit_shielded_invader";
+const char *laser_hit_shielded_invader_soundkey = "laser_hit_invader_shielded";
+const char *laser_hit_invader_shield_destroyed_soundkey = "laser_hit_invader_shield_destroyed";
 const char *levelup_soundkey = "levelup";
 const char *start_game_soundkey = "start_game";
 

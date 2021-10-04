@@ -219,7 +219,9 @@ int HT16K33_UPDATE_DIGIT(HT16K33 *backpack, unsigned short digit, const unsigned
 int HT16K33_UPDATE_ALPHANUM(HT16K33 *backpack, unsigned short digit, const unsigned char value, unsigned short decimal_point);
 // as above, but just raw data / no ascii mapping and takes all 16 bits
 // To make it reflected on the display you have to call HT16K33_COMMIT()
-int HT16K33_UPDATE_RAW(HT16K33 *backpack, unsigned short digit, const uint16_t value);
+// value is assumed to be an array of four...
+int HT16K33_UPDATE_RAW(HT16K33 *backpack, const uint16_t value[]);
+int HT16K33_UPDATE_RAW_BYDIGIT(HT16K33 *backpack, unsigned short digit, const uint16_t value);
 
 /** write all the digits of an integer to the display
  * call HT16K33_COMMIT to display

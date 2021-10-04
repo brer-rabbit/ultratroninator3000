@@ -206,7 +206,6 @@ void game_level_up(struct model *this) {
     return;
   }
 
-  
   set_level_up(this);
   snprintf(this->messaging.green_display_message, MESSAGING_MAX_LENGTH,
 	   "   LEVEL %-2d COMPLETE  ", this->level.level_number - 1);
@@ -501,7 +500,6 @@ void start_invader(struct model *this) {
 
 // draw the invaders.  Possibly advance them to the next square.
 void clocktick_invaders(struct model *this) {
-  int i;
   int move_invaders, half_move_cycle = 0, active_invaders = 0;
   int is_forming = 0; // do we have one forming? can only have 1 forming at a time
 
@@ -517,7 +515,7 @@ void clocktick_invaders(struct model *this) {
   }
 
 
-  for (i = 0; i < num_invaders; ++i) {
+  for (int i = 0; i < num_invaders; ++i) {
     if (this->invaders[i].invader_state == ACTIVE) {
       active_invaders++;
       if (move_invaders) {
@@ -701,10 +699,7 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
   if (this->game_state == GAME_PLAYING ||
       this->game_state == GAME_LEVEL_UP) {
     // clean existing display
-    (*value).display_glyph[0] = 0;
-    (*value).display_glyph[1] = 0;
-    (*value).display_glyph[2] = 0;
-    (*value).display_glyph[3] = 0;
+    memset((*value).display_glyph, 0, sizeof(display_value));
 
     // player position is in the range 8-11.  Subtract 8 to get index to this
     (*value).display_glyph[this->player.position - 8] = this->player.glyph;
@@ -730,10 +725,8 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
     return string_display;
   }
   else if (this->game_state == GAME_ATTRACT) {
-    (*value).display_glyph[0] = 0;
-    (*value).display_glyph[1] = 0;
-    (*value).display_glyph[2] = 0;
-    (*value).display_glyph[3] = 0;
+    memset((*value).display_glyph, 0, sizeof(display_value));
+
     (*value).display_glyph[attract_movement_backandforth[this->messaging.clockticks % 6]] = player_ship_glyph;
     return glyph_display;
   }
@@ -752,10 +745,8 @@ display_type get_blue_display(struct display_strategy *display_strategy, display
 
   if (this->game_state == GAME_PLAYING) {
     // clean existing display
-    (*value).display_glyph[0] = 0;
-    (*value).display_glyph[1] = 0;
-    (*value).display_glyph[2] = 0;
-    (*value).display_glyph[3] = 0;
+    memset((*value).display_glyph, 0, sizeof(display_value));
+
     // draw any invaders on this display
     for (int i = 0; i < num_invaders; ++i) {
       if (this->invaders[i].position >= 4 &&
@@ -797,10 +788,7 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
 
   if (this->game_state == GAME_PLAYING) {
     // clean existing display
-    (*value).display_glyph[0] = 0;
-    (*value).display_glyph[1] = 0;
-    (*value).display_glyph[2] = 0;
-    (*value).display_glyph[3] = 0;
+    memset((*value).display_glyph, 0, sizeof(display_value));
 
     // draw any invaders on this display
     for (int i = 0; i < num_invaders; ++i) {
@@ -826,10 +814,7 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
     return string_display;
   }
   else if (this->game_state == GAME_ATTRACT) {
-    (*value).display_glyph[0] = 0;
-    (*value).display_glyph[1] = 0;
-    (*value).display_glyph[2] = 0;
-    (*value).display_glyph[3] = 0;
+    memset((*value).display_glyph, 0, sizeof(display_value));
     (*value).display_glyph[attract_movement_backandforth[(this->messaging.clockticks + 3) % 6]] = invader_hex_glyph_unshielded;
     return glyph_display;
   }
@@ -848,7 +833,15 @@ static const int32_t attract_leds[] =
     0x00000000,
     0x81818181,
     0xC3C3C3C3,
-    0xE7E7E7E7
+    0xE7E7E7E7,
+    0xFFFFFFFF,
+    0x7E7E7E7E,
+    0x3C3C3C3C,
+    0x18181818,
+    0x00000000,
+    0x18181818,
+    0x3C3C3C3C,
+    0x7E7E7E7E
   };
 
 // implements f_get_display for the leds display
@@ -866,13 +859,8 @@ display_type get_leds_display(struct display_strategy *display_strategy, display
   }
   else if (this->game_state == GAME_ATTRACT) {
     int max_index = sizeof(attract_leds) / sizeof(int32_t);
-    int i = this->messaging.clockticks % (2 * max_index);
-    if (i >= max_index) {
-      (*value).display_int = ~attract_leds[i - max_index];
-    }
-    else {
-      (*value).display_int = attract_leds[i];
-    }
+    int i = this->messaging.clockticks % max_index;
+    (*value).display_int = ~attract_leds[i];
   }
   else {
     (*value).display_int = 0;
@@ -894,19 +882,22 @@ struct display_strategy* get_display_strategy(struct model *this) {
 static struct display_strategy* create_display_strategy(struct model *this) {
   struct display_strategy *display_strategy;
   display_strategy = (struct display_strategy*)malloc(sizeof(struct display_strategy));
-  display_strategy->userdata = (void*)this;
-  display_strategy->get_green_display = get_green_display;
-  display_strategy->green_blink = HT16K33_BLINK_OFF;
-  display_strategy->green_brightness = HT16K33_BRIGHTNESS_12;
-  display_strategy->get_blue_display = get_blue_display;
-  display_strategy->blue_blink = HT16K33_BLINK_OFF;
-  display_strategy->blue_brightness = HT16K33_BRIGHTNESS_12;
-  display_strategy->get_red_display = get_red_display;
-  display_strategy->red_blink = HT16K33_BLINK_OFF;
-  display_strategy->red_brightness = HT16K33_BRIGHTNESS_12;
-  display_strategy->get_leds_display = get_leds_display;
-  display_strategy->leds_blink = HT16K33_BLINK_OFF;
-  display_strategy->leds_brightness = HT16K33_BRIGHTNESS_12;
+  *display_strategy = (struct display_strategy const)
+    {
+     .userdata = (void*)this,
+     .get_green_display = get_green_display,
+     .green_blink = HT16K33_BLINK_OFF,
+     .green_brightness = HT16K33_BRIGHTNESS_12,
+     .get_blue_display = get_blue_display,
+     .blue_blink = HT16K33_BLINK_OFF,
+     .blue_brightness = HT16K33_BRIGHTNESS_12,
+     .get_red_display = get_red_display,
+     .red_blink = HT16K33_BLINK_OFF,
+     .red_brightness = HT16K33_BRIGHTNESS_12,
+     .get_leds_display = get_leds_display,
+     .leds_blink = HT16K33_BLINK_OFF,
+     .leds_brightness = HT16K33_BRIGHTNESS_12
+    };
   return display_strategy;
 }
 

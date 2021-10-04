@@ -264,12 +264,7 @@ static void commit_string(HT16K33 *display, char *string) {
  * more than enough rope to hang yourself with this.
  */
 static void commit_glyph(HT16K33 *display, uint16_t glyph[]) {
-  int digit;
-
-  for (digit = 0; digit < 4; ++digit) { // digit
-    HT16K33_UPDATE_RAW(display, digit, glyph[digit]);
-  }
-
+  HT16K33_UPDATE_RAW(display, glyph);
   HT16K33_COMMIT(display);
 }
 
@@ -393,9 +388,9 @@ static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display
     HT16K33_BLINK(this->inputs_and_leds, blink);
   }
 
-  HT16K33_UPDATE_RAW(this->inputs_and_leds, 4, (uint16_t)(led_display_value & 0x00FF));
-  HT16K33_UPDATE_RAW(this->inputs_and_leds, 5, (uint16_t)((led_display_value >> 8) & 0x00FF));
-  HT16K33_UPDATE_RAW(this->inputs_and_leds, 6, (uint16_t)((led_display_value >> 16) & 0x00FF));
+  HT16K33_UPDATE_RAW_BYDIGIT(this->inputs_and_leds, 4, (uint16_t)(led_display_value & 0x00FF));
+  HT16K33_UPDATE_RAW_BYDIGIT(this->inputs_and_leds, 5, (uint16_t)((led_display_value >> 8) & 0x00FF));
+  HT16K33_UPDATE_RAW_BYDIGIT(this->inputs_and_leds, 6, (uint16_t)((led_display_value >> 16) & 0x00FF));
   HT16K33_COMMIT(this->inputs_and_leds);
 
 }

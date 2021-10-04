@@ -41,6 +41,7 @@ extern const char *moveinvaders2_soundkey;
 extern const char *invader_forming_soundkey;
 extern const char *laser_hit_invader_soundkey;
 extern const char *laser_hit_shielded_invader_soundkey;
+extern const char *laser_hit_invader_shield_destroyed_soundkey;
 extern const char *levelup_soundkey;
 extern const char *start_game_soundkey;
 
