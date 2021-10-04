@@ -14,6 +14,7 @@
  */
 
 #include <assert.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -58,14 +59,25 @@ const char *levelup_soundkey = "levelup";
 const char *start_game_soundkey = "start_game";
 
 
+static uint32_t clock_iterations = 0, clock_overruns = 0; // count of iterations through event loop
+static struct model *model;
+static struct ut3k_view *view;
+static struct controller *controller;
+
+void sig_cleanup_and_exit(int signum) {
+  printf("caught sig %d.  Cleaning up and exiting.  Stats: %u clock ticks (%u overruns)\n",
+	 signum, clock_iterations, clock_overruns);
+  free_controller(controller);
+  free_model(model);
+  free_ut3k_view(view);
+  // TODO: blow out any samples in cache
+  exit(0);
+}
+
 
 static void run_mvc(config_t *cfg) {
-  struct model *model;
-  struct ut3k_view *view;
-  struct controller *controller;
   struct timeval tval_controller_start, tval_controller_end, tval_controller_time, tval_fixed_loop_time, tval_sleep_time;
   int loop_time_ms;
-  uint32_t clock_iterations = 0; // count of iterations through event loop
 
   if (cfg != NULL &&
       config_lookup_int(cfg, CONFIG_EVENT_LOOP_DURATION_TIME_KEY, &loop_time_ms)) {
@@ -104,6 +116,8 @@ static void run_mvc(config_t *cfg) {
   tval_sleep_time.tv_sec = 0;
   tval_sleep_time.tv_usec = tval_fixed_loop_time.tv_usec;
   
+  signal(SIGINT, sig_cleanup_and_exit);
+  signal(SIGTERM, sig_cleanup_and_exit);
 
   // event loop
   while (1) {
@@ -116,6 +130,7 @@ static void run_mvc(config_t *cfg) {
     else {
        // this really shouldn't happen... loop takes <8 ms
       printf("controller took %ld.%06ld; this is longer than event loop of %ld.%06ld seconds\n", tval_controller_time.tv_sec, tval_controller_time.tv_usec, tval_fixed_loop_time.tv_sec, tval_fixed_loop_time.tv_usec);
+      clock_overruns++;
     }
 
     // should this function even exist or just rely on callback?
