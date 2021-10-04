@@ -34,7 +34,5 @@ void free_controller(struct controller *this);
 
 void controller_update(struct controller *this, uint32_t clock);
 
-void controller_initialize_control_panel(struct control_panel *control_panel, void *userdata);
-void controller_callback_control_panel(const struct control_panel *control_panel, void *userdata);
 
 #endif

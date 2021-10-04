@@ -35,10 +35,13 @@ struct controller {
 
 
 /* start off with accurate front panel state */
+static void controller_callback_control_panel_gameplay(const struct control_panel *control_panel, void *userdata);
+static void controller_callback_control_panel_attractmode(const struct control_panel *control_panel, void *userdata);
 static void initialize_model_from_control_panel(struct controller *this, const struct control_panel *control_panel);
 static void controller_update_game_over(struct controller *this, uint32_t clock);
 static void controller_update_game_playing(struct controller *this, uint32_t clock);
 static void controller_update_level_up(struct controller *this, uint32_t clock);
+static void controller_update_attract(struct controller *this, uint32_t clock);
 
 
 /* functions ---------------------------------------------------*/
@@ -52,8 +55,9 @@ struct controller* create_controller(struct model *model, struct ut3k_view *view
   this->clock_to_next_event = 0;
   this->clock_to_next_state = 0;
 
-  register_control_panel_listener(this->view, controller_callback_control_panel, this);
+  register_control_panel_listener(this->view, controller_callback_control_panel_attractmode, this);
   initialize_model_from_control_panel(this, get_control_panel(view));
+  game_attract(this->model);
 
   return this;
 }
@@ -77,7 +81,7 @@ void controller_update(struct controller *this, uint32_t clock) {
     controller_update_level_up(this, clock);
     break;
   case GAME_ATTRACT:
-    printf("not implemented\n");
+    controller_update_attract(this, clock);
   }
 
   update_view(this->view, get_display_strategy(this->model), clock);
@@ -86,7 +90,6 @@ void controller_update(struct controller *this, uint32_t clock) {
   if (new_game_state != game_state) { // state changed
     this->clock_to_next_event = in_state_next_event_time;
     this->clock_to_next_state = transition_to_next_state_time;
-    // if new game state...register a different control panel listener or take other actions
   }
 }
 
@@ -98,11 +101,11 @@ static void initialize_model_from_control_panel(struct controller *this, const s
 }
 
 
-/** controller callback
+/** controller callbacks
  * 
  * implements f_view_control_panel_updates
  */
-void controller_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
+static void controller_callback_control_panel_gameplay(const struct control_panel *control_panel, void *userdata) {
   struct controller *this = (struct controller*) userdata;
 
 
@@ -137,6 +140,23 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   }
 
 }
+
+
+static void controller_callback_control_panel_attractmode(const struct control_panel *control_panel, void *userdata) {
+  struct controller *this = (struct controller*) userdata;
+
+  // either button starts game
+  const struct button *red_button = get_red_button(control_panel);
+  const struct button *blue_button = get_blue_button(control_panel);
+  if ((blue_button->state_count == 0 && blue_button->button_state == 1) ||
+      (red_button->state_count == 0 && red_button->button_state == 1)) {
+    // reset listener for game start
+    register_control_panel_listener(this->view, controller_callback_control_panel_gameplay, this);
+    game_start(this->model);
+  }
+
+}
+
 
 
 static void controller_update_game_playing(struct controller *this, uint32_t clock) {
@@ -191,7 +211,8 @@ static void controller_update_game_over(struct controller *this, uint32_t clock)
   }
 
   if (--this->clock_to_next_state <= 0) {
-    // set state to attract
+    register_control_panel_listener(this->view, controller_callback_control_panel_attractmode, this);
+    game_attract(this->model);
   }
 }
 
@@ -211,4 +232,17 @@ static void controller_update_level_up(struct controller *this, uint32_t clock) 
       ut3k_play_sample(levelup_soundkey);
   }
   
+}
+
+static void controller_update_attract(struct controller *this, uint32_t clock) {
+  if (--this->clock_to_next_event <= 0) {
+    this->clock_to_next_event = in_state_next_event_time;
+    //level_up_scroll(this->model);
+  }
+
+  // no timed exit from this state-- stay in attract mode
+  if (--this->clock_to_next_state <= 0) {
+    this->clock_to_next_state = transition_to_next_state_time;
+    ut3k_play_sample(attract_soundkey);
+  }  
 }

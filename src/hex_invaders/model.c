@@ -157,7 +157,8 @@ struct model* create_model() {
   struct model* this = (struct model*)malloc(sizeof(struct model));
   this->display_strategy = create_display_strategy(this);
 
-  game_start(this);
+  game_attract(this);
+  //game_start(this);
 
   return this;
 }
@@ -486,22 +487,18 @@ struct display_strategy* get_display_strategy(struct model *this) {
  * move the player left/right, if it's allowed
  */
 void player_left(struct model *this) {
-  if (this->game_state != GAME_PLAYING) {
-    return;
-  }
-
-  if (this->player.position > 8) {
-    this->player.position--;
+  if (this->game_state == GAME_PLAYING || this->game_state == GAME_LEVEL_UP) {
+    if (this->player.position > 8) {
+      this->player.position--;
+    }
   }
 }
 
 void player_right(struct model *this) {
-  if (this->game_state != GAME_PLAYING) {
-    return;
-  }
-
-  if (this->player.position < 11) {
-    this->player.position++;
+  if (this->game_state == GAME_PLAYING || this->game_state == GAME_LEVEL_UP) {
+    if (this->player.position < 11) {
+      this->player.position++;
+    }
   }
 }
 
