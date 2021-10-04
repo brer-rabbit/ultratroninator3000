@@ -74,6 +74,7 @@ struct invader {
   uint16_t glyph;
   uint8_t glyph_index;
   uint8_t hex_value;
+  uint8_t shield;
   uint8_t position; // stpes mapped via table to LED digit position
   uint8_t steps;  // how many "steps" it's taken
 };
@@ -128,7 +129,8 @@ static uint16_t laser_low_glyph = 0b0001000000000000;
 const static uint16_t invader_forming_glyphs[] =
   { 0x0040, 0x0100, 0x0200, 0x0400, 0x0080, 0x2000, 0x1000, 0x0800 };
    
-const static uint8_t level_one_invader_glyph_index = 16;
+
+const static uint16_t invader_hex_glyph_unshielded =  0b0010110111100010;  // X(sort of) -- unshielded invader
 const static uint16_t invader_hex_glyphs[] =
   {
    0b0000110000111111, // 0
@@ -146,8 +148,7 @@ const static uint16_t invader_hex_glyphs[] =
    0b0000000000111001, // C
    0b0001001000001111, // D
    0b0000000011111001, // E
-   0b0000000001110001,  // F
-   0b0010110111100010  // X(sort of) -- level 1 invader
+   0b0000000001110001  // F
   };
 
 
@@ -636,9 +637,10 @@ void start_invader(struct model *this) {
       // hex value is dependent on game level.  Higher levels get more bits.
       // index 16
       this->invaders[i].hex_value =
-	(this->level.level_number == 1) ?
-	level_one_invader_glyph_index :
 	(rand() % 16) & this->level.invaders_level_bitmask;
+      // is it shielded? none on level 1, with an increasing
+      // percentage as the level increases.  Zero: no shield.  non-zero: shield.
+      this->invaders[i].shield = rand() % this->level.level_number;
       this->invaders[i].position = this->level.invaders_marching_orders[0];
       this->invaders[i].steps = 0;
       return;
@@ -680,7 +682,10 @@ void clocktick_invaders(struct model *this) {
       if (form_invaders) {
 	// change state
 	this->invaders[i].invader_state = ACTIVE;
-	this->invaders[i].glyph = invader_hex_glyphs[this->invaders[i].hex_value];
+	this->invaders[i].glyph =
+	  this->invaders[i].shield ?
+	  invader_hex_glyphs[this->invaders[i].hex_value] :
+	  invader_hex_glyph_unshielded;
       }
       else {
 	// change glyph as it forms
@@ -784,6 +789,7 @@ int check_collision_invaders_player(struct model *this) {
  *
  * return -1 for a miss
  * -2 for a hit with a bad value
+ * -3 for blowing up a shield
  * non-negative for a legit hit
  */
 int check_collision_player_laser_to_aliens(struct model *this) {
@@ -792,13 +798,16 @@ int check_collision_player_laser_to_aliens(struct model *this) {
 	this->invaders[i].invader_state == ACTIVE &&
 	this->laser.laser_state == FIRED) {
       this->laser.laser_state = READY;
-      // level 1 requires no hex value
-      if (this->laser.value == this->invaders[i].hex_value ||
-	  this->level.level_number == 1) {
-	// return the invader index
-	// player score + 1
+
+      if (this->invaders[i].shield == 0) {
 	this->player.score++;
 	return i;
+      }
+      else if (this->invaders[i].hex_value == this->laser.value) {
+	// shield destroyed
+	this->invaders[i].shield = 0;
+	this->invaders[i].glyph = invader_hex_glyph_unshielded;
+	return -3;
       }
       else {
 	return -2;

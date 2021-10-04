@@ -195,6 +195,10 @@ static void controller_update_game_playing(struct controller *this, uint32_t clo
     destroy_invader(this->model, invader_id_destroyed);
     ut3k_play_sample(laser_hit_invader_soundkey);
   }
+  else if (invader_id_destroyed == -3) {
+    // TODO: CHANGE THIS
+    ut3k_play_sample(laser_hit_shielded_invader_soundkey);
+  }
   else if (invader_id_destroyed == -2) {
     ut3k_play_sample(laser_hit_shielded_invader_soundkey);
   }
