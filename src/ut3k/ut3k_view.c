@@ -153,11 +153,6 @@ int free_ut3k_view(struct ut3k_view *this) {
 
   free_control_panel(this->control_panel);
 
-  HT16K33_OFF(this->green_display);
-  HT16K33_OFF(this->blue_display);
-  HT16K33_OFF(this->red_display);
-  HT16K33_OFF(this->inputs_and_leds);
-
   HT16K33_CLOSE(this->green_display);
   HT16K33_CLOSE(this->blue_display);
   HT16K33_CLOSE(this->red_display);

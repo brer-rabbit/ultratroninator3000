@@ -489,7 +489,7 @@ void start_invader(struct model *this) {
 	(rand() % 16) & this->level.invaders_level_bitmask;
       // is it shielded? none on level 1, with an increasing
       // percentage as the level increases.  Zero: no shield.  non-zero: shield.
-      this->invaders[i].shield = rand() % this->level.level_number;
+      this->invaders[i].shield = rand() % (this->level.level_number == 1 ? 1 : this->level.level_number + 1);
       this->invaders[i].position = this->level.invaders_marching_orders[0];
       this->invaders[i].steps = 0;
       return;

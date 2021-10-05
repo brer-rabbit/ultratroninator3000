@@ -58,8 +58,8 @@ struct controller* create_controller(struct model *model, struct ut3k_view *view
   this->clock_to_next_state = 0;
 
   register_control_panel_listener(this->view, controller_callback_control_panel_attractmode, this);
-  initialize_model_from_control_panel(this, get_control_panel(view));
   game_attract(this->model);
+  initialize_model_from_control_panel(this, get_control_panel(view));
 
   return this;
 }
@@ -103,7 +103,6 @@ void controller_update(struct controller *this, uint32_t clock) {
 
 
 static void initialize_model_from_control_panel(struct controller *this, const struct control_panel *control_panel) {
-  start_invader(this->model);
   const struct toggles *toggles = get_toggles(control_panel);
   // bug (feature): this plays the toggled sound on startup.
   // could easily fix, but not really wanting to...
@@ -163,6 +162,8 @@ static void controller_callback_control_panel_attractmode(const struct control_p
     // reset listener for game start
     register_control_panel_listener(this->view, controller_callback_control_panel_gameplay, this);
     game_start(this->model);
+    const struct toggles *toggles = get_toggles(control_panel);
+    set_player_laser_value(this->model, toggles->toggles_state & 0xF);
   }
 
 }

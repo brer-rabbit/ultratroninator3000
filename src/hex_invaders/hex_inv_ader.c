@@ -60,9 +60,9 @@ const char *start_game_soundkey = "start_game";
 
 
 static uint32_t clock_iterations = 0, clock_overruns = 0; // count of iterations through event loop
-static struct model *model;
-static struct ut3k_view *view;
-static struct controller *controller;
+static struct model *model = NULL;
+static struct ut3k_view *view = NULL;
+static struct controller *controller = NULL;
 
 void sig_cleanup_and_exit(int signum) {
   printf("caught sig %d.  Cleaning up and exiting.  Stats: %u clock ticks (%u overruns)\n",
@@ -71,6 +71,7 @@ void sig_cleanup_and_exit(int signum) {
   free_model(model);
   free_ut3k_view(view);
   // TODO: blow out any samples in cache
+  ut3k_disconnect_audio_context(1);
   exit(0);
 }
 

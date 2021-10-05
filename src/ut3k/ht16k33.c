@@ -191,12 +191,12 @@ int HT16K33_INTERRUPT(HT16K33 *backpack, ht16k33interrupt_t interrupt_mode) {
 	cmd = HT16K33_INTERRUPT_BASE | interrupt_mode;
 
 	// <<guessing>> this shouldn't be fiddled with if the display is on
-	if ((HT16K33_DISPLAY_ON & backpack->display_state) == HT16K33_DISPLAY_ON) {
-	  return rc;
-	}
-	else {
+	// if ((HT16K33_DISPLAY_ON & backpack->display_state) == HT16K33_DISPLAY_ON) {
+	//	  return rc;
+	//}
+	//else {
 	  rc = ht16k33_write8(backpack, cmd);
-	}
+	  //}
 
 	if (rc == 0) {
 	  // store that we set it
