@@ -61,17 +61,10 @@ static int count = 0;
 void controller_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
   struct game_controller *this = (struct game_controller*) userdata;
 
-  const struct button *button = get_blue_button(control_panel);
+  const struct button *blue_button = get_blue_button(control_panel);
+  const struct button *red_button = get_red_button(control_panel);
   const struct rotary_encoder *rotary_encoder = get_red_rotary_encoder(control_panel);
-  const struct selector *selector = get_green_selector(control_panel);
-  const struct toggles *toggles = get_toggles(control_panel);
 
-  if (button->state_count == 0) {
-    printf("blue button changed from %d to %d after %d cycles\n",
-	   button->button_previous_state,
-	   button->button_state,
-	   button->button_previous_state_count);
-  }
 	 
   if (rotary_encoder->encoder_delta > 0) {
     printf("encoder state 0x%X delta %d count %d\n", rotary_encoder->encoder_state, rotary_encoder->encoder_delta, count);
@@ -83,17 +76,13 @@ void controller_callback_control_panel(const struct control_panel *control_panel
 
 
   // hey, a game is picked!
-  if (rotary_encoder->button.state_count == 0) {
+  // allow any of red encoder|blue button|red button to pick executable
+  if ((rotary_encoder->button.button_state == 1 &&
+       rotary_encoder->button.state_count == 0) ||
+      (blue_button->button_state == 1 &&
+       blue_button->state_count == 0) ||
+      (red_button->button_state == 1 &&
+       red_button->state_count == 0)) {
     this->game_exec_to_launch = get_current_executable(this->model);
   }
-
-
-  if (selector->state_count == 0) {
-  }
-
-
-  if (toggles->state_count == 0) {
-  }
-
-
 }

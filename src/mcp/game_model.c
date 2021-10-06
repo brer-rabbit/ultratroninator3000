@@ -103,20 +103,22 @@ void free_game_model(struct game_model *this) {
  */
 
 void next_game(struct game_model *this) {
-  //ut3k_play_sample("explosion_short");
+  ut3k_play_sample("explosion_short");
   if (++this->game_index == this->num_games) {
     this->game_index = 0;
   }
 }
 
 void previous_game(struct game_model *this) {
-  //ut3k_play_sample("effect_alarm");
+  ut3k_play_sample("effect_spin");
   if (--this->game_index < 0) {
     this->game_index = this->num_games - 1;
   }
 }
 
 char* get_current_executable(struct game_model *this) {
+  set_blink(this, 1);
+  ut3k_play_sample("attract_coin");
   return this->games[this->game_index].game_executable;
 }
 
@@ -217,7 +219,6 @@ static int cur = 0x00040201;
 
 // implements f_get_display for the leds display
 display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
-  struct game_model *this = (struct game_model*) display_strategy->userdata;
 
   if (++foo % 15 == 0) {
     cur = cur << 1;

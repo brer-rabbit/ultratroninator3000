@@ -81,6 +81,8 @@ struct invader {
   uint8_t steps;  // how many "steps" it's taken
 };
 
+const static uint8_t invaders_per_level = 8;
+
 struct level {
   uint8_t level_number;
   uint8_t invader_speed;
@@ -177,7 +179,7 @@ void game_start(struct model *this) {
   this->level.level_number = 1;
   this->level.invader_speed = 255;  // clockticks decs to zero then reset to this
   this->level.invader_speed_clockticks_til_move = this->level.invader_speed;
-  this->level.remaining_invaders_to_form = 8;
+  this->level.remaining_invaders_to_form = invaders_per_level;
   this->level.invaders_to_destroy = this->level.remaining_invaders_to_form;
   this->level.invaders_marching_orders = invaders_marching_orders1;
   this->level.invaders_level_bitmask = 0;
@@ -489,7 +491,9 @@ void start_invader(struct model *this) {
 	(rand() % 16) & this->level.invaders_level_bitmask;
       // is it shielded? none on level 1, with an increasing
       // percentage as the level increases.  Zero: no shield.  non-zero: shield.
-      this->invaders[i].shield = rand() % (this->level.level_number == 1 ? 1 : this->level.level_number + 1);
+      this->invaders[i].shield = this->level.level_number == 1 ? 0 : 1;
+      // was:
+      //this->level.level_number == 1 ? 0 : rand() % (this->level.level_number == 1 ? 1 : this->level.level_number + 1);
       this->invaders[i].position = this->level.invaders_marching_orders[0];
       this->invaders[i].steps = 0;
       return;
@@ -616,7 +620,7 @@ static void set_level_up(struct model *this) {
     this->level.invaders_marching_orders == invaders_marching_orders1 ?
     invaders_marching_orders2 : invaders_marching_orders1;
 
-  this->level.remaining_invaders_to_form = 8;
+  this->level.remaining_invaders_to_form = invaders_per_level;
   this->level.invaders_to_destroy = this->level.remaining_invaders_to_form;
   for (int i = 0; i < num_invaders; ++i) {
     this->invaders[i].invader_state = INACTIVE;
@@ -688,12 +692,14 @@ int check_collision_invaders_laser_to_player(struct model *this) {
 
 /* display ----------------------------------------------------------- */
 
+static const ht16k33brightness_t brightness_bright = HT16K33_BRIGHTNESS_12;
+static const ht16k33brightness_t brightness_dim = HT16K33_BRIGHTNESS_7;
 
 // implements f_get_display for the red display
 display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
 
-  *brightness = HT16K33_BRIGHTNESS_12;
+  *brightness = brightness_bright;
   *blink = HT16K33_BLINK_OFF;
 
   if (this->game_state == GAME_PLAYING ||
@@ -736,11 +742,12 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
   }
 }
 
+
 // implements f_get_display for the blue display
 display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
 
-  *brightness = HT16K33_BRIGHTNESS_12;
+  *brightness = brightness_dim;
   *blink = HT16K33_BLINK_OFF;
 
   if (this->game_state == GAME_PLAYING) {
@@ -784,7 +791,7 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
 
 
   *blink = HT16K33_BLINK_OFF;
-  *brightness = HT16K33_BRIGHTNESS_12;
+  *brightness = brightness_dim;
 
   if (this->game_state == GAME_PLAYING) {
     // clean existing display
@@ -867,7 +874,7 @@ display_type get_leds_display(struct display_strategy *display_strategy, display
   }
 
   *blink = HT16K33_BLINK_OFF;
-  *brightness = HT16K33_BRIGHTNESS_12;
+  *brightness = brightness_bright;
   return integer_display;
 }
 
@@ -887,16 +894,16 @@ static struct display_strategy* create_display_strategy(struct model *this) {
      .userdata = (void*)this,
      .get_green_display = get_green_display,
      .green_blink = HT16K33_BLINK_OFF,
-     .green_brightness = HT16K33_BRIGHTNESS_12,
+     .green_brightness = brightness_dim,
      .get_blue_display = get_blue_display,
      .blue_blink = HT16K33_BLINK_OFF,
-     .blue_brightness = HT16K33_BRIGHTNESS_12,
+     .blue_brightness = brightness_dim,
      .get_red_display = get_red_display,
      .red_blink = HT16K33_BLINK_OFF,
-     .red_brightness = HT16K33_BRIGHTNESS_12,
+     .red_brightness = brightness_bright,
      .get_leds_display = get_leds_display,
      .leds_blink = HT16K33_BLINK_OFF,
-     .leds_brightness = HT16K33_BRIGHTNESS_12
+     .leds_brightness = brightness_bright
     };
   return display_strategy;
 }
