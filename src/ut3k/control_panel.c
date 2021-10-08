@@ -351,7 +351,7 @@ static int8_t encoder_lookup_table[] =
            0   // 63 111111
        }; 
 
-const static int clock_ticks_for_temp_table = 3;
+const static int clock_ticks_for_temp_table = 6;
 
 
 static void update_rotary_encoder(struct rotary_encoder *encoder, uint8_t value) {
