@@ -25,7 +25,6 @@
 // Byte is offset from zero
 // Bit is number of bits to shift right to shift it to least significant
 static const int GREEN_ROTARY_ENCODER_BYTE = 5;
-static const int GREEN_ROTARY_ENCODER_SIGA_BIT = 1;
 static const int GREEN_ROTARY_ENCODER_PUSHBUTTON_BIT = 3;
 
 static const int GREEN_SELECTOR_BYTE = 2;
@@ -39,20 +38,16 @@ static const int BLUE_SELECTOR_BYTE = 3;
 static const int BLUE_SELECTOR_FIRST_BIT = 0;
 
 static const int BLUE_ROTARY_ENCODER_BYTE = 0;
-static const int BLUE_ROTARY_ENCODER_SIGA_BIT = 1;
 static const int BLUE_ROTARY_ENCODER_PUSHBUTTON_BIT = 3;
 
 static const int BLUE_BUTTON_BYTE = 2;
 static const int BLUE_BUTTON_BIT = 1;
 
-
 static const int RED_ROTARY_ENCODER_BYTE = 0;
-static const int RED_ROTARY_ENCODER_SIGA_BIT = 5;
 static const int RED_ROTARY_ENCODER_PUSHBUTTON_BIT = 4;
 
 static const int RED_BUTTON_BYTE = 5;
 static const int RED_BUTTON_BIT = 0;
-
 
 static const int JOYSTICK_BYTE0 = 0;
 static const int JOYSTICK_BYTE1 = 1;
@@ -62,7 +57,7 @@ static const int JOYSTICK_PUSHBUTTON_BIT = 3;
 static const int TOGGLES_BYTE = 4;
 
 static void update_button(struct button *button, uint8_t value, uint32_t clock);
-static void update_rotary_encoder(struct rotary_encoder *encoder, uint8_t value);
+static void update_rotary_encoder(struct rotary_encoder *encoder, unsigned long long int bit_queue, int queue_index);
 static void update_selector(struct selector *selector, uint8_t value);
 static void update_toggles(struct toggles *toggles, uint8_t value);
 static void update_joystick(struct joystick *joystick, uint8_t value);
@@ -93,59 +88,44 @@ struct control_panel* create_control_panel(ht16k33keyscan_t keyscan) {
    * finally set state to make it look like we're starting with a clean slate
    */
 
-  this->green_selector.selector_state = SELECTOR_ZERO;
-  this->green_selector.selector_previous_state = SELECTOR_INVALID;
-  this->green_selector.state_count = 0;
-  this->green_selector.selector_state_bits = 0;  // intentionally invalid
+  this->green_selector = (struct selector const)
+    {
+     .selector_state = SELECTOR_ZERO,
+     .selector_previous_state = SELECTOR_INVALID,
+     .state_count = 0,
+     .selector_state_bits = 0  // intentionally invalid
+    };
 
-  this->blue_selector.selector_state = SELECTOR_ZERO;
-  this->blue_selector.selector_previous_state = SELECTOR_INVALID;
-  this->blue_selector.state_count = 0;
-  this->blue_selector.selector_state_bits = 0;
+  this->blue_selector = (struct selector const)
+    {
+     .selector_state = SELECTOR_ZERO,
+     .selector_previous_state = SELECTOR_INVALID,
+     .state_count = 0,
+     .selector_state_bits = 0  // intentionally invalid
+    };
 
-  this->green_button.button_previous_state = 0;
-  this->green_button.button_state = 0;
-  this->green_button.state_count = 0;
+  this->green_button = (struct button const) { 0 };
+  this->blue_button = (struct button const) { 0 };
+  this->red_button = (struct button const) { 0 };
 
-  this->blue_button.button_previous_state = 0;
-  this->blue_button.button_state = 0;
-  this->blue_button.state_count = 0;
+  this->red_joystick = (struct joystick const)
+    {
+     .direction = CENTERED,
+     .direction_previous = CENTERED,
+     .state_count = 0,
+     .previous_bits = 0,
+     .button = { 0 }
+    };
 
-  this->red_button.button_previous_state = 0;
-  this->red_button.button_state = 0;
-  this->red_button.state_count = 0;
+  this->green_encoder = (struct rotary_encoder const) { 0 };
+  this->blue_encoder = (struct rotary_encoder const) { 0 };
+  this->red_encoder = (struct rotary_encoder const) { 0 };
 
-  this->red_joystick.button.button_previous_state = 0;
-  this->red_joystick.button.button_state = 0;
-  this->red_joystick.button.state_count = 0;
+  this->toggles = (struct toggles const) { 0 };
 
-  this->green_encoder.encoder_delta = 0;
-  this->green_encoder.encoder_state = 0;
-  this->green_encoder.clock_ticks_to_neutral = 0;
-  this->green_encoder.button.button_previous_state = 0;
-  this->green_encoder.button.button_state = 0;
-  this->green_encoder.button.state_count = 0;
-
-  this->blue_encoder.encoder_delta = 0;
-  this->blue_encoder.encoder_state = 0;
-  this->blue_encoder.clock_ticks_to_neutral = 0;
-  this->blue_encoder.button.button_previous_state = 0;
-  this->blue_encoder.button.button_state = 0;
-  this->blue_encoder.button.state_count = 0;
-
-  this->red_encoder.encoder_delta = 0;
-  this->red_encoder.encoder_state = 0;
-  this->red_encoder.clock_ticks_to_neutral = 0;
-  this->red_encoder.button.button_previous_state = 0;
-  this->red_encoder.button.button_state = 0;
-  this->red_encoder.button.state_count = 0;
-
-  this->toggles.toggles_state = 0;
-  this->toggles.toggles_previous_state = 0;
-  this->toggles.toggles_toggled = 0;
-  this->toggles.state_count = 0;
-
-  update_control_panel(this, keyscan, 0);
+  // this is mainly for more stateful input devices:
+  // toggle switches, selectors
+  update_control_panel(this, keyscan, 0, 0, 0, 0, 0, 0, 0);
 
   return this;
 }
@@ -159,9 +139,15 @@ void free_control_panel(struct control_panel *this) {
 
 
 
-
-int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan, uint32_t clock) {
-
+int update_control_panel(struct control_panel *this,
+			 ht16k33keyscan_t keyscan,
+			 unsigned long long int green_bit_queue,
+			 int green_queue_index,
+			 unsigned long long int blue_bit_queue,
+			 int blue_queue_index,
+			 unsigned long long int red_bit_queue,
+			 int red_queue_index,
+			 uint32_t clock) {
   // Update buttons
   update_button(&(this->green_button), ht16k33keyscan_byte(&keyscan, GREEN_BUTTON_BYTE) >> GREEN_BUTTON_BIT & 0b1, clock);
   update_button(&(this->blue_button), ht16k33keyscan_byte(&keyscan, BLUE_BUTTON_BYTE) >> BLUE_BUTTON_BIT & 0b1, clock);
@@ -173,9 +159,9 @@ int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan, u
   update_button(&(this->red_encoder.button), ht16k33keyscan_byte(&keyscan, RED_ROTARY_ENCODER_BYTE) >> RED_ROTARY_ENCODER_PUSHBUTTON_BIT & 0b1, clock);
 
   // the three encoders
-  update_rotary_encoder(&(this->green_encoder), ht16k33keyscan_byte(&keyscan, GREEN_ROTARY_ENCODER_BYTE) >> GREEN_ROTARY_ENCODER_SIGA_BIT & 0b11);
-  update_rotary_encoder(&(this->blue_encoder), ht16k33keyscan_byte(&keyscan, BLUE_ROTARY_ENCODER_BYTE) >> BLUE_ROTARY_ENCODER_SIGA_BIT & 0b11);
-  update_rotary_encoder(&(this->red_encoder), ht16k33keyscan_byte(&keyscan, RED_ROTARY_ENCODER_BYTE) >> RED_ROTARY_ENCODER_SIGA_BIT & 0b11);
+  update_rotary_encoder(&(this->green_encoder), green_bit_queue, green_queue_index);
+  update_rotary_encoder(&(this->blue_encoder), blue_bit_queue, blue_queue_index);
+  update_rotary_encoder(&(this->red_encoder), red_bit_queue, red_queue_index);
 
   // the two selectors
   update_selector(&(this->green_selector), ht16k33keyscan_byte(&keyscan, GREEN_SELECTOR_BYTE) >> GREEN_SELECTOR_FIRST_BIT & 0b1111);
@@ -263,130 +249,44 @@ static void update_button(struct button *button, uint8_t value, uint32_t clock) 
 
 
 
-
-// index via previous_state<<2 | current_state.
-
-// I tried many different mappings- this seemed to work best.  Part of
-// the problem is the ht16k33 debounces and requires two stable
-// readings.  Each keyscan reading is done once for 256us every 9.5ms.
-// A lot of potentially missed rotary encoder states.  So to trigger a
-// key we need the encoder to hold state for quite awhile.
+// rotary encoders: out with the HT16K33, rewired the internals to use
+// the Raspberry Pi directly.  And whatdya know, 20ms between the
+// HT16K33 reads was definitely not enough.  Anyway, that changes the
+// interface here a bit.  The update call takes a queue (reference
+// ut3k_view.c update_rotary_encoder) of B,A values readings from the
+// encoder.  This function replays the history, draining the queue.
 //
-// Complete total hack: use an expanded lookup table (statistically
-// determined by lots of spinning slow, fast, medium).  Track current
-// state and the previous two states; 6 bits total / 64 entries in
-// table.  The additional state is useful for tracking faster
-// movement.  Timeout and remove the upper two bits of state once
-// movement stops/slows.
+// Provided the queue has at least 4 bits (two samples/reading of A/B)
+// grab the oldest 4 bits.  Do a table lookup.  Shift the 4-bit window
+// by 2 to more recent A/B samples.  Accumulate values this way, record
+// an actual delta when state of AB == 11 is reached.  The accumulation
+// is persistent in the rotary_encoder struct, so the next reading may
+// progress the accumulation value.
+// 
+
+static const int lookup_table[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
 
 
-static int8_t encoder_lookup_table[] =
-       {
-           0,  // 0 000000
-          -1,  // 1 000001 // last four bits are strong: don't care on upper 2
-           1,  // 2 000010 // last four bits are strong: don't care on upper 2
-           0,  // 3 000011
-           0,  // 4 000100
-           0,  // 5 000101
-           0,  // 6 000110
-           0,  // 7 000111
-           0,  // 8 001000
-           0,  // 9 001001
-           0,  // 10 001010
-           0,  // 11 001011
-           0,  // 12 001100
-           1,  // 13 001101
-           0,  // 14 001110
-           0,  // 15 001111
+static void update_rotary_encoder(struct rotary_encoder *encoder, unsigned long long int bit_queue, int queue_index) {
+  uint8_t encoder_state;
 
-           0,  // 16 010000
-          -1,  // 17 010001
-           1,  // 18 010010
-           0,  // 19 010011
-           0,  // 20 010100
-           0,  // 21 010101
-           0,  // 22 010110
-          -1,  // 23 010111
-          -1,  // 24 011000
-          -1,  // 25 011001
-           0,  // 26 011010
-           1,  // 27 011011
-           0,  // 28 011100
-          -1,  // 29 011101
-           0,  // 30 011110
-           0,  // 31 011111
+  encoder->encoder_delta = 0;
 
-           0,  // 32 100000
-          -1,  // 33 100001
-           1,  // 34 100010
-           0,  // 35 100011
-           0,  // 36 100100
-           0,  // 37 100101
-           0,  // 38 100110
-          -1,  // 39 100111
-           0,  // 40 101000
-           1,  // 41 101001
-           0,  // 42 101010
-           1,  // 43 101011
-           0,  // 44 101100
-           1,  // 45 101101
-           0,  // 46 101110
-           0,  // 47 101111
+  // process the queue.  Producing a delta requires getting a couple
+  // samples in the 20ms loop.
+  // loop while we have at least 4 bits
+  while (queue_index > 3) {
+    encoder_state = (bit_queue >> (queue_index - 4)) & 0b1111;
+    encoder->accumulator += lookup_table[encoder_state];
+    queue_index -= 2;
 
-           0,  // 48 110000
-          -1,  // 49 110001
-           1,  // 50 110010
-           0,  // 51 110011
-           0,  // 52 110100
-           0,  // 53 110101
-           0,  // 54 110110
-          -1,  // 55 110111
-          -1,  // 56 111000
-          -1,  // 57 111001
-           0,  // 58 111010
-           1,  // 59 111011
-           0,  // 60 111100
-           0,  // 61 111101
-           0,  // 62 111110
-           0   // 63 111111
-       }; 
+    if ((encoder_state & 0b11) == 0b11) {
+      encoder->encoder_delta += encoder->accumulator > 0 ? 1 : -1;
+      encoder->accumulator = 0;
+    }
 
-const static int clock_ticks_for_temp_table = 6;
-
-
-static void update_rotary_encoder(struct rotary_encoder *encoder, uint8_t value) {
-
-  // technically this could underflow, but whatevz
-  if (--encoder->clock_ticks_to_neutral <= 0) {
-    // delete history minus most recent bits
-    encoder->encoder_state = encoder->encoder_state & 0b11;
   }
 
-  // first check to see if the bits are the same or different
-  if ((encoder->encoder_state & 0b11) == value) {
-    // they are the same -- no changes
-    encoder->encoder_delta = 0;
-    return;
-  }
-
-  // else something changed.
-  // move encoder state up two bits
-  encoder->encoder_state = encoder->encoder_state << 2;
-  encoder->encoder_state = encoder->encoder_state | value;
-
-  switch (encoder_lookup_table[(encoder->encoder_state & 0b111111)]) {
-  case -1:
-    encoder->encoder_delta = -1;
-    encoder->clock_ticks_to_neutral = clock_ticks_for_temp_table;
-    break;
-  case 1:
-    encoder->encoder_delta = 1;
-    encoder->clock_ticks_to_neutral = clock_ticks_for_temp_table;
-    break;    
-  case 0:
-    encoder->encoder_delta = 0;
-    break;
-  }
 }
 
 

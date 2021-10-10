@@ -57,8 +57,19 @@ void free_control_panel(struct control_panel *this);
  * this function is expected to be called at regular intervals:
  * the counts that are provided in the various accessor methods
  * are based upon calls to update_panel to increment the counts.
+ * queues of 64 bits from each rotary encoder are provided as well.
+ * The queues are expected to be interweaved A/B values from the
+ * rotary encoder pins.
  */
-int update_control_panel(struct control_panel *this, ht16k33keyscan_t keyscan, uint32_t clock);
+int update_control_panel(struct control_panel *this,
+			 ht16k33keyscan_t keyscan,
+			 unsigned long long int green_bit_queue,
+			 int green_queue_index,
+			 unsigned long long int blue_bit_queue,
+			 int blue_queue_index,
+			 unsigned long long int red_bit_queue,
+			 int red_queue_index,
+			 uint32_t clock);
 
 
 
@@ -95,7 +106,7 @@ struct rotary_encoder {
   // guru meditation: these ought to be hidden from the user, they're
   // implementation details
   uint8_t encoder_state;  // hold previous & current here, 4 bits
-  int clock_ticks_to_neutral;
+  int8_t accumulator;
 };
 
 /** get encoders

@@ -73,11 +73,8 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   struct controller *this = (struct controller*) userdata;
   const struct rotary_encoder *green_rotary = get_green_rotary_encoder(control_panel);
 
-  if (green_rotary->encoder_delta > 0) {
-    increase_bpm(this->model);
-  }
-  else if (green_rotary->encoder_delta < 0) {
-    decrease_bpm(this->model);
+  if (green_rotary->encoder_delta != 0) {
+    change_bpm(this->model, green_rotary->encoder_delta);
   }
 
 }

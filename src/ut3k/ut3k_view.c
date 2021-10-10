@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -49,6 +48,22 @@ typedef void (*f_show_displays)(struct ut3k_view*, struct display_strategy*);
 // implements f_show_displays
 static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display_strategy *display);
 
+/** rotary encoder stuff
+ *
+ * runs in own thread, reading the rotary encoders at a faster
+ * interval than the HT16K33 can provide.
+ * Use a long long int (64 bits) as a queue for each encoder.
+ * Each read push two bits onto the end.
+ */
+struct rotary_encoder_bits_queue {
+  unsigned long long int bit_queue;
+  int queue_index;
+  int previous_a;
+  int previous_b;
+};
+static void* poll_rotary_encoders(void *userdata);
+
+
 struct ut3k_view {
   f_show_displays show_displays;
 
@@ -66,6 +81,16 @@ struct ut3k_view {
   struct control_panel *control_panel;
   void *control_panel_listener_userdata;  // for callback
   f_view_control_panel_listener control_panel_listener;  // the callback
+
+  // rotary encoder baggage
+  pthread_t thread_poll_rotary_encoders;
+  pthread_mutex_t rotary_bits_queue_mutex;
+  // the data below should only be accessed by the rotary_bits_queue_mutex
+  struct rotary_encoder_bits_queue green_rotary_queue;
+  struct rotary_encoder_bits_queue blue_rotary_queue;
+  struct rotary_encoder_bits_queue red_rotary_queue;
+// end mutex protected data
+  int cleanup_and_exit; // signal to thread to exit
 };
 
 
@@ -74,33 +99,6 @@ struct ut3k_view {
  * initialize a single HT16K33 chip
  */
 static int initialize_backpack(HT16K33 *backpack);
-
-/** rotary encoder stuff
- *
- * runs in own thread, reading the rotary encoders at a faster
- * interval than the HT16K33 can provide.
- * Use a long long int (64 bits) as a queue for each encoder.
- * Each read push two bits onto the end.
- */
-static pthread_t thread_poll_rotary_encoders;
-struct rotary_encoder_bits_queue {
-  unsigned long long int bit_queue;
-  int queue_index;
-  int previous_a;
-  int previous_b;
-};
-static void* poll_rotary_encoders(void *userdata);
-// the data below should only be accessed by the rotary_bits_queue_mutex
-static pthread_mutex_t rotary_bits_queue_mutex = PTHREAD_MUTEX_INITIALIZER;
-static struct rotary_encoder_bits_queue green_rotary_queue = { .bit_queue = 0, .queue_index = 0, .previous_a = 0, .previous_b = 0 };
-static struct rotary_encoder_bits_queue blue_rotary_queue = { .bit_queue = 0, .queue_index = 0, .previous_a = 0, .previous_b = 0 };
-static struct rotary_encoder_bits_queue red_rotary_queue = { .bit_queue = 0, .queue_index = 0, .previous_a = 0, .previous_b = 0 };
-// end mutex protected data
-
-// "signal" to thread to get out of town
-static int cleanup_and_exit = 0;
-
-
 
 
 
@@ -177,8 +175,14 @@ struct ut3k_view* create_alphanum_ut3k_view() {
 
   this->control_panel = create_control_panel(keyscan);
 
-  // start polling the rotary encoders
-  rc = pthread_create(&thread_poll_rotary_encoders, NULL, poll_rotary_encoders, NULL);
+  // init and start polling the rotary encoders
+  this->green_rotary_queue = (struct rotary_encoder_bits_queue const) { .bit_queue = 0, .queue_index = 0, .previous_a = 1, .previous_b = 1 };
+  this->blue_rotary_queue = (struct rotary_encoder_bits_queue const) { .bit_queue = 0, .queue_index = 0, .previous_a = 1, .previous_b = 1 };
+  this->red_rotary_queue = (struct rotary_encoder_bits_queue const) { .bit_queue = 0, .queue_index = 0, .previous_a = 1, .previous_b = 1 };
+  pthread_mutex_init(&this->rotary_bits_queue_mutex, NULL);
+  this->cleanup_and_exit = 0;
+
+  rc = pthread_create(&this->thread_poll_rotary_encoders, NULL, poll_rotary_encoders, this);
   if (rc != 0) {
     printf("create_alphanum_ut3k_view: failed to start rotary encoder listener %d\n", rc);
   }
@@ -196,7 +200,7 @@ int free_ut3k_view(struct ut3k_view *this) {
   }
 
   // signal thread to exit
-  cleanup_and_exit = 1;
+  this->cleanup_and_exit = 1;
 
   free_control_panel(this->control_panel);
 
@@ -210,8 +214,9 @@ int free_ut3k_view(struct ut3k_view *this) {
   free(this->red_display);
   free(this->inputs_and_leds);
 
+  pthread_join(this->thread_poll_rotary_encoders, NULL);
+
   free(this);
-  pthread_join(thread_poll_rotary_encoders, NULL);
 
   return rc;
 
@@ -226,7 +231,8 @@ int free_ut3k_view(struct ut3k_view *this) {
 void update_view(struct ut3k_view *this, struct display_strategy *display_strategy, uint32_t clock) {
   ht16k33keyscan_t keyscan;
   int keyscan_rc;
-
+  unsigned long long int green_bit_queue, blue_bit_queue, red_bit_queue;
+  int green_queue_index, blue_queue_index, red_queue_index;
 
   // only read every other clock cycle
   if (clock & 0b1) {
@@ -238,25 +244,60 @@ void update_view(struct ut3k_view *this, struct display_strategy *display_strate
     //  printf("keyscan: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X\n",
     //  	 keyscan[0], keyscan[1], keyscan[2], keyscan[3], keyscan[4], keyscan[5]);
 
+    // drain the queue: read any rotary encoder data
+    // treat this as a critical section- just copy the data
+    // out and release the lock.  Minimize losing any reads
+    // from the gpio pins.  Maybe I'm just paranoid.
+    pthread_mutex_lock(&this->rotary_bits_queue_mutex);
+    if (this->green_rotary_queue.queue_index > 3) {
+      green_bit_queue = this->green_rotary_queue.bit_queue;
+      green_queue_index = this->green_rotary_queue.queue_index;
+      // leave the last two
+      this->green_rotary_queue.bit_queue = this->green_rotary_queue.bit_queue & 0b11;
+      this->green_rotary_queue.queue_index = 2;
+    }
+    else {  // no change-- queue size zero for no processing
+      green_bit_queue = 0;
+      green_queue_index = 0;
+    }
+
+    if (this->blue_rotary_queue.queue_index > 3) {
+      blue_bit_queue = this->blue_rotary_queue.bit_queue;
+      blue_queue_index = this->blue_rotary_queue.queue_index;
+      // leave the last two
+      this->blue_rotary_queue.bit_queue = this->blue_rotary_queue.bit_queue & 0b11;
+      this->blue_rotary_queue.queue_index = 2;
+    }
+    else {
+      blue_bit_queue = 0;
+      blue_queue_index = 0;
+    }
+
+    if (this->red_rotary_queue.queue_index > 3) {
+      red_bit_queue = this->red_rotary_queue.bit_queue;
+      red_queue_index = this->red_rotary_queue.queue_index;
+      // leave the last two
+      this->red_rotary_queue.bit_queue = this->red_rotary_queue.bit_queue & 0b11;
+      this->red_rotary_queue.queue_index = 2;
+    }
+    else {
+      red_bit_queue = 0;
+      red_queue_index = 0;
+    }
+
+    pthread_mutex_unlock(&this->rotary_bits_queue_mutex);
+
     // update control panel here...
-    update_control_panel(this->control_panel, keyscan, clock);
+    update_control_panel(this->control_panel, keyscan,
+			 green_bit_queue, green_queue_index,
+			 blue_bit_queue, blue_queue_index,
+			 red_bit_queue, red_queue_index,
+			 clock);
 
     if (this->control_panel_listener) {
       (*this->control_panel_listener)((const struct control_panel*)this->control_panel, this->control_panel_listener_userdata);
     }
   }
-
-  // read any rotary encoder data
-  printf("waiting on mutex...\n");
-  pthread_mutex_lock(&rotary_bits_queue_mutex);
-  printf("rotary queue indices: %d %d %d\n",
-	 green_rotary_queue.queue_index,
-	 blue_rotary_queue.queue_index,
-	 red_rotary_queue.queue_index);
-  green_rotary_queue.queue_index = 0;
-  blue_rotary_queue.queue_index = 0;
-  red_rotary_queue.queue_index = 0;
-  pthread_mutex_unlock(&rotary_bits_queue_mutex);
 
 
   // odd..but abstract out implementation while passing object state.
@@ -504,28 +545,46 @@ static int initialize_backpack(HT16K33 *backpack) {
 }
 
 
-static void update_encoder_queue(struct rotary_encoder_bits_queue *queue, int a, int b) {
+/** push encoder queue
+ *
+ * maybe push might be a better name: push both a &b if one of a || b values
+ * is different from what was previously seen.
+ * The queue is a 64 bit int.
+ * "front" of the queue has the most recent two bits read, with older
+ * pairs of bits following:
+ *
+ *                   queue_index = 6                  
+ * ------------- ... ---------------------------------------
+ * |    |    |   ...    |    | B2 | A2 | B1 | A1 | B0 | A0 |
+ * ------------- ... ---------------------------------------
+ *   63   62              6    5    4    3    2    1    0
+ *
+ * queue_index = 0 :: nothing in the queue
+ * queue_index = 1 :: only one state in the queue
+ * queue_index > 1 :: two ore more states in queue: these can be processed
+ *                     via lookup table
+ */
+static inline void push_encoder_queue(struct rotary_encoder_bits_queue *queue, int a, int b) {
 
   assert(queue->queue_index < (sizeof(long long int) * 8));
   if (queue->previous_a != a || queue->previous_b != b) {
-    queue->bit_queue = queue->bit_queue |
-      (a << queue->queue_index) |
-      (b << (queue->queue_index + 1));
+    queue->bit_queue = (queue->bit_queue << 2) | (a) | (b << 1);
     queue->queue_index += 2;
     queue->previous_a = a;
     queue->previous_b = b;
   }
   
 }
-static const int gpio_rotary_green_a_bcm = 26;
-static const int gpio_rotary_green_b_bcm = 16;
-static const int gpio_rotary_blue_a_bcm = 13;
-static const int gpio_rotary_blue_b_bcm = 6;
-static const int gpio_rotary_red_a_bcm = 25;
-static const int gpio_rotary_red_b_bcm = 12;
+static const int gpio_rotary_green_a_bcm = 16;
+static const int gpio_rotary_green_b_bcm = 26;
+static const int gpio_rotary_blue_a_bcm = 6;
+static const int gpio_rotary_blue_b_bcm = 13;
+static const int gpio_rotary_red_a_bcm = 12;
+static const int gpio_rotary_red_b_bcm = 25;
 static const char *gpio_devfile = "/dev/gpiochip0";
 
 static void* poll_rotary_encoders(void *userdata) {
+  struct ut3k_view *this = (struct ut3k_view*) userdata;
   int gpio_fd = -1; // set to an invalid fd
   int ret;
   struct gpiohandle_request gpio_request;
@@ -547,11 +606,18 @@ static void* poll_rotary_encoders(void *userdata) {
   gpio_request.lineoffsets[5] = gpio_rotary_red_b_bcm;
   gpio_request.lines = 6;
   gpio_request.flags = GPIOHANDLE_REQUEST_INPUT | GPIOHANDLE_REQUEST_BIAS_PULL_UP;
+  strcpy(gpio_request.consumer_label, "ut3k_view");
   
   if (ioctl(gpio_fd, GPIO_GET_LINEHANDLE_IOCTL, &gpio_request) == -1) {
-    printf("unable to get line handle via ioctl: %s\n", strerror(errno));
+    printf("unable to get line handle via ioctl: %s (%d)\n", strerror(errno), errno);
     return NULL;
   }
+
+  // can now close the devfile handle
+  ret = close(gpio_fd);
+  assert(ret == 0);
+
+  printf("starting thread rotary encoder loop\n");
 
   // start read loop for encoder pins
   do {
@@ -560,22 +626,22 @@ static void* poll_rotary_encoders(void *userdata) {
 	printf("Unable to get line value using ioctl : %s\n", strerror(errno));
     }
     else {
-      ret = pthread_mutex_lock(&rotary_bits_queue_mutex);
+      ret = pthread_mutex_lock(&this->rotary_bits_queue_mutex);
 
       // mutex locked, have access to the encoder queues
-      update_encoder_queue(&green_rotary_queue, gpio_data.values[0], gpio_data.values[1]);
-      update_encoder_queue(&blue_rotary_queue, gpio_data.values[2], gpio_data.values[3]);
-      update_encoder_queue(&red_rotary_queue, gpio_data.values[4], gpio_data.values[5]);
+      push_encoder_queue(&this->green_rotary_queue, gpio_data.values[0], gpio_data.values[1]);
+      push_encoder_queue(&this->blue_rotary_queue, gpio_data.values[2], gpio_data.values[3]);
+      push_encoder_queue(&this->red_rotary_queue, gpio_data.values[4], gpio_data.values[5]);
 
-      pthread_mutex_unlock(&rotary_bits_queue_mutex);
+      pthread_mutex_unlock(&this->rotary_bits_queue_mutex);
     }
 
     usleep(2500);
 
-  } while (cleanup_and_exit == 0);
+  } while (this->cleanup_and_exit == 0);
 
 
-  close(gpio_fd);
+  close(gpio_request.fd);
 
   return NULL;
 }

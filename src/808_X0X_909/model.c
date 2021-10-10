@@ -87,12 +87,8 @@ int get_bpm(struct model *this) {
   return this->bpm;
 }
 
-void increase_bpm(struct model *this) {
-  this->bpm++;
-}
-
-void decrease_bpm(struct model *this) {
-  this->bpm--;
+void change_bpm(struct model *this, int amount) {
+  this->bpm += amount;
 }
 
 

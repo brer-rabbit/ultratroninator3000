@@ -203,8 +203,8 @@ static char* run_mvc(config_t *cfg) {
   sleep(1);
 
   free_game_controller(controller);
-  free_game_model(model);
   free_ut3k_view(view);
+  free_game_model(model);
 
   return executable;
 }

@@ -41,8 +41,7 @@ void set_next_step(struct model*, uint8_t step);
 void clocktick_model(struct model*);
 void set_bpm(struct model *this, int bpm);
 int get_bpm(struct model *this);
-void increase_bpm(struct model *this);
-void decrease_bpm(struct model *this);
+void change_bpm(struct model *this, int amount); // change by a relative amount
 
 
 // accessors here- but these may be decoupled via the display_strategy

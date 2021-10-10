@@ -317,7 +317,7 @@ static int ut3k_write_stream(pa_stream *stream, pa_sample_spec *ss, size_t file_
         ut3k_pa_mainloop_iterate();
     }
 
-    printf("finished stream write with file_bytes_remaining = %ld\n", file_bytes_remaining);
+    //printf("finished stream write with file_bytes_remaining = %d\n", file_bytes_remaining);
 
     return 0;
 }
