@@ -2,7 +2,8 @@ TARGET = 808_X0X_909
 INCLUDE = -I../../include
 LIBS = -li2c -lconfig -lpulse -lsndfile -lpthread  -L../../lib/ -lut3k
 CC = gcc
-CFLAGS = -g -Wall
+#CFLAGS = -g -Wall
+CFLAGS = -O2 -Wall
 
 .PHONY: default all clean
 

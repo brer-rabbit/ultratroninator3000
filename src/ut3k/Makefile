@@ -2,10 +2,10 @@ LIBTARGET = libut3k.a
 INCLUDE = ../../include
 LIBDIR = ../../lib
 # libs: just to note incase one is linking...
-LIBS = -lpulse -lsndfile 
+LIBS = -lpulse -lsndfile -lpthread
 CC = gcc
-CFLAGS = -g -Wall
-#CFLAGS = -O2 -Wall
+#CFLAGS = -g -Wall
+CFLAGS = -O2 -Wall
 
 .PHONY: default all clean
 

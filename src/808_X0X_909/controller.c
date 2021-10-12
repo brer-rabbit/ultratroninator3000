@@ -72,9 +72,50 @@ static void initialize_model_from_control_panel(struct controller *this, const s
 void controller_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
   struct controller *this = (struct controller*) userdata;
   const struct rotary_encoder *green_rotary = get_green_rotary_encoder(control_panel);
+  const struct selector *green_selector = get_green_selector(control_panel);
+
+  const struct rotary_encoder *blue_rotary = get_blue_rotary_encoder(control_panel);
+  const struct toggles *toggles = get_toggles(control_panel);
+  const struct button *red_button = get_red_button(control_panel);
+  const struct selector *blue_selector = get_blue_selector(control_panel);
+
 
   if (green_rotary->encoder_delta != 0) {
     change_bpm(this->model, green_rotary->encoder_delta);
   }
+
+  // blue selector to change which sample is played
+  if (green_selector->state_count == 0) {
+    set_shuffle(this->model, green_selector->selector_state);
+  }
+
+
+  if (blue_rotary->encoder_delta != 0) {
+    change_instrument(this->model, blue_rotary->encoder_delta);
+  }
+
+
+  if (toggles->state_count == 0) {
+    // something changed- set or unset current instrument on the
+    // toggled step.  The toggle_switch defines the position.
+    // if the red button is pushed, shift up by 8.
+    for (int toggle_switch = 0; toggle_switch < 8; ++toggle_switch) {
+      if ((toggles->toggles_toggled & (1 << toggle_switch))) {
+	if (red_button->button_state) {
+	  // red button is pushed
+	  toggle_current_triggered_instrument_at_step(this->model, toggle_switch + 8);
+	}
+	else {
+	  toggle_current_triggered_instrument_at_step(this->model, toggle_switch);
+	}
+      }
+    }
+  }
+
+  // blue selector to change which sample is played
+  if (blue_selector->state_count == 0) {
+    change_instrument_sample(this->model, blue_selector->selector_state);
+  }
+
 
 }

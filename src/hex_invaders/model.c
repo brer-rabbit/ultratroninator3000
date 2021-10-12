@@ -833,22 +833,23 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
 
 
 static const int32_t attract_leds[] =
-  { 0xFFFFFFFF,
-    0xE7E7E7E7,
-    0xC3C3C3C3,
-    0x81818181,
-    0x00000000,
-    0x81818181,
-    0xC3C3C3C3,
-    0xE7E7E7E7,
-    0xFFFFFFFF,
-    0x7E7E7E7E,
-    0x3C3C3C3C,
-    0x18181818,
-    0x00000000,
-    0x18181818,
-    0x3C3C3C3C,
-    0x7E7E7E7E
+  {
+    0xFFFF7EFF,
+    0xE7E73CE7,
+    0xC3C318C3,
+    0x81810081,
+    0x00001800,
+    0x81813C81,
+    0xC3C37EC3,
+    0xE7E7FFE7,
+    0xFFFFE7FF,
+    0x7E7EC37E,
+    0x3C3C813C,
+    0x18180018,
+    0x00008100,
+    0x1818C318,
+    0x3C3CE73C,
+    0x7E7EFF7E
   };
 
 // implements f_get_display for the leds display

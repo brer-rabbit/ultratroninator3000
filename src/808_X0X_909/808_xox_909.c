@@ -56,11 +56,10 @@ static struct controller *controller = NULL;
  * thus (60000 / 128) / bpm ==> 1875ms / bpm ==> 1875000us / bpm
  */
 static suseconds_t bpm_128th_to_useconds(int bpm) {
-  assert(bpm > 50 && bpm < 240);
   return 1875000 / bpm;
 }
 
-static void run_mvc(config_t *cfg) {
+static void run_mvc(config_t *cfg, char ***sample_keys) {
   struct timeval tval_controller_start, tval_controller_end, tval_controller_time, tval_fixed_loop_time, tval_sleep_time;
   int loop_time_ms;
   int bpm = 120;
@@ -78,7 +77,7 @@ static void run_mvc(config_t *cfg) {
     tval_fixed_loop_time.tv_usec = EVENT_LOOP_DURATION_TIME_DEFAULT * 1000;
   }
 
-  model = create_model();
+  model = create_model(sample_keys);
   if (model == NULL) {
     printf("error creating auto_calc model\n");
     return;
@@ -153,17 +152,36 @@ static void run_mvc(config_t *cfg) {
  * the lookup gets a list
  * foreach item in the list:
  *  lookup that list
- *  load a random sound
+ *  load the first four sounds from each key
+ *
+ * Return: char*** 2-d array of strings (so, 3-d array of chars...)
+ * [sample_type 0:15][sample_variation 0:3][key_name 0:5]
+ * caller responsible for freeing memory.  Have fun with that.
  */
 
-void load_audio_from_config(config_t *cfg, char *games_directory) {
-  int sound_array_setting_length, sound_samples_array_setting_length, random_sample_index;
+char*** load_audio_from_config(config_t *cfg, char *games_directory) {
+  int sound_array_setting_length, sound_samples_array_setting_length;
   config_setting_t *key_sound_array, *key_sound_samples_array;
   const char *sound_type_key, *sample_name;
+  char *sound_type_key_num;
   char sample_filename[256];
+  // magic numbers:
+  // 15 instrument positions
+  // 4 samples for each instrument
+  // 4 + [1-4] + '\0' name for each sample
+  char ***sound_keys;
+
+  sound_keys = (char***)malloc(15 * sizeof(char**));
+  for (int i = 0; i < 16; ++i) {
+    sound_keys[i] = (char**)malloc(4 * sizeof(char*));
+    for (int j = 0; j < 4; ++j) {
+      sound_keys[i][j] = (char*)malloc(6 * sizeof(char));
+    }
+  }
+
 
   if (cfg == NULL) {
-    return;
+    return NULL;
   }
 
   key_sound_array = config_lookup(cfg, CONFIG_SOUND_LIST_KEY);
@@ -171,24 +189,39 @@ void load_audio_from_config(config_t *cfg, char *games_directory) {
   if (key_sound_array) {
     if (config_setting_is_array(key_sound_array) == CONFIG_FALSE) {
       printf("sound key array %s is not an array\n", CONFIG_SOUND_LIST_KEY);
-      return;
+      return NULL;
     }
 
     sound_array_setting_length = config_setting_length(key_sound_array);
     printf("got array of length %d\n", sound_array_setting_length);
 
+    assert(sound_array_setting_length < 16);
+
     for (int sound_array_index = 0; sound_array_index < sound_array_setting_length; ++sound_array_index) {
       sound_type_key = config_setting_get_string_elem(key_sound_array, sound_array_index);
       key_sound_samples_array = config_lookup(cfg, sound_type_key);
       sound_samples_array_setting_length = config_setting_length(key_sound_samples_array);
-      printf("for samples %s got array of length %d\n", sound_type_key, sound_samples_array_setting_length);
-      random_sample_index = rand() % sound_samples_array_setting_length;
-      sample_name = config_setting_get_string_elem(key_sound_samples_array, random_sample_index);
-      snprintf(sample_filename, 256, "%s%s%s", games_directory, SAMPLE_DIRNAME, sample_name);
-      printf("load %s --> %s --> %s\n", sound_type_key, sample_name, sample_filename);
-      ut3k_upload_wavfile(sample_filename, (char*) sound_type_key);
+      printf("got samples array length of %d (max allowed is 4)\n", sound_samples_array_setting_length);
+      assert(sound_samples_array_setting_length < 5);
+
+      for (int sound_sample_array = 0; sound_sample_array < 4; ++sound_sample_array) {
+	sample_name = config_setting_get_string_elem(key_sound_samples_array, sound_sample_array);
+	snprintf(sample_filename, 256, "%s%s%s", games_directory, SAMPLE_DIRNAME, sample_name);
+	sound_type_key_num = (char*)malloc(6 * sizeof(char));
+	snprintf(sound_type_key_num, 6, "%s%d", sound_type_key, sound_sample_array);
+	printf("load %s --> %s --> %s\n", sound_type_key_num, sample_name, sample_filename);
+	ut3k_upload_wavfile(sample_filename, sound_type_key_num);
+	strncpy(sound_keys[sound_array_index][sound_sample_array], sound_type_key_num, 6);
+      }
     }
   }
+  else {
+    printf("failed to load sounds - config not present?\n");
+    return NULL;
+  }
+
+
+  return sound_keys;
 }
 
 
@@ -196,6 +229,7 @@ void load_audio_from_config(config_t *cfg, char *games_directory) {
 int main(int argc, char **argv, char **envp) {
   char *games_directory, config_filename[128];
   config_t *cfg;
+  char ***sample_keys;
 
   cfg = (config_t*)malloc(sizeof(config_t));
 
@@ -228,12 +262,12 @@ int main(int argc, char **argv, char **envp) {
   ut3k_new_audio_context();
  
   /* load audio specified from config */
-  load_audio_from_config(cfg, games_directory);
+  sample_keys = load_audio_from_config(cfg, games_directory);
 
 
   /* everything setup, run the mvc in a loop --
    */
-  run_mvc(cfg);
+  run_mvc(cfg, sample_keys);
 
   if (cfg) {
     config_destroy(cfg);

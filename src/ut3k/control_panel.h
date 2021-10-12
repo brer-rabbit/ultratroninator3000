@@ -100,12 +100,11 @@ const struct button* get_red_button(const struct control_panel *this);
 // these rotary encoders include a push button
 struct rotary_encoder {
   int8_t encoder_delta;  // -1, 0, 1: what you're probably most interested in
-
   struct button button;  // the press button
 
-  // guru meditation: these ought to be hidden from the user, they're
-  // implementation details
-  uint8_t encoder_state;  // hold previous & current here, 4 bits
+  // guru meditation: this ought to be hidden from the user, it's an
+  // implementation detail.  Accumulator holds how many states the
+  // encoder passed through.
   int8_t accumulator;
 };
 

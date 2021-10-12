@@ -185,12 +185,22 @@ char* ut3k_upload_wavfile(char *filename, char *sample_name) {
 
 
 void ut3k_play_sample(const char *sample_name) {
+  ut3k_play_sample_at_volume(sample_name, PA_VOLUME_NORM);
+}
+
+
+void ut3k_play_sample_at_volume(const char *sample_name, int32_t volume) {
     if (pa_operation_most_recent != NULL) {
         pa_operation_unref(pa_operation_most_recent);
     }
 
-    pa_operation_most_recent = pa_context_play_sample(context, sample_name, NULL, PA_VOLUME_NORM, NULL, NULL);
+    pa_operation_most_recent = pa_context_play_sample(context, sample_name, NULL, volume, NULL, NULL);
     pa_operation_ref(pa_operation_most_recent);
+}
+
+
+int32_t ut3k_get_default_volume() {
+  return PA_VOLUME_NORM;
 }
 
 

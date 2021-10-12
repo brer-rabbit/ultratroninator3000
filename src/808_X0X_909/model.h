@@ -32,7 +32,7 @@ struct model;
 /* create a model for the caller.  Mem is allocated in the function;
  * caller is responsible for freeing later via free_game_mode
  */
-struct model* create_model();
+struct model* create_model(char ***sample_keys);
 void free_model(struct model*);
 
 // Supported model methods
@@ -43,11 +43,23 @@ void set_bpm(struct model *this, int bpm);
 int get_bpm(struct model *this);
 void change_bpm(struct model *this, int amount); // change by a relative amount
 
+void change_instrument(struct model *this, int amount);
+void change_instrument_sample(struct model *this, int sample_num);
 
-// accessors here- but these may be decoupled via the display_strategy
+void toggle_current_triggered_instrument_at_step(struct model *this, int step);
+void set_trigger_at_step(struct model *this, int instrument, int step);
+void clear_trigger_at_step(struct model *this, int instrument, int step);
+
+typedef enum {
+  SHUFFLE_OFF = 0,
+  SHUFFLE_LOW = 1,
+  SHUFFLE_MEDIUM = 2,
+  SHUFFLE_HIGH = 3
+} shuffle_t;
+
+void set_shuffle(struct model *this, shuffle_t shuffle);
 
 
-// critical to implement
 struct display_strategy* get_display_strategy(struct model *this);
 
 #endif
