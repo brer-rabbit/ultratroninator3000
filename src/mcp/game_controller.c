@@ -57,7 +57,6 @@ void controller_update(struct game_controller *this, uint32_t clock) {
  * 
  * implements f_view_control_panel_updates
  */
-static int count = 0;
 void controller_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
   struct game_controller *this = (struct game_controller*) userdata;
 
@@ -67,7 +66,6 @@ void controller_callback_control_panel(const struct control_panel *control_panel
 
 	 
   if (rotary_encoder->encoder_delta > 0) {
-    printf("encoder state 0x%X delta %d count %d\n", rotary_encoder->encoder_state, rotary_encoder->encoder_delta, count);
     next_game(this->model);
   }
   else if (rotary_encoder->encoder_delta < 0) {

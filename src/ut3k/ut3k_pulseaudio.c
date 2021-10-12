@@ -42,7 +42,10 @@ void ut3k_new_audio_context() {
     assert(context);
 
     // may need to remove noautospawn later
-    assert(pa_context_connect(context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL) == 0);
+    //assert(pa_context_connect(context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL) == 0);
+    if (pa_context_connect(context, NULL, PA_CONTEXT_NOFLAGS, NULL) < 0) {
+      printf("pa_context_connect() failed: %s\n", pa_strerror(pa_context_errno(context)));
+    }
 
     // wait for the context to connect to the server
     pa_context_state_t context_state;
