@@ -341,7 +341,7 @@ display_type get_leds_display(struct display_strategy *display_strategy, display
 
   // I'd like to do a couple different light shows / hacks, but for now just this...
   static int led_change_timer = 0;
-  static int light_show = 0x00040201;
+  static int light_show = 0x00F4A291;
 
   if (this->model_state == GAME_SELECT) {
     if (++led_change_timer % 15 == 0) {

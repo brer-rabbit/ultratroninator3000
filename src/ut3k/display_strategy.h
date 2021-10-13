@@ -29,7 +29,8 @@
 #include <stdint.h>
 #include "ht16k33.h"
 
-/* for viewing, provide an interface the (presumably model) can use to
+/* for viewing (this *is* actually the view, despite the file
+   ut3k_view thinking it is), provide an interface the model can use to
  * set the 4-digit display.  The displayable types are:
  * integer : show an integer value, right aligned
  * string  : display a string, left aligned
@@ -66,8 +67,10 @@ struct display_strategy;
  */
 typedef display_type (*f_get_display)(struct display_strategy*, display_value*, ht16k33blink_t*, ht16k33brightness_t*);
 
-/** To utilize the strategy, one must also construct a struct display_strategy
- * that gets passed to the view.
+/** To utilize the strategy, one must also construct a struct
+ * display_strategy that gets passed to the view (and really...*this* is
+ * the view.  The other stuff thinking it's the view is lower level
+ * hardware mumbo jumbo stuff).
  */
 struct display_strategy {
   void *userdata;
