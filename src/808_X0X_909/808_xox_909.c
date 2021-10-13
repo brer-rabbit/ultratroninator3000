@@ -185,7 +185,7 @@ char*** load_audio_from_config(config_t *cfg, char *games_directory) {
   // 4 + [1-4] + '\0' name for each sample
   char ***sound_keys;
 
-  sound_keys = (char***)malloc(15 * sizeof(char**));
+  sound_keys = (char***)malloc(16 * sizeof(char**));
   for (int i = 0; i < 16; ++i) {
     sound_keys[i] = (char**)malloc(4 * sizeof(char*));
     for (int j = 0; j < 4; ++j) {

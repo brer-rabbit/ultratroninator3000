@@ -39,7 +39,7 @@
 #define GAME_TOKEN_SEP "_"
 
 
-typedef enum { GAME_SELECT, SHUTDOWN_PROMPT } mcp_state_t;
+typedef enum { INIT, FULL_INTRO, GAME_SELECT, SHUTDOWN_PROMPT } model_state_t;
 static const uint32_t init_shutdown_user_timer = 100;
 
 struct game {
@@ -51,8 +51,11 @@ struct game_model {
   struct game games[MAX_GAMES];
   int game_index;
   int num_games;
-  mcp_state_t mcp_state;
+  model_state_t model_state;
   int shutdown_user_timer;
+  char *message_green;
+  char *message_blue;
+  char *message_red;
   struct display_strategy *display_strategy;
 };
 
@@ -83,7 +86,7 @@ struct game_model* create_game_model() {
 
   this->num_games = get_games(games_bin_directory, this->games, MAX_GAMES);
   this->game_index = 0;
-  this->mcp_state = GAME_SELECT;
+  this->model_state = INIT;
   this->shutdown_user_timer = init_shutdown_user_timer;
 
   if (this->num_games == 0) {
@@ -106,6 +109,11 @@ void free_game_model(struct game_model *this) {
 
 
 
+void set_state_game_select(struct game_model *this) {
+  this->model_state = GAME_SELECT;
+}
+
+
 /** next_game and prev_game
  * scroll forward/backward through the game list by 1
  */
@@ -125,7 +133,7 @@ void previous_game(struct game_model *this) {
 }
 
 char* get_current_executable(struct game_model *this) {
-  if (this->mcp_state == GAME_SELECT) {
+  if (this->model_state == GAME_SELECT) {
     set_blink(this, 1);
     ut3k_play_sample("attract_coin");
     return this->games[this->game_index].game_executable;
@@ -154,8 +162,8 @@ void set_blink(struct game_model *this, int on) {
 
 
 void shutdown_requested(struct game_model *this) {
-  if (this->mcp_state == GAME_SELECT) {
-    this->mcp_state = SHUTDOWN_PROMPT;
+  if (this->model_state == GAME_SELECT) {
+    this->model_state = SHUTDOWN_PROMPT;
     this->shutdown_user_timer = init_shutdown_user_timer;
   }
   else {
@@ -171,16 +179,41 @@ void shutdown_requested(struct game_model *this) {
 }
 
 void shutdown_aborted(struct game_model *this) {
-  if (this->mcp_state  == SHUTDOWN_PROMPT &&
+  if (this->model_state  == SHUTDOWN_PROMPT &&
       this->shutdown_user_timer == 1) {
     // easter egg! TODO...something cool
     printf("last second shutdown aborted!\n");
   }
-  else if (this->mcp_state  == SHUTDOWN_PROMPT) {
-    this->mcp_state = GAME_SELECT;
+  else if (this->model_state  == SHUTDOWN_PROMPT) {
+    this->model_state = GAME_SELECT;
     ut3k_play_sample("movies");
   }
   return;
+}
+
+
+
+// make sure these strings are the same length...
+static char *full_intro1 = "   ULTRATRONINATOR    ";
+static char *full_intro2 = "              3000    ";
+static char *full_intro3 = "                      ";
+
+int update_full_intro(struct game_model *this) {
+  if (this->model_state != FULL_INTRO) {
+    this->model_state = FULL_INTRO;
+    this->message_green = full_intro1;
+    this->message_blue = full_intro2;
+    this->message_red = full_intro3;
+  }
+  else {
+    // scroll: advance to next letter
+    this->message_green++;
+    this->message_blue++;
+    this->message_red++;
+  }
+
+  // return zero if the first string is at '\0'
+  return this->message_green[0] == '\0' ? 0 : 1;
 }
 
 
@@ -194,16 +227,22 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
   *blink = display_strategy->red_blink;
   *brightness = display_strategy->red_brightness;
 
-  if (this->mcp_state == GAME_SELECT) {
+  if (this->model_state == GAME_SELECT) {
     (*value).display_string = this->games[this->game_index].display_name[2];
     return string_display;
   }
-  else { // if (this->mcp_state == SHUTDOWN_PROMPT) {
+  else if (this->model_state == FULL_INTRO) {
+    (*value).display_string = this->message_red;
+    return string_display;
+  }
+  else if (this->model_state == SHUTDOWN_PROMPT) {
     (*value).display_int = this->shutdown_user_timer;
     return integer_display;
   }
-
-
+  else {
+    (*value).display_string = "    ";
+    return string_display;
+  }
 }
 
 // implements f_get_display for the blue display
@@ -215,14 +254,23 @@ display_type get_blue_display(struct display_strategy *display_strategy, display
   *brightness = display_strategy->blue_brightness;
 
 
-  if (this->mcp_state == GAME_SELECT) {
+  if (this->model_state == GAME_SELECT) {
     (*value).display_string = this->games[this->game_index].display_name[1];
+    return string_display;
   }
-  else if (this->mcp_state == SHUTDOWN_PROMPT) {
+  else if (this->model_state == FULL_INTRO) {
+    (*value).display_string = this->message_blue;
+    return string_display;
+  }
+  else if (this->model_state == SHUTDOWN_PROMPT) {
     (*value).display_string = "DOWN";
+    return string_display;
+  }
+  else {
+    (*value).display_string = "    ";
+    return string_display;
   }
 
-  return string_display;
 }
 
 // implements f_get_display for the green display
@@ -234,15 +282,22 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
   *brightness = display_strategy->green_brightness;
 
 
-  if (this->mcp_state == GAME_SELECT) {
+  if (this->model_state == GAME_SELECT) {
     (*value).display_string = this->games[this->game_index].display_name[0];
+    return string_display;
   }
-  else if (this->mcp_state == SHUTDOWN_PROMPT) {
+  else if (this->model_state == FULL_INTRO) {
+    (*value).display_string = this->message_green;
+    return string_display;
+  }
+  else if (this->model_state == SHUTDOWN_PROMPT) {
     (*value).display_string = "SHUT";
+    return string_display;
   }
-
-
-  return string_display;
+  else {
+    (*value).display_string = "    ";
+    return string_display;
+  }
 }
 
 
@@ -280,25 +335,44 @@ static const int32_t countdown_leds[] =
 display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct game_model *this = (struct game_model*) display_strategy->userdata;
 
+  // no change
+  *blink = display_strategy->leds_blink;
+  *brightness = display_strategy->leds_brightness;
+
   // I'd like to do a couple different light shows / hacks, but for now just this...
   static int led_change_timer = 0;
   static int light_show = 0x00040201;
 
-  if (this->mcp_state == GAME_SELECT) {
+  if (this->model_state == GAME_SELECT) {
     if (++led_change_timer % 15 == 0) {
       light_show = light_show << 1;
       light_show = light_show | (rand() & 0b1);
     }
   }
-  else if (this->mcp_state == SHUTDOWN_PROMPT) {
+  else if (this->model_state == SHUTDOWN_PROMPT) {
     light_show = countdown_leds[this->shutdown_user_timer >> 2];
   }
-  
-  (*value).display_int = light_show;
+  else if (++led_change_timer % 15 == 0) {
+    switch (rand() % 4) {
+    case 0:
+      light_show = light_show >> 1;
+      light_show = light_show | (rand() & 0b100000000000);
+      break;
+    case 1:
+      light_show = light_show << 1;
+      light_show = light_show | (rand() & 0b1);
+      break;
+    case 2:
+      light_show = ~light_show;
+      break;
+    case 3:
+      // swap top and bottom row
+      light_show = (light_show << 16) | (light_show & 0x00FF00) | ((light_show >> 16) & 0xFF);
+      break;
+    }
+  }
 
-  // no change
-  *blink = display_strategy->leds_blink;
-  *brightness = display_strategy->leds_brightness;
+    (*value).display_int = light_show;
 
   return integer_display;
 }

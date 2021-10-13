@@ -38,17 +38,17 @@ void free_game_model(struct game_model*);
 
 // Supported model methods
 
+void set_state_game_select(struct game_model *this);
 void next_game(struct game_model *this);
 void previous_game(struct game_model *this);
 char* get_current_executable(struct game_model *this);
 
 void set_blink(struct game_model *this, int on);
 
-
 void shutdown_requested(struct game_model *this);
 void shutdown_aborted(struct game_model *this);
 
-
+int update_full_intro(struct game_model *this);
 
 struct display_strategy* get_display_strategy(struct game_model *this);
 

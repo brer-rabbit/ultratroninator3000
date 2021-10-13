@@ -19,11 +19,20 @@
 #include "control_panel.h"
 #include "game_controller.h"
 
+typedef enum { FULL_INTRO, SHORT_INTRO, GAME_SELECT } controller_state_t;
+
+static const int32_t state_clock_default = 25;
+static void controller_update_full_intro(struct game_controller *this);
+
+
 struct game_controller {
   struct game_model *model;
   struct ut3k_view *view;
   char *game_exec_to_launch;
+  controller_state_t controller_state;
+  uint32_t state_clock;
 };
+
 
 
 struct game_controller* create_game_controller(struct game_model *model, struct ut3k_view *view) {
@@ -33,6 +42,9 @@ struct game_controller* create_game_controller(struct game_model *model, struct 
   this->model = model;
   this->view = view;
   this->game_exec_to_launch = NULL;
+  this->controller_state = FULL_INTRO;
+  this->state_clock = state_clock_default;
+  update_full_intro(this->model);
   return this;
 }
 
@@ -48,8 +60,19 @@ char* get_game_to_launch(struct game_controller *this) {
 }
 
 void controller_update(struct game_controller *this, uint32_t clock) {
+  switch (this->controller_state) {
+  case FULL_INTRO:
+    controller_update_full_intro(this);
+    break;
+  case SHORT_INTRO:
+    //controller_update_short_intro(this);
+    break;
+  case GAME_SELECT:
+    break;
+  }
   update_view(this->view, get_display_strategy(this->model), clock);
 }
+
 
 
 
@@ -101,4 +124,19 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     this->game_exec_to_launch = get_current_executable(this->model);
   }
 
+}
+
+
+
+// Static -----------------------------------------------------------------
+
+static void controller_update_full_intro(struct game_controller *this) {
+  if (--this->state_clock == 0) {
+    this->state_clock = state_clock_default;
+    if (update_full_intro(this->model) == 0) {
+      printf("switching from full intro to short\n");
+      this->controller_state = SHORT_INTRO;
+      set_state_game_select(this->model);
+    }
+  }
 }
