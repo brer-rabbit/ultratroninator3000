@@ -60,11 +60,27 @@ void controller_update(struct game_controller *this, uint32_t clock) {
 void controller_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
   struct game_controller *this = (struct game_controller*) userdata;
 
+  const struct button *green_button = get_green_button(control_panel);
   const struct button *blue_button = get_blue_button(control_panel);
   const struct button *red_button = get_red_button(control_panel);
   const struct rotary_encoder *rotary_encoder = get_red_rotary_encoder(control_panel);
 
 	 
+  // three finger salute: hold down green, blue, and red button last
+  if (green_button->button_state == 1 &&
+      blue_button->button_state == 1 &&
+      red_button->button_state == 1) {
+    shutdown_requested(this->model);
+  }
+  else if ((green_button->button_state == 0 && green_button->state_count == 0) ||
+	   (blue_button->button_state == 0 && blue_button->state_count == 0)) {
+    // a bit of hacky/odd behavior on this.  Probably ought to query
+    // model first to see if state is in shutdown requested.  However,
+    // this is safe to call even if no shutdown requested.  so...
+    shutdown_aborted(this->model);
+  }
+    
+
   if (rotary_encoder->encoder_delta > 0) {
     next_game(this->model);
   }
@@ -74,13 +90,15 @@ void controller_callback_control_panel(const struct control_panel *control_panel
 
 
   // hey, a game is picked!
-  // allow any of red encoder|blue button|red button to pick executable
+  // allow either of red encoder|red button to pick executable,
+  // so long as the green or blue button is NOT pressed
   if ((rotary_encoder->button.button_state == 1 &&
        rotary_encoder->button.state_count == 0) ||
-      (blue_button->button_state == 1 &&
-       blue_button->state_count == 0) ||
-      (red_button->button_state == 1 &&
+      (green_button->button_state == 0 &&
+       blue_button->button_state == 0 &&
+       red_button->button_state == 1 &&
        red_button->state_count == 0)) {
     this->game_exec_to_launch = get_current_executable(this->model);
   }
+
 }

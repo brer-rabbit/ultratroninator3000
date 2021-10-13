@@ -252,6 +252,26 @@ void ut3k_remove_sample(char *sample_name) {
 }
 
 
+void ut3k_remove_all_samples() {
+    struct sample *sample;
+    pa_operation *op = NULL;
+
+    while (!LIST_EMPTY(&sample_list)) {
+      sample = LIST_FIRST(&sample_list);
+      op = pa_context_remove_sample(context, sample->name, NULL, NULL);
+      LIST_REMOVE(sample, nodes);
+      free(sample->name);
+      free(sample);
+    }
+
+    // technically this just checks the last operation and we may
+    // have queued quite a few up...well, so be it.
+    while (op != NULL && pa_operation_get_state(op) == PA_OPERATION_RUNNING) {
+        ut3k_pa_mainloop_iterate();
+    }
+}
+
+
 void ut3k_get_sink_list(int **sink_list, int *num) {
     // pa_context_get_sink_info_list
     // return a pointer to array of ints

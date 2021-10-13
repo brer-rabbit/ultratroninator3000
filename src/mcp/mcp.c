@@ -116,10 +116,22 @@ static void launch_game(char *executable, char **envp) {
 }
 
 
+static struct game_model *model = NULL;
+static struct ut3k_view *view = NULL;
+static struct game_controller *controller = NULL;
+
+void sig_cleanup_and_exit(int signum) {
+  printf("caught sig %d.  Cleaning up and exiting.\n", signum);
+  ut3k_remove_all_samples();
+  free_game_controller(controller);
+  free_game_model(model);
+  free_ut3k_view(view);
+  ut3k_disconnect_audio_context(1);
+  exit(0);
+}
+
+
 static char* run_mvc(config_t *cfg) {
-  struct game_model *model;
-  struct ut3k_view *view;
-  struct game_controller *controller;
   char *executable = NULL;
   struct timeval tval_controller_start, tval_controller_end, tval_controller_time, tval_fixed_loop_time, tval_sleep_time;
   int loop_time_ms;
@@ -164,6 +176,9 @@ static char* run_mvc(config_t *cfg) {
   tval_sleep_time.tv_sec = 0;
   tval_sleep_time.tv_usec = tval_fixed_loop_time.tv_usec;
   
+  signal(SIGINT, sig_cleanup_and_exit);
+  signal(SIGTERM, sig_cleanup_and_exit);
+
 
   // event loop
   // scroll through all the games.  Try and nail the loop timewise.

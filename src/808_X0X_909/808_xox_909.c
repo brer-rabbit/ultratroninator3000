@@ -48,6 +48,18 @@ static struct ut3k_view *view = NULL;
 static struct controller *controller = NULL;
 
 
+void sig_cleanup_and_exit(int signum) {
+  printf("caught sig %d.  Cleaning up and exiting.  Stats: %u clock ticks (%u overruns)\n",
+	 signum, clock_iterations, clock_overruns);
+  ut3k_remove_all_samples();
+  free_controller(controller);
+  free_model(model);
+  free_ut3k_view(view);
+  ut3k_disconnect_audio_context(1);
+  exit(0);
+}
+
+
 /** bpm_128th_to_useconds
  * given a bpm, return the number of microseconds a 128th note should be.
  * 60,000 ms == 1 minute
@@ -103,6 +115,8 @@ static void run_mvc(config_t *cfg, char ***sample_keys) {
   tval_sleep_time.tv_sec = 0;
   tval_sleep_time.tv_usec = tval_fixed_loop_time.tv_usec;
   
+  signal(SIGINT, sig_cleanup_and_exit);
+  signal(SIGTERM, sig_cleanup_and_exit);
 
   // event loop
   while (1) {

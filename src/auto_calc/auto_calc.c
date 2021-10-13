@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,14 +40,26 @@
 #define CONFIG_SOUND_LIST_KEY "sound_list"
 
 
+static struct calc_model *model = NULL;
+static struct ut3k_view *view = NULL;
+static struct calc_controller *controller = NULL;
+static uint32_t clock_iterations = 0;
+static uint32_t clock_overruns = 0;
+
+void sig_cleanup_and_exit(int signum) {
+  printf("caught sig %d.  Cleaning up and exiting. Stats: %d clocks  %d overruns\n", signum, clock_iterations, clock_overruns);
+  ut3k_remove_all_samples();
+  free_calc_controller(controller);
+  free_calc_model(model);
+  free_ut3k_view(view);
+  ut3k_disconnect_audio_context(1);
+  exit(0);
+}
+
 
 static void run_mvc(config_t *cfg) {
-  struct calc_model *model;
-  struct ut3k_view *view;
-  struct calc_controller *controller;
   struct timeval tval_controller_start, tval_controller_end, tval_controller_time, tval_fixed_loop_time, tval_sleep_time;
   int loop_time_ms;
-  uint32_t clock_iterations = 0; // count of iterations through event loop
 
   if (cfg != NULL &&
       config_lookup_int(cfg, CONFIG_EVENT_LOOP_DURATION_TIME_KEY, &loop_time_ms)) {
@@ -86,6 +99,8 @@ static void run_mvc(config_t *cfg) {
   tval_sleep_time.tv_sec = 0;
   tval_sleep_time.tv_usec = tval_fixed_loop_time.tv_usec;
   
+  signal(SIGINT, sig_cleanup_and_exit);
+  signal(SIGTERM, sig_cleanup_and_exit);
 
   // event loop
   // scroll through all the games.  Try and nail the loop timewise.
@@ -97,8 +112,8 @@ static void run_mvc(config_t *cfg) {
       usleep(tval_sleep_time.tv_usec);
     }
     else {
-       // this really shouldn't happen... loop takes <8 ms
       printf("controller took %ld.%06ld; this is longer than event loop of %ld.%06ld seconds\n", tval_controller_time.tv_sec, tval_controller_time.tv_usec, tval_fixed_loop_time.tv_sec, tval_fixed_loop_time.tv_usec);
+      clock_overruns++;
     }
 
     // should this function even exist or just rely on callback?
