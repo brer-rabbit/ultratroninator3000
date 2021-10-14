@@ -31,6 +31,7 @@ struct game_controller {
   char *game_exec_to_launch;
   controller_state_t controller_state;
   uint32_t state_clock;
+  int shutdown_requesting;
 };
 
 
@@ -44,6 +45,8 @@ struct game_controller* create_game_controller(struct game_model *model, struct 
   this->game_exec_to_launch = NULL;
   this->controller_state = FULL_INTRO;
   this->state_clock = state_clock_default;
+  this->shutdown_requesting = 0;
+
   update_full_intro(this->model);
   return this;
 }
@@ -94,13 +97,11 @@ void controller_callback_control_panel(const struct control_panel *control_panel
       blue_button->button_state == 1 &&
       red_button->button_state == 1) {
     shutdown_requested(this->model);
+    this->shutdown_requesting = 1;
   }
-  else if ((green_button->button_state == 0 && green_button->state_count == 0) ||
-	   (blue_button->button_state == 0 && blue_button->state_count == 0)) {
-    // a bit of hacky/odd behavior on this.  Probably ought to query
-    // model first to see if state is in shutdown requested.  However,
-    // this is safe to call even if no shutdown requested.  so...
+  else if (this->shutdown_requesting == 1) {
     shutdown_aborted(this->model);
+    this->shutdown_requesting = 0;
   }
     
 
@@ -117,10 +118,9 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   // so long as the green or blue button is NOT pressed
   if ((rotary_encoder->button.button_state == 1 &&
        rotary_encoder->button.state_count == 0) ||
-      (green_button->button_state == 0 &&
-       blue_button->button_state == 0 &&
-       red_button->button_state == 1 &&
-       red_button->state_count == 0)) {
+      (red_button->button_state == 1 &&
+       red_button->state_count == 0 &&
+       this->shutdown_requesting == 0)) {
     this->game_exec_to_launch = get_current_executable(this->model);
   }
 

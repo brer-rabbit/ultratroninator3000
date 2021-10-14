@@ -37,10 +37,22 @@
 #define MAX_GAMES 32
 #define MAX_PATH 512
 #define GAME_TOKEN_SEP "_"
+#define UNIVERSE_Y 12
+#define UNIVERSE_X 15
 
 
-typedef enum { INIT, FULL_INTRO, GAME_SELECT, SHUTDOWN_PROMPT } model_state_t;
-static const uint32_t init_shutdown_user_timer = 100;
+typedef enum { INIT, FULL_INTRO, GAME_SELECT, SHUTDOWN_PROMPT, LIFE } model_state_t;
+static const uint32_t init_long_timer = 100;
+static const uint32_t init_short_timer = 30;
+
+static const char *attract_intimidate_sample = "attract_intimidate";
+static const char *explosion_short_sample = "explosion_short";
+static const char *effect_spin_sample = "effect_spin";
+static const char *attract_coin_sample = "attract_coin";
+static const char *shutdown_start_sample = "shutdown_start";
+static const char *shutdown_abort_sample = "shutdown_abort";
+static const char *life_sample = "life";
+static const char *startup_sample = "startup";
 
 struct game {
   char *game_executable;
@@ -52,16 +64,22 @@ struct game_model {
   int game_index;
   int num_games;
   model_state_t model_state;
-  int shutdown_user_timer;
+  int long_timer;
+  int short_timer;
   char *message_green;
   char *message_blue;
   char *message_red;
+  uint8_t universe[UNIVERSE_Y][UNIVERSE_X];
+  
   struct display_strategy *display_strategy;
 };
 
 static int get_games(char *directory, struct game *games_list, int max_list);
 static struct display_strategy* create_display_strategy(struct game_model *this);
 static void free_display_strategy(struct display_strategy *display_strategy); 
+static int evolve(void *u);
+static void spawn_life(void *u);
+
 
 /** create the model.
  * read directory from env var where games are stored
@@ -87,7 +105,7 @@ struct game_model* create_game_model() {
   this->num_games = get_games(games_bin_directory, this->games, MAX_GAMES);
   this->game_index = 0;
   this->model_state = INIT;
-  this->shutdown_user_timer = init_shutdown_user_timer;
+  this->long_timer = init_long_timer;
 
   if (this->num_games == 0) {
     printf("sad panda, no games found!\n");
@@ -95,7 +113,7 @@ struct game_model* create_game_model() {
     return NULL;
   }
 
-  ut3k_play_sample("attract_intimidate");
+  ut3k_play_sample(startup_sample);
 
   this->display_strategy = create_display_strategy(this);
   return this;
@@ -119,14 +137,14 @@ void set_state_game_select(struct game_model *this) {
  */
 
 void next_game(struct game_model *this) {
-  ut3k_play_sample("explosion_short");
+  ut3k_play_sample(explosion_short_sample);
   if (++this->game_index == this->num_games) {
     this->game_index = 0;
   }
 }
 
 void previous_game(struct game_model *this) {
-  ut3k_play_sample("effect_spin");
+  ut3k_play_sample(effect_spin_sample);
   if (--this->game_index < 0) {
     this->game_index = this->num_games - 1;
   }
@@ -135,7 +153,7 @@ void previous_game(struct game_model *this) {
 char* get_current_executable(struct game_model *this) {
   if (this->model_state == GAME_SELECT) {
     set_blink(this, 1);
-    ut3k_play_sample("attract_coin");
+    ut3k_play_sample(attract_coin_sample);
     return this->games[this->game_index].game_executable;
   }
 
@@ -164,14 +182,15 @@ void set_blink(struct game_model *this, int on) {
 void shutdown_requested(struct game_model *this) {
   if (this->model_state == GAME_SELECT) {
     this->model_state = SHUTDOWN_PROMPT;
-    this->shutdown_user_timer = init_shutdown_user_timer;
+    this->long_timer = init_long_timer;
+    ut3k_play_sample(shutdown_start_sample);
   }
   else {
-    this->shutdown_user_timer--;
-    if (this->shutdown_user_timer == 0) {
+    this->long_timer--;
+    if (this->long_timer == 0) {
       printf("shutdown!\n");
       system("sudo poweroff -i");
-      this->shutdown_user_timer = init_shutdown_user_timer; // TODO: actually halt the system
+      this->long_timer = init_long_timer; // TODO: actually halt the system
     }
   }
 
@@ -180,13 +199,18 @@ void shutdown_requested(struct game_model *this) {
 
 void shutdown_aborted(struct game_model *this) {
   if (this->model_state  == SHUTDOWN_PROMPT &&
-      this->shutdown_user_timer == 1) {
+      this->long_timer < 5) {
     // easter egg! TODO...something cool
     printf("last second shutdown aborted!\n");
+    spawn_life(this->universe);
+    this->model_state = LIFE;
+    this->short_timer = init_short_timer;
+    this->long_timer = init_long_timer;
+    ut3k_play_sample(life_sample);
   }
   else if (this->model_state  == SHUTDOWN_PROMPT) {
     this->model_state = GAME_SELECT;
-    ut3k_play_sample("movies");
+    ut3k_play_sample(shutdown_abort_sample);
   }
   return;
 }
@@ -227,19 +251,31 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
   *blink = display_strategy->red_blink;
   *brightness = display_strategy->red_brightness;
 
-  if (this->model_state == GAME_SELECT) {
+  switch (this->model_state) {
+  case GAME_SELECT:
     (*value).display_string = this->games[this->game_index].display_name[2];
     return string_display;
-  }
-  else if (this->model_state == FULL_INTRO) {
+
+  case FULL_INTRO:
     (*value).display_string = this->message_red;
     return string_display;
-  }
-  else if (this->model_state == SHUTDOWN_PROMPT) {
-    (*value).display_int = this->shutdown_user_timer;
+
+  case SHUTDOWN_PROMPT:
+    (*value).display_int = this->long_timer;
     return integer_display;
-  }
-  else {
+
+  case LIFE:
+    memset(&(*value).display_glyph, 0, sizeof(uint16_t) * 4);
+    for (int digit = 0; digit < 4; ++digit) {
+      for (int segment = 0; segment < 15; ++segment) {
+	if (this->universe[digit + 8][segment]) {
+	  (*value).display_glyph[digit] |= (1 << segment);
+	}
+      }
+    }
+    return glyph_display;
+
+  default:
     (*value).display_string = "    ";
     return string_display;
   }
@@ -254,19 +290,31 @@ display_type get_blue_display(struct display_strategy *display_strategy, display
   *brightness = display_strategy->blue_brightness;
 
 
-  if (this->model_state == GAME_SELECT) {
+  switch (this->model_state) {
+  case GAME_SELECT:
     (*value).display_string = this->games[this->game_index].display_name[1];
     return string_display;
-  }
-  else if (this->model_state == FULL_INTRO) {
+
+  case FULL_INTRO:
     (*value).display_string = this->message_blue;
     return string_display;
-  }
-  else if (this->model_state == SHUTDOWN_PROMPT) {
+
+  case SHUTDOWN_PROMPT:
     (*value).display_string = "DOWN";
     return string_display;
-  }
-  else {
+
+  case LIFE:
+    memset(&(*value).display_glyph, 0, sizeof(uint16_t) * 4);
+    for (int digit = 0; digit < 4; ++digit) {
+      for (int segment = 0; segment < 15; ++segment) {
+	if (this->universe[digit + 4][segment]) {
+	  (*value).display_glyph[digit] |= (1 << segment);
+	}
+      }
+    }
+    return glyph_display;
+
+  default:
     (*value).display_string = "    ";
     return string_display;
   }
@@ -282,19 +330,42 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
   *brightness = display_strategy->green_brightness;
 
 
-  if (this->model_state == GAME_SELECT) {
+  switch (this->model_state) {
+  case GAME_SELECT:
     (*value).display_string = this->games[this->game_index].display_name[0];
     return string_display;
-  }
-  else if (this->model_state == FULL_INTRO) {
+
+  case FULL_INTRO:
     (*value).display_string = this->message_green;
     return string_display;
-  }
-  else if (this->model_state == SHUTDOWN_PROMPT) {
+
+  case SHUTDOWN_PROMPT:
     (*value).display_string = "SHUT";
     return string_display;
-  }
-  else {
+
+  case LIFE:
+    if (--this->short_timer == 0) {
+      if (evolve(this->universe) < 9) {
+	// spawn new life
+	spawn_life(this->universe);
+      }
+      this->short_timer = init_short_timer;
+      if (--this->long_timer == 0) {
+	this->model_state = GAME_SELECT;
+      }
+    }
+
+    memset(&(*value).display_glyph, 0, sizeof(uint16_t) * 4);
+    for (int digit = 0; digit < 4; ++digit) {
+      for (int segment = 0; segment < 15; ++segment) {
+	if (this->universe[digit][segment]) {
+	  (*value).display_glyph[digit] |= (1 << segment);
+	}
+      }
+    }
+    return glyph_display;
+
+  default:
     (*value).display_string = "    ";
     return string_display;
   }
@@ -350,7 +421,7 @@ display_type get_leds_display(struct display_strategy *display_strategy, display
     }
   }
   else if (this->model_state == SHUTDOWN_PROMPT) {
-    light_show = countdown_leds[this->shutdown_user_timer >> 2];
+    light_show = countdown_leds[this->long_timer >> 2];
   }
   else if (++led_change_timer % 15 == 0) {
     switch (rand() % 4) {
@@ -473,4 +544,52 @@ static struct display_strategy* create_display_strategy(struct game_model *this)
 
 static void free_display_strategy(struct display_strategy *display_strategy) {
   free(display_strategy);
+}
+
+
+/** evolve
+ * life- adapted from https://rosettacode.org/
+ * definitely not the most efficient approach, but it gets the job done.
+ * Return is number of living items.
+ */
+static int evolve(void *u) {
+  int life = 0;
+  uint8_t (*univ)[UNIVERSE_X] = u;
+  uint8_t next[UNIVERSE_Y][UNIVERSE_X];
+ 
+  for (int y = 0; y < UNIVERSE_Y; ++y) {
+    for (int x = 0; x < UNIVERSE_X; ++x) {
+      int n = 0;
+      for (int y1 = y - 1; y1 <= y + 1; y1++) {
+	for (int x1 = x - 1; x1 <= x + 1; x1++) {
+	  if (univ[(y1 + UNIVERSE_Y) % UNIVERSE_Y][(x1 + UNIVERSE_X) % UNIVERSE_X]) {
+	    n++;
+	  }
+	}
+      }
+    
+      if (univ[y][x]) {
+	n--;
+      }
+      next[y][x] = (n == 3 || (n == 2 && univ[y][x]));
+    }
+  }
+
+  for (int y = 0; y < UNIVERSE_Y; ++y) {
+    for (int x = 0; x < UNIVERSE_X; ++x) {
+      univ[y][x] = next[y][x];
+      life += next[y][x];
+    }
+  }
+  
+  return life;
+}
+
+static void spawn_life(void *u) {
+  uint8_t (*univ)[UNIVERSE_X] = u;
+  for (int x = 0; x < UNIVERSE_X; ++x) {
+    for (int y = 0; y < UNIVERSE_Y; ++y) {
+      univ[y][x] = rand() < RAND_MAX / 10 ? 1 : 0;
+    }
+  }
 }
