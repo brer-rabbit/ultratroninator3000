@@ -39,6 +39,7 @@ void free_model(struct model*);
 
 void set_next_step(struct model*, uint8_t step);
 void clocktick_model(struct model*);
+void toggle_run_state(struct model *this);
 void set_bpm(struct model *this, int bpm);
 int get_bpm(struct model *this);
 void change_bpm(struct model *this, int amount); // change by a relative amount

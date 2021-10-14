@@ -34,8 +34,11 @@
 
 #define STEP_NUM_TO_TRIGGER_BITMASK(x) (1 << x)
 
+typedef enum { SEQUENCE_STOP, SEQUENCE_RUN } run_state_t;
+
 static const uint32_t led_map[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 static const uint32_t step_map[] = { 7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8 };
+
 
 struct instrument {
   char *sample_name;
@@ -62,6 +65,7 @@ struct model {
   struct triggered_instrument triggered_instruments[NUM_TRIGGERED_INSTRUMENTS];
   int current_triggered_instrument_index;
   uint8_t bpm;
+  run_state_t run_state;
 
   // from: https://www.kvraudio.com/forum/viewtopic.php?t=261858
   //     Turns out that the shuffle of the TR-909 delays each
@@ -96,6 +100,7 @@ struct model* create_model(char ***sample_keys) {
      .current_triggered_instrument_index = 0,
      .bpm = 120,
      .shuffle = 0,
+     .run_state = SEQUENCE_STOP,
      .sample_keys = sample_keys
     };
 
@@ -136,6 +141,8 @@ void free_model(struct model *this) {
 }
 
 
+
+
 void clocktick_model(struct model *this) {
   int triggers_at_step;
 
@@ -143,22 +150,37 @@ void clocktick_model(struct model *this) {
     this->current_step = 0;
   }
 
+  if (this->run_state == SEQUENCE_STOP) {
+    return;
+  }
+
   // are we on a triggerable step?
   // if so, check what instruments should play on this step.
   if (is_triggerable_step(this->current_step, this->shuffle)) {
     // drop current_step down to a sixteenth note
-    triggers_at_step = this->sequence[step_map[this->current_step >> 3]];
+    //triggers_at_step = this->sequence[step_map[this->current_step >> 3]];
+    triggers_at_step = this->sequence[this->current_step >> 3];
     // sequence contains a bitmap of every instrument to
     // play at this step
     for (int triggered_instrument = 0; triggered_instrument < 16; ++triggered_instrument) {
       if ((triggers_at_step & (1 << triggered_instrument))) {
 	printf("playing instrument %d on step %d:\n", triggered_instrument+1, this->current_step >> 3);
 	if (this->triggered_instruments[triggered_instrument].instrument->sample_name != NULL) {
-	  printf("   %s\n", this->triggered_instruments[triggered_instrument].instrument->sample_name);
 	  ut3k_play_sample(this->triggered_instruments[triggered_instrument].instrument->sample_name);
 	}
       }
     }
+  }
+}
+
+
+void toggle_run_state(struct model *this) {
+  if (this->run_state == SEQUENCE_STOP) {
+    this->run_state = SEQUENCE_RUN;
+    this->current_step = 0;
+  }
+  else {
+    this->run_state = SEQUENCE_STOP;
   }
 }
 
@@ -213,8 +235,8 @@ void change_instrument_sample(struct model *this, int sample_num) {
 }
 
 void toggle_current_triggered_instrument_at_step(struct model *this, int step) {
-  // turn on or off the trigger at the current step.  Current step
-  // is a single bit set on an int.  This ends up just being an xor.
+  // turn on or off the current trigger at a specific step
+
   int trigger_bitmask =
     this->triggered_instruments[this->current_triggered_instrument_index].trigger_bitmask;
   this->sequence[step] = this->sequence[step] ^ trigger_bitmask;
@@ -276,18 +298,29 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
 
 
 
+static const uint8_t green_led_offset = 16;
+static const uint8_t blue_led_offset = 8;
+
 // implements f_get_display for the leds display
 display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
 
-  // light one LED to show where the current step is in the 16 step sequence
-  if (this->current_step < 64) {
-    // start on the green display for steps 1 - 8
-    (*value).display_int = led_map[(this->current_step >> 3)] << 16;
+  if (this->run_state == SEQUENCE_RUN) {
+    // light one LED to show where the current step is in the 16 step sequence
+    if (this->current_step < 64) {
+      // start on the green display for steps 1 - 8
+      (*value).display_int = led_map[(this->current_step >> 3)] << green_led_offset;
+    }
+    else {
+      // then move to blue display for steps 9 - 16
+      (*value).display_int = led_map[((this->current_step >> 3) - 8)] << blue_led_offset;
+    }
   }
   else {
-    // then move to blue display for steps 9 - 16
-    (*value).display_int = led_map[((this->current_step >> 3) - 8)] << 8;
+    // we're stopped - keep the first LED going to the beat at the first
+    // green LED
+    (*value).display_int = (this->current_step & 0b10000) ?
+      led_map[0] << green_led_offset : 0;
   }
 
   uint16_t trigger_bitmask = this->triggered_instruments[this->current_triggered_instrument_index].trigger_bitmask;
@@ -295,12 +328,13 @@ display_type get_leds_display(struct display_strategy *display_strategy, display
   // show the triggers for the current instrument
   for (int step = 0; step < 8; ++step) {
     if ((this->sequence[step] & trigger_bitmask)) {
-      (*value).display_int = (*value).display_int ^ (1 << (step + 16));
+      (*value).display_int = (*value).display_int ^ (1 << (step_map[step] + green_led_offset));
     }
   }
   for (int step = 8; step < STEPS_IN_SEQUENCE; ++step) {
     if ((this->sequence[step] & trigger_bitmask)) {
-      (*value).display_int = (*value).display_int ^ (1 << step);
+      (*value).display_int = (*value).display_int ^ (1 << step_map[step]);
+      // no blue led offset since the steps are 8-15 here
     }
   }
 
@@ -376,3 +410,6 @@ static int is_triggerable_step(uint8_t step, shuffle_t shuffle) {
 
   return 0;
 }
+
+
+

@@ -21,6 +21,8 @@
 #include "ut3k_pulseaudio.h"
 
 
+
+
 struct controller {
   struct model *model;
   struct ut3k_view *view;
@@ -65,6 +67,10 @@ static void initialize_model_from_control_panel(struct controller *this, const s
 }
 
 
+// toggles are high bit on left with low on right, so swap bit
+// ordering when mapping to steps
+static const uint8_t steps_to_toggle_map[] = { 7, 6, 5, 4, 3, 2, 1, 0 };
+
 /** controller callback
  * 
  * implements f_view_control_panel_updates
@@ -77,6 +83,7 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   const struct rotary_encoder *blue_rotary = get_blue_rotary_encoder(control_panel);
   const struct toggles *toggles = get_toggles(control_panel);
   const struct button *red_button = get_red_button(control_panel);
+  const struct button *green_button = get_green_button(control_panel);
   const struct selector *blue_selector = get_blue_selector(control_panel);
 
 
@@ -99,14 +106,17 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     // something changed- set or unset current instrument on the
     // toggled step.  The toggle_switch defines the position.
     // if the red button is pushed, shift up by 8.
-    for (int toggle_switch = 0; toggle_switch < 8; ++toggle_switch) {
-      if ((toggles->toggles_toggled & (1 << toggle_switch))) {
+    // Map the left toggle switch to the first step (0) and the
+    // right toggle switch to last (7)
+    for (int step_num = 0; step_num < 8; ++step_num) {
+      if ((toggles->toggles_toggled & (1 << steps_to_toggle_map[step_num]))) {
 	if (red_button->button_state) {
 	  // red button is pushed
-	  toggle_current_triggered_instrument_at_step(this->model, toggle_switch + 8);
+	  toggle_current_triggered_instrument_at_step(this->model, step_num + 8);
 	}
 	else {
-	  toggle_current_triggered_instrument_at_step(this->model, toggle_switch);
+	  printf("toggled toggle num %d (switches: 0x%X) for step %d\n", steps_to_toggle_map[step_num], toggles->toggles_toggled, step_num);
+	  toggle_current_triggered_instrument_at_step(this->model, step_num);
 	}
       }
     }
@@ -117,5 +127,10 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     change_instrument_sample(this->model, blue_selector->selector_state);
   }
 
+  // green button for start/stop
+  if (green_button->button_state == 1 && green_button->state_count == 0) {
+    toggle_run_state(this->model);
+  }
 
 }
+
