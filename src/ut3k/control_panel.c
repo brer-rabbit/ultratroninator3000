@@ -110,8 +110,8 @@ struct control_panel* create_control_panel(ht16k33keyscan_t keyscan) {
 
   this->red_joystick = (struct joystick const)
     {
-     .direction = CENTERED,
-     .direction_previous = CENTERED,
+     .direction = JOY_CENTERED,
+     .direction_previous = JOY_CENTERED,
      .state_count = 0,
      .previous_bits = 0,
      .button = { 0 }
@@ -360,19 +360,19 @@ static void update_joystick(struct joystick *joystick, uint8_t value) {
     switch (value) {
     case 0b0000:
     default:
-      joystick->direction = CENTERED;
+      joystick->direction = JOY_CENTERED;
       break;
     case 0b0001:
-      joystick->direction = UP;
+      joystick->direction = JOY_UP;
       break;
     case 0b0010:
-      joystick->direction = DOWN;
+      joystick->direction = JOY_DOWN;
       break;
     case 0b0100:
-      joystick->direction = LEFT;
+      joystick->direction = JOY_LEFT;
       break;
     case 0b10000000:
-      joystick->direction = RIGHT;
+      joystick->direction = JOY_RIGHT;
       break;
     }
   }

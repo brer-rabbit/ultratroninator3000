@@ -12,6 +12,7 @@
 
 char *context_name = "Ultratroninator 3000 audio";
 
+
 struct sample {
     char *name;
     LIST_ENTRY(sample) nodes;
@@ -27,7 +28,7 @@ static pa_operation *pa_operation_most_recent = NULL;
 static enum pa_sample_format sndfile_format_to_pa_sample_format(int sfinfo);
 static char* filename_to_samplename(char *filename);
 static int ut3k_write_stream(pa_stream *stream, pa_sample_spec *ss, size_t file_stream_bytes, SNDFILE *f_sndfile);
-
+static void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdata);
 
 /** ut3k_new_audio_context
  * create a new audio context connecting to a default pulse audio server
@@ -249,6 +250,10 @@ void ut3k_remove_sample(char *sample_name) {
     while (pa_operation_get_state(op) == PA_OPERATION_RUNNING) {
         ut3k_pa_mainloop_iterate();
     }
+
+    if (op != NULL) {
+       pa_operation_unref(op);
+    }
 }
 
 
@@ -269,15 +274,48 @@ void ut3k_remove_all_samples() {
     while (op != NULL && pa_operation_get_state(op) == PA_OPERATION_RUNNING) {
         ut3k_pa_mainloop_iterate();
     }
+
+    if (op != NULL) {
+       pa_operation_unref(op);
+    }
 }
 
 
-void ut3k_get_sink_list(int **sink_list, int *num) {
-    // pa_context_get_sink_info_list
-    // return a pointer to array of ints
+struct pa_devicelist {
+  uint8_t initialized;
+  uint32_t index;
+};
+
+void ut3k_get_sink_list(uint32_t sink_list[], int *num) {
+  // pa_context_get_sink_info_list
+  // return a pointer to array of ints
+  pa_operation *pa_op;
+  struct pa_devicelist output[16];
+  // allocate 16...we'll return the number as well.  if >16, well, sorry...
+
+  memset(output, 0, sizeof(struct pa_devicelist) * 16);
+  pa_op = pa_context_get_sink_info_list(context, pa_sinklist_cb, output);
+  
+  while (pa_op != NULL && pa_operation_get_state(pa_op) == PA_OPERATION_RUNNING) {
+    ut3k_pa_mainloop_iterate();
+  }
+
+  if (pa_op != NULL) {
+    pa_operation_unref(pa_op);
+  }
+
+  // should have complete sink list now
+  for (*num = 0; *num < 16; (*num)++) {
+    if (output[*num].initialized == 0) {
+      break;
+    }
+    sink_list[*num] = output[*num].index;
+  }
+
 }
 
-void ut3k_set_default_sink(int sink) {
+
+void ut3k_set_default_sink(uint32_t index) {
 }
 
 
@@ -387,4 +425,32 @@ static char* filename_to_samplename(char *filename) {
     free(alloced_basename_mem);
 
     return sample_name;
+}
+
+
+
+// callback for sinklist discovery.
+// Taken nearly verbatim from PulseAudio documentation.
+// Which says it's not production code.
+static void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdata) {
+  struct pa_devicelist *pa_devicelist = userdata;
+  int ctr = 0;
+
+  // If eol is set to a positive number, you're at the end of the list
+  if (eol > 0) {
+    return;
+  }
+
+  // We know we've allocated 16 slots to hold devices.  Loop through our
+  // structure and find the first one that's "uninitialized."  Copy the
+  // contents into it and we're done.  If we receive more than 16 devices,
+  // they're going to get dropped.  You could make this dynamically allocate
+  // space for the device list, but this is a simple example.
+  for (ctr = 0; ctr < 16; ctr++) {
+    if (! pa_devicelist[ctr].initialized) {
+      pa_devicelist[ctr].index = l->index;
+      pa_devicelist[ctr].initialized = 1;
+      break;
+    }
+  }
 }

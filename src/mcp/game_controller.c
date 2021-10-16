@@ -18,6 +18,7 @@
 
 #include "control_panel.h"
 #include "game_controller.h"
+#include "ut3k_pulseaudio.h"
 
 typedef enum { FULL_INTRO, SHORT_INTRO, GAME_SELECT } controller_state_t;
 
@@ -89,8 +90,8 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   const struct button *green_button = get_green_button(control_panel);
   const struct button *blue_button = get_blue_button(control_panel);
   const struct button *red_button = get_red_button(control_panel);
-  const struct rotary_encoder *rotary_encoder = get_red_rotary_encoder(control_panel);
-
+  const struct rotary_encoder *red_rotary_encoder = get_red_rotary_encoder(control_panel);
+  const struct rotary_encoder *blue_rotary_encoder = get_blue_rotary_encoder(control_panel);
 	 
   // three finger salute: hold down green, blue, and red button last
   if (green_button->button_state == 1 &&
@@ -105,10 +106,10 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   }
     
 
-  if (rotary_encoder->encoder_delta > 0) {
+  if (red_rotary_encoder->encoder_delta > 0) {
     next_game(this->model);
   }
-  else if (rotary_encoder->encoder_delta < 0) {
+  else if (red_rotary_encoder->encoder_delta < 0) {
     previous_game(this->model);
   }
 
@@ -116,12 +117,25 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   // hey, a game is picked!
   // allow either of red encoder|red button to pick executable,
   // so long as the green or blue button is NOT pressed
-  if ((rotary_encoder->button.button_state == 1 &&
-       rotary_encoder->button.state_count == 0) ||
+  if ((red_rotary_encoder->button.button_state == 1 &&
+       red_rotary_encoder->button.state_count == 0) ||
       (red_button->button_state == 1 &&
        red_button->state_count == 0 &&
        this->shutdown_requesting == 0)) {
     this->game_exec_to_launch = get_current_executable(this->model);
+  }
+
+
+  if (blue_rotary_encoder->button.button_state == 1 &&
+      blue_rotary_encoder->button.state_count == 0) {
+    uint32_t sink_list[16];
+    int num_sinks;
+
+    ut3k_get_sink_list(sink_list, &num_sinks);
+    printf("sinks: got %d\n", num_sinks);
+    for (int i = 0; i< num_sinks; ++i) {
+      printf("  sink %d\n", sink_list[i]);
+    }
   }
 
 }

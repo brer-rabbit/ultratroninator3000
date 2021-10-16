@@ -139,7 +139,7 @@ const struct selector* get_blue_selector(const struct control_panel *this);
 
 
 // joystick is only a single direction and includes a pushbutton
-enum direction { UP, DOWN, LEFT, RIGHT, CENTERED };
+enum direction { JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_CENTERED };
 struct joystick {
   enum direction direction;
   enum direction direction_previous;
