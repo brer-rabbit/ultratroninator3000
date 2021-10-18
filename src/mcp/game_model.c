@@ -210,7 +210,7 @@ void shutdown_aborted(struct game_model *this) {
   }
   else if (this->model_state  == SHUTDOWN_PROMPT) {
     this->model_state = GAME_SELECT;
-    ut3k_play_sample(shutdown_abort_sample);
+    //ut3k_play_sample(shutdown_abort_sample);
   }
   return;
 }

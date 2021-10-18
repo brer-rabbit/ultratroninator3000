@@ -51,6 +51,7 @@ void free_controller(struct controller *this) {
 
 
 void controller_update(struct controller *this, uint32_t clock) {
+  clocktick_gameplay(this->model, clock);
   update_view(this->view, get_display_strategy(this->model), clock);
 }
 
@@ -68,7 +69,7 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   const struct rotary_encoder *blue_rotary_encoder = get_blue_rotary_encoder(control_panel);
 
   if (blue_rotary_encoder->encoder_delta != 0) {
-    move_player(this->model, blue_rotary_encoder->encoder_delta);
+    move_player(this->model, -1 * blue_rotary_encoder->encoder_delta);
   }
 
 }
