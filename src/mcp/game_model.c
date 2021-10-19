@@ -44,13 +44,15 @@
 typedef enum { INIT, FULL_INTRO, GAME_SELECT, SHUTDOWN_PROMPT, LIFE } model_state_t;
 static const uint32_t init_long_timer = 100;
 static const uint32_t init_short_timer = 30;
+static const uint32_t init_attract_sample_timer = 2000;
 
+static const char *attract_tease_sample = "attract_tease";
 static const char *attract_intimidate_sample = "attract_intimidate";
-static const char *explosion_short_sample = "explosion_short";
-static const char *effect_spin_sample = "effect_spin";
+static const char *next_game_sample = "next_game";
+static const char *previous_game_sample = "previous_game";
 static const char *attract_coin_sample = "attract_coin";
 static const char *shutdown_start_sample = "shutdown_start";
-static const char *shutdown_abort_sample = "shutdown_abort";
+//static const char *shutdown_abort_sample = "shutdown_abort";
 static const char *life_sample = "life";
 static const char *startup_sample = "startup";
 
@@ -66,6 +68,7 @@ struct game_model {
   model_state_t model_state;
   int long_timer;
   int short_timer;
+  int attract_sample_timer;
   char *message_green;
   char *message_blue;
   char *message_red;
@@ -106,6 +109,7 @@ struct game_model* create_game_model() {
   this->game_index = 0;
   this->model_state = INIT;
   this->long_timer = init_long_timer;
+  this->attract_sample_timer = init_attract_sample_timer;
 
   if (this->num_games == 0) {
     printf("sad panda, no games found!\n");
@@ -126,6 +130,12 @@ void free_game_model(struct game_model *this) {
 }
 
 
+void clocktick_model(struct game_model *this, uint32_t clock) {
+  if (--this->attract_sample_timer == 0) {
+    this->attract_sample_timer = init_attract_sample_timer;
+    ut3k_play_sample(rand() & 0b1 ? attract_tease_sample : attract_intimidate_sample);
+  }
+}
 
 void set_state_game_select(struct game_model *this) {
   this->model_state = GAME_SELECT;
@@ -137,14 +147,14 @@ void set_state_game_select(struct game_model *this) {
  */
 
 void next_game(struct game_model *this) {
-  ut3k_play_sample(explosion_short_sample);
+  ut3k_play_sample(next_game_sample);
   if (++this->game_index == this->num_games) {
     this->game_index = 0;
   }
 }
 
 void previous_game(struct game_model *this) {
-  ut3k_play_sample(effect_spin_sample);
+  ut3k_play_sample(previous_game_sample);
   if (--this->game_index < 0) {
     this->game_index = this->num_games - 1;
   }

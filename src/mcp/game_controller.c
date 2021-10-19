@@ -75,6 +75,7 @@ void controller_update(struct game_controller *this, uint32_t clock) {
     break;
   }
   update_view(this->view, get_display_strategy(this->model), clock);
+  clocktick_model(this->model, clock);
 }
 
 

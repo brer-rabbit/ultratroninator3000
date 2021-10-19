@@ -38,6 +38,7 @@ void free_game_model(struct game_model*);
 
 // Supported model methods
 
+void clocktick_model(struct game_model *this, uint32_t clock);
 void set_state_game_select(struct game_model *this);
 void next_game(struct game_model *this);
 void previous_game(struct game_model *this);
