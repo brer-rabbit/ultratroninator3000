@@ -36,11 +36,14 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
 static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 
+
 struct flipper;
 typedef enum { DISPLAY_RED, DISPLAY_BLUE, DISPLAY_GREEN } display_t;
 static void display_flipper(struct flipper*, display_t, display_value*);
 
+
 // abuse note: ordering is important, movement of flippers iterates the enum
+// secondary abuse: 6 states for flipping transition is wildly egregious
 typedef enum { INACTIVE,  // not on game board
                SPAWNING,  // on the board, viewable, can't be hit
                FLIPPING_FROM1, // leaving a space while moving, can't hit player
@@ -104,11 +107,11 @@ struct model {
 
 
 
-static void init_playfield_for_level(struct playfield *this, int level);
 static struct display_strategy* create_display_strategy(struct model *this);
 static void free_display_strategy(struct display_strategy *display_strategy); 
 static void move_flippers(struct model *this);
-
+static void init_playfield_for_level(struct playfield *this, int level);
+static inline int index_on_depth(int from, int sizeof_from, int sizeof_to);
 
 
 /** create the model.
@@ -190,6 +193,11 @@ struct display_strategy* create_display_strategy(struct model *this) {
   return display_strategy;
 }
 
+
+
+/* static ----------------------------------------------------------- */
+
+
 static void free_display_strategy(struct display_strategy *display_strategy) {
   free(display_strategy);
 }
@@ -204,38 +212,42 @@ static void free_display_strategy(struct display_strategy *display_strategy) {
 static void move_flippers(struct model *this) {
   int num_flippers_spawning = 0;
   int index_inactive_flipper = -1; // pick one, any one inactive
+  struct flipper *flipper;
+
 
   for (int i = 0; i < MAX_FLIPPERS; ++i) {
-    switch (this->playfield.flippers[i].flipper_state) {
+    flipper = &this->playfield.flippers[i];
+
+    switch (flipper->flipper_state) {
     case INACTIVE:
       index_inactive_flipper = i;
       break;
     case SPAWNING:
-      num_flippers_spawning++; // promoted flippers erroneously counted, it's fine.
-      // fallthrough...
+      num_flippers_spawning++; // promoted flippers will get counted here, perhaps erroneously
+      break;
     case ACTIVE:
 
-      if (this->playfield.flippers[i].depth > 0 &&
-          --this->playfield.flippers[i].next_depth_timer == 0) {
-        this->playfield.flippers[i].next_depth_timer = default_next_depth_timer;
-        this->playfield.flippers[i].flipper_state = ACTIVE;
-        this->playfield.flippers[i].depth--;
-        printf("flipper %d promoted to depth %d\n", i, this->playfield.flippers[i].depth);
-        this->playfield.flippers[i].intra_depth_timer = default_flipper_move_timer;
+      if (flipper->depth > 0 &&
+          --flipper->next_depth_timer == 0) {
+        flipper->next_depth_timer = default_next_depth_timer;
+        flipper->depth--;
+        printf("flipper %d promoted to depth %d from position %d ", i, flipper->depth, flipper->position);
+        flipper->intra_depth_timer = default_flipper_move_timer;
         // start it randomly somewhere on the next depth
         // TODO: map this to a logical position, not random
-        this->playfield.flippers[i].position =
-          this->playfield.flippers[i].position *
-          this->playfield.size_per_array[this->playfield.flippers[i].depth] /
-          this->playfield.size_per_array[this->playfield.flippers[i].depth + 1];
+        flipper->position =
+          index_on_depth(flipper->position,
+                         this->playfield.size_per_array[flipper->depth + 1],
+                         this->playfield.size_per_array[flipper->depth]);
           
+        printf("to position %d\n", flipper->position);
       }
-      else if (--this->playfield.flippers[i].intra_depth_timer == 0) {
+      else if (--flipper->intra_depth_timer == 0) {
         // reset timer to the flipper flip timer
-        this->playfield.flippers[i].intra_depth_timer = default_flipper_flip_timer;
+        flipper->intra_depth_timer = default_flipper_flip_timer;
         // we're ACTIVE and our timer expired, start transition out of
         // this position
-        this->playfield.flippers[i].flipper_state = FLIPPING_FROM1;
+        flipper->flipper_state = FLIPPING_FROM1;
 
       }
       break;
@@ -243,19 +255,19 @@ static void move_flippers(struct model *this) {
     case FLIPPING_FROM3:
       // on this first clock of the state,
       // actually move to the next position, checking for boundary conditions
-      if (this->playfield.flippers[i].intra_depth_timer == default_flipper_flip_timer) {
-        this->playfield.flippers[i].position +=
-          this->playfield.flippers[i].movement_direction;
-        if (this->playfield.flippers[i].position >= this->playfield.size_per_array[this->playfield.flippers[i].depth]) {
+      if (flipper->intra_depth_timer == default_flipper_flip_timer) {
+        flipper->position +=
+          flipper->movement_direction;
+        if (flipper->position >= this->playfield.size_per_array[flipper->depth]) {
           // don't flip past the array end
-          this->playfield.flippers[i].position = 0;
+          flipper->position = 0;
         }
-        else if (this->playfield.flippers[i].position < 0) {
-          this->playfield.flippers[i].position =
-            this->playfield.size_per_array[this->playfield.flippers[i].depth] - 1;
+        else if (flipper->position < 0) {
+          flipper->position =
+            this->playfield.size_per_array[flipper->depth] - 1;
         }
         printf("flipper %d moved to position %d depth %d\n", i,
-               this->playfield.flippers[i].position, this->playfield.flippers[i].depth);
+               flipper->position, flipper->depth);
       }
 
     // fallthrough
@@ -263,16 +275,16 @@ static void move_flippers(struct model *this) {
     case FLIPPING_FROM2:
     case FLIPPING_TO3:
     case FLIPPING_TO2:
-      if (--this->playfield.flippers[i].intra_depth_timer == 0) {
-        this->playfield.flippers[i].intra_depth_timer = default_flipper_flip_timer;
-        this->playfield.flippers[i].flipper_state++;
+      if (--flipper->intra_depth_timer == 0) {
+        flipper->intra_depth_timer = default_flipper_flip_timer;
+        flipper->flipper_state++;
       }
       break;
 
     case FLIPPING_TO1:
-      if (--this->playfield.flippers[i].intra_depth_timer == 0) {
-        this->playfield.flippers[i].intra_depth_timer = default_flipper_move_timer;
-        this->playfield.flippers[i].flipper_state = ACTIVE;
+      if (--flipper->intra_depth_timer == 0) {
+        flipper->intra_depth_timer = default_flipper_move_timer;
+        flipper->flipper_state = ACTIVE;
       }
       break;
 
@@ -285,7 +297,7 @@ static void move_flippers(struct model *this) {
 }
 
 
-/* static ----------------------------------------------------------- */
+
 
 
 static void init_playfield_for_level(struct playfield *playfield, int level) {
@@ -336,8 +348,13 @@ static void init_playfield_for_level(struct playfield *playfield, int level) {
 }
 
 
+static inline int index_on_depth(int from, int sizeof_from, int sizeof_to) {
+  return from * sizeof_to / sizeof_from;
+}
 
-/* view methods */
+
+
+/* view methods ----------------------------------------------------- */
 
 
 static uint16_t player_glyph_red_blue[] =
