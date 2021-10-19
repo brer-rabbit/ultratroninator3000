@@ -135,8 +135,6 @@ Wire Wire Line
 Wire Wire Line
 	2450 2000 3500 2000
 Wire Wire Line
-	2450 1600 3500 1600
-Wire Wire Line
 	2450 1700 3500 1700
 Wire Wire Line
 	2450 1300 3500 1300
@@ -1285,28 +1283,6 @@ Wire Wire Line
 	9700 1250 9650 1250
 $Comp
 L Diode:1N4148 D?
-U 1 1 61515F67
-P 8850 1250
-F 0 "D?" H 8850 1467 50  0000 C CNN
-F 1 "1N4148" H 8850 1376 50  0000 C CNN
-F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8850 1075 50  0001 C CNN
-F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8850 1250 50  0001 C CNN
-	1    8850 1250
-	1    0    0    -1  
-$EndComp
-$Comp
-L Diode:1N4148 D?
-U 1 1 61517458
-P 8850 1050
-F 0 "D?" H 8850 1267 50  0000 C CNN
-F 1 "1N4148" H 8850 1176 50  0000 C CNN
-F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8850 875 50  0001 C CNN
-F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8850 1050 50  0001 C CNN
-	1    8850 1050
-	1    0    0    -1  
-$EndComp
-$Comp
-L Diode:1N4148 D?
 U 1 1 61517F5D
 P 9850 1050
 F 0 "D?" H 9850 1267 50  0000 C CNN
@@ -1318,30 +1294,6 @@ F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 9850 
 $EndComp
 Wire Wire Line
 	9900 1050 10000 1050
-Wire Wire Line
-	9150 6650 9150 6400
-$Comp
-L Diode:1N4148 D?
-U 1 1 615BE3F4
-P 8900 1850
-F 0 "D?" H 8900 2067 50  0000 C CNN
-F 1 "1N4148" H 8900 1976 50  0000 C CNN
-F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8900 1675 50  0001 C CNN
-F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8900 1850 50  0001 C CNN
-	1    8900 1850
-	1    0    0    -1  
-$EndComp
-$Comp
-L Diode:1N4148 D?
-U 1 1 615BF1C7
-P 8900 2050
-F 0 "D?" H 8900 2267 50  0000 C CNN
-F 1 "1N4148" H 8900 2176 50  0000 C CNN
-F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8900 1875 50  0001 C CNN
-F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8900 2050 50  0001 C CNN
-	1    8900 2050
-	1    0    0    -1  
-$EndComp
 $Comp
 L Diode:1N4148 D?
 U 1 1 615BFB31
@@ -1353,10 +1305,6 @@ F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 9800 
 	1    9800 1850
 	-1   0    0    1   
 $EndComp
-Wire Wire Line
-	8750 1850 8550 1850
-Wire Wire Line
-	8750 2050 8550 2050
 Connection ~ 10000 1050
 Wire Wire Line
 	10000 1050 10100 1050
@@ -1364,28 +1312,11 @@ Connection ~ 9650 1250
 Wire Wire Line
 	9650 1250 9600 1250
 Wire Wire Line
-	8300 1050 8700 1050
-Wire Wire Line
-	9000 1450 9700 1450
-Wire Wire Line
-	9000 1250 9050 1250
-Wire Wire Line
-	9000 1050 9050 1050
-Wire Wire Line
-	9000 1150 9050 1150
+	8500 1150 9050 1150
 Wire Wire Line
 	9650 1050 9700 1050
 Wire Wire Line
-	8300 1250 8700 1250
-Connection ~ 8700 1250
-Wire Wire Line
-	8700 1250 8750 1250
-Wire Wire Line
-	9000 1150 9000 1250
-Wire Wire Line
 	9300 6200 9450 6200
-Wire Wire Line
-	9150 6400 9000 6400
 $Comp
 L Diode:1N4148 D?
 U 1 1 61572519
@@ -1396,28 +1327,6 @@ F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 9150 6025 50  0001 C CNN
 F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 9150 6200 50  0001 C CNN
 	1    9150 6200
 	-1   0    0    1   
-$EndComp
-$Comp
-L Diode:1N4148 D?
-U 1 1 61571B76
-P 8250 6400
-F 0 "D?" H 8250 6617 50  0000 C CNN
-F 1 "1N4148" H 8250 6526 50  0000 C CNN
-F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8250 6225 50  0001 C CNN
-F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8250 6400 50  0001 C CNN
-	1    8250 6400
-	1    0    0    -1  
-$EndComp
-$Comp
-L Diode:1N4148 D?
-U 1 1 61570EAC
-P 8250 6200
-F 0 "D?" H 8250 6417 50  0000 C CNN
-F 1 "1N4148" H 8250 6326 50  0000 C CNN
-F 2 "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal" H 8250 6025 50  0001 C CNN
-F 3 "https://assets.nexperia.com/documents/data-sheet/1N4148_1N4448.pdf" H 8250 6200 50  0001 C CNN
-	1    8250 6200
-	1    0    0    -1  
 $EndComp
 $Comp
 L Device:Rotary_Encoder_Switch SW?
@@ -1654,9 +1563,6 @@ Text Label 650  5450 0    50   ~ 0
 R_ROW13
 Text Label 650  5350 0    50   ~ 0
 R_ROW14
-Connection ~ 9000 1250
-Wire Wire Line
-	9000 1250 9000 1450
 Wire Wire Line
 	700  5250 700  2300
 Wire Wire Line
@@ -1679,19 +1585,8 @@ Wire Wire Line
 Text Label 7500 1650 0    50   ~ 0
 COM2
 Wire Wire Line
-	9700 2650 9700 2300
-Wire Wire Line
 	9700 2050 9650 2050
 Connection ~ 9700 2650
-Wire Wire Line
-	9050 1950 8450 1950
-Wire Wire Line
-	8450 1950 8450 2300
-Wire Wire Line
-	8450 2300 9700 2300
-Connection ~ 9700 2300
-Wire Wire Line
-	9700 2300 9700 2050
 Wire Wire Line
 	9700 2050 10050 2050
 Wire Wire Line
@@ -1701,24 +1596,12 @@ Wire Wire Line
 	9700 1250 9700 1350
 Wire Wire Line
 	9700 1350 10050 1350
-Connection ~ 9700 1350
-Wire Wire Line
-	9700 1350 9700 1450
 Text Label 10050 1350 0    50   ~ 0
 COM1
-Wire Wire Line
-	8400 6300 7650 6300
-Wire Wire Line
-	7650 6300 7650 6650
-Wire Wire Line
-	7650 6650 9150 6650
 Wire Wire Line
 	9000 5400 9700 5400
 Wire Wire Line
 	9700 5400 9700 6400
-Wire Wire Line
-	9700 6400 9150 6400
-Connection ~ 9150 6400
 Wire Wire Line
 	9700 4400 9700 5400
 Wire Wire Line
@@ -1754,17 +1637,9 @@ Wire Wire Line
 	6100 2650 5750 2650
 Text Label 5750 2650 0    50   ~ 0
 R_ROW14
-Text Label 8300 1050 0    50   ~ 0
-R_ROW4
-Text Label 8300 1250 0    50   ~ 0
-R_ROW5
 Text Label 10100 1050 0    50   ~ 0
 R_ROW6
-Text Label 8550 1850 0    50   ~ 0
-R_ROW7
-Text Label 8550 2050 0    50   ~ 0
-R_ROW8
-Text Label 9950 1850 0    50   ~ 0
+Text Label 9700 1750 0    50   ~ 0
 R_ROW9
 Text Label 8450 2650 0    50   ~ 0
 R_ROW10
@@ -1798,12 +1673,62 @@ Text Label 7450 5700 0    50   ~ 0
 R_ROW10
 Text Label 9450 6200 0    50   ~ 0
 R_ROW14
+$Comp
+L Switch:SW_SPST SW_ARCADE
+U 1 1 61544EF6
+P 3900 1600
+F 0 "SW_ARCADE" H 3900 1835 50  0000 C CNN
+F 1 "GAME_RESET" H 3900 1744 50  0000 C CNN
+F 2 "" H 3900 1600 50  0001 C CNN
+F 3 "~" H 3900 1600 50  0001 C CNN
+	1    3900 1600
+	1    0    0    -1  
+$EndComp
 Wire Wire Line
-	8100 6200 7750 6200
+	2450 1600 3700 1600
 Wire Wire Line
-	8100 6400 7750 6400
-Text Label 7750 6200 0    50   ~ 0
-R_ROW12
-Text Label 7750 6400 0    50   ~ 0
-R_ROW13
+	4100 1600 4250 1600
+Wire Wire Line
+	4250 1600 4250 1100
+Wire Wire Line
+	4250 1100 2550 1100
+Connection ~ 2550 1100
+Wire Wire Line
+	9700 2050 9700 2650
+Wire Wire Line
+	8400 6300 8050 6300
+Text Label 8050 6300 0    50   ~ 0
+GND
+Wire Wire Line
+	9050 1950 8450 1950
+Text Label 8450 1950 0    50   ~ 0
+GND
+Text Label 8500 1150 0    50   ~ 0
+GND
+Wire Wire Line
+	9000 6400 9700 6400
+Wire Wire Line
+	8400 6200 8050 6200
+Wire Wire Line
+	8400 6400 8050 6400
+Text Label 8050 6200 0    50   ~ 0
+GPIO16
+Text Label 8050 6400 0    50   ~ 0
+GPIO26
+Wire Wire Line
+	9050 1850 8450 1850
+Text Label 8450 1850 0    50   ~ 0
+GPIO12(PWM0)
+Wire Wire Line
+	9050 2050 8500 2050
+Text Label 8500 2050 0    50   ~ 0
+GPIO25(GEN6)
+Wire Wire Line
+	8500 1250 9050 1250
+Wire Wire Line
+	8550 1050 9050 1050
+Text Label 8550 1050 0    50   ~ 0
+GPIO6
+Text Label 8500 1250 0    50   ~ 0
+GPIO13(PWM1)
 $EndSCHEMATC

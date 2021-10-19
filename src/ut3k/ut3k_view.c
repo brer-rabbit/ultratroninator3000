@@ -39,6 +39,13 @@
 #define DISPLAY_ROWS 3
 
 
+static const int gpio_rotary_green_a_bcm = 16;
+static const int gpio_rotary_green_b_bcm = 26;
+static const int gpio_rotary_blue_a_bcm = 6;
+static const int gpio_rotary_blue_b_bcm = 13;
+static const int gpio_rotary_red_a_bcm = 12;
+static const int gpio_rotary_red_b_bcm = 25;
+static const char *gpio_devfile = "/dev/gpiochip0";
 
 
 
@@ -575,13 +582,7 @@ static inline void push_encoder_queue(struct rotary_encoder_bits_queue *queue, i
   }
   
 }
-static const int gpio_rotary_green_a_bcm = 16;
-static const int gpio_rotary_green_b_bcm = 26;
-static const int gpio_rotary_blue_a_bcm = 6;
-static const int gpio_rotary_blue_b_bcm = 13;
-static const int gpio_rotary_red_a_bcm = 12;
-static const int gpio_rotary_red_b_bcm = 25;
-static const char *gpio_devfile = "/dev/gpiochip0";
+
 
 static void* poll_rotary_encoders(void *userdata) {
   struct ut3k_view *this = (struct ut3k_view*) userdata;
