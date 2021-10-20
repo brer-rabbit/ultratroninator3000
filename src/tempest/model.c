@@ -475,7 +475,7 @@ static void spawn_flipper(struct model *this, int index) {
   *flipper = (struct flipper const)
     {
      .flipper_state = SPAWNING,
-     .position = rand() % 8,
+     .position = 0,
      .next_depth_timer = default_next_depth_timer,
      .intra_depth_timer = 0,
      .movement_direction = rand() & 0b1 ? 1 : -1
