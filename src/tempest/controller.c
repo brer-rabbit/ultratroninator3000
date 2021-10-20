@@ -66,15 +66,15 @@ static void initialize_model_from_control_panel(struct controller *this, const s
  */
 void controller_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
   struct controller *this = (struct controller*) userdata;
-  const struct rotary_encoder *blue_rotary_encoder = get_blue_rotary_encoder(control_panel);
+  const struct rotary_encoder *red_rotary_encoder = get_red_rotary_encoder(control_panel);
   const struct button *blue_button = get_blue_button(control_panel);
 
-  if (blue_rotary_encoder->encoder_delta != 0) {
-    move_player(this->model, -1 * blue_rotary_encoder->encoder_delta);
+  if (red_rotary_encoder->encoder_delta != 0) {
+    move_player(this->model, -1 * red_rotary_encoder->encoder_delta);
   }
 
 
-  if (blue_button->button_state == 1 && blue_button->state_count == 0) {
+  if (blue_button->button_state == 1) {
     set_player_blaster_fired(this->model);
   }
 

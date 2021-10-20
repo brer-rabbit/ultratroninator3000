@@ -73,17 +73,19 @@ struct flipper {
   int next_depth_timer; // timer for advancing to next depth (well, depth -1, surfacing?)
 };
 
-typedef enum { FIRED, READY } blaster_state_t;
+typedef enum { READY, FIRED } blaster_state_t;
 struct blaster {
   int position;
   int depth;
   blaster_state_t blaster_state;
+  int move_timer;
 };
   
 struct player {
   int position;
   int depth; // thinking this will always be zero, but include here anyway...
   struct blaster blaster[MAX_BLASTER_SHOTS];
+  int blaster_ready_timer; // non-positive is a ready state
 };
 
 
@@ -93,7 +95,8 @@ static const int default_flipper_flip_timer = 5;
 static const int default_next_depth_timer = 250;
 static const int default_spawn_move_timer = 5;  // spawn timer + randomness
 static const int default_spawn_move_timer_randomness = 50;
-static const int default_player_blaster_move_timer = 3;
+static const int default_player_blaster_move_timer = 5;
+static const int default_player_blaster_ready_timer = 25;
 
 struct playfield {
   int num_arrays;
@@ -115,6 +118,8 @@ struct model {
 static struct display_strategy* create_display_strategy(struct model *this);
 static void free_display_strategy(struct display_strategy *display_strategy); 
 static void move_flippers(struct model *this);
+static void move_blasters(struct model *this);
+static void collision_check(struct model *this);
 static void spawn_flipper(struct model *this, int index);
 static void init_playfield_for_level(struct playfield *this, int level);
 static inline int index_on_depth(int from, int sizeof_from, int sizeof_to);
@@ -144,9 +149,20 @@ void free_model(struct model *this) {
 void clocktick_gameplay(struct model *this, uint32_t clock) {
   // move the nasties, decrement clock, make adjustments
   move_flippers(this);
+  move_blasters(this);
+  collision_check(this);
+  // unchecked decrement blaster timer.
+  // Non-positive is ready this will roll/error from negative to
+  // positive in ~1 year.  That's acceptable.
+  this->player.blaster_ready_timer--;
 }
 
 
+/** move_player
+ *
+ * player circles the arena at depth zero.  If the playfield allows wrap,
+ * do that.  Otherwise held at the array boundaries.
+ */
 void move_player(struct model *this, int8_t direction) {
 
   if (direction > 0) {
@@ -167,9 +183,34 @@ void move_player(struct model *this, int8_t direction) {
 }
 
 
-
+/** set_player_blaster_fired
+ *
+ * fire the thingymajig.  Conditions are the blaster timer is non-positive
+ * and shots are available.  Firing set a blaster shot to fired at player
+ * position and reset of the blaster timer.
+ */
 void set_player_blaster_fired(struct model *this) {
-  printf("firing blaster\n");
+  if (this->player.blaster_ready_timer <= 0) {
+    // timer says it's available, see if any shots are ready
+    struct blaster *blaster;
+    for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
+      blaster = &this->player.blaster[i];
+      if (blaster->blaster_state == READY) {
+        // got one
+        *blaster = (struct blaster const)
+          {
+           .blaster_state = FIRED,
+           .position = this->player.position,
+           .depth = this->player.depth,
+           .move_timer = default_player_blaster_move_timer
+          };
+        // TODO: play blaster sound
+        printf("blaster fired\n");
+        this->player.blaster_ready_timer = default_player_blaster_ready_timer;
+        return;
+      }
+    }
+  }
 }
 
 
@@ -320,6 +361,71 @@ static void move_flippers(struct model *this) {
   if (num_flippers_spawning == 0 && index_inactive_flipper != -1) {
     printf("spawning flipper index %d\n", index_inactive_flipper);
     spawn_flipper(this, index_inactive_flipper);
+  }
+}
+
+
+
+static void move_blasters(struct model *this) {
+  struct blaster *blaster;
+
+  for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
+    blaster = &this->player.blaster[i];
+    if (blaster->blaster_state == FIRED) {
+      if (--blaster->move_timer == 0) {
+        blaster->move_timer = default_player_blaster_move_timer;
+        if (blaster->depth == this->playfield.num_arrays - 1) {
+          // blaster shot is at the max depth, reset back to ready
+          blaster->blaster_state = READY;
+        }
+        else {
+          // move the shot
+          printf("blaster %d going from %d depth %d ", i, blaster->position, blaster->depth);
+          blaster->position =
+            index_on_depth(blaster->position,
+                           this->playfield.size_per_array[blaster->depth],
+                           this->playfield.size_per_array[blaster->depth + 1]);
+          blaster->depth++;
+          printf("to position %d depth %d\n", blaster->position, blaster->depth);
+        }
+      }
+    }
+  }
+}
+
+
+/** collision_check
+ *
+ * pre: everything has moved for this clocktick.
+ * check if any blaster shots occupy the position of a nasty.
+ * Check if any nasty is in the same space as the player.
+ */
+static void collision_check(struct model *this) {
+  struct flipper *flipper;
+  struct blaster *blaster;
+
+  // plain vanilla O(N*N) approach to this
+  for (int i = 0; i < MAX_FLIPPERS; ++i) {
+    flipper = &this->playfield.flippers[i];
+    if (flipper->flipper_state == INACTIVE ||
+        flipper->flipper_state == SPAWNING ||
+        flipper->flipper_state == DESTROYED) {
+      continue; // ignore this flipper
+    }
+
+    for (int j = 0; j < MAX_BLASTER_SHOTS; ++j) {
+      blaster = &this->player.blaster[j];
+      if (blaster->blaster_state == READY) {
+        continue;
+      }
+      else if (blaster->depth == flipper->depth &&
+               blaster->position == flipper->position) {
+        // HIT!
+        // TODO: play sound
+        blaster->blaster_state = READY;
+        flipper->flipper_state = DESTROYED;
+      }
+    }
   }
 }
 

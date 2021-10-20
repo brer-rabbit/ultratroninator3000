@@ -2,8 +2,8 @@ TARGET = TEMP_EST
 INCLUDE = -I../../include
 LIBS = -li2c -lconfig -lpulse -lsndfile -lpthread -L../../lib/ -lut3k
 CC = gcc
-#CFLAGS = -O2 -Wall
-CFLAGS = -g -Wall
+CFLAGS = -O2 -Wall
+#CFLAGS = -g -Wall
 
 .PHONY: default all clean
 
