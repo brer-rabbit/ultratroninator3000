@@ -41,6 +41,7 @@ void clocktick_gameplay(struct model*, uint32_t clock);
 
 // move: positive/negative amount to move player by
 void move_player(struct model*, int8_t direction);
+void set_player_blaster_fired(struct model*);
 
 
 

@@ -30,12 +30,20 @@
 
 
 
-// view
+// I keep calling this the model, but it's got the view coupled...
 static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 static display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 
+
+// the playfield is a list of arrays...
+// level zero being where the player is.  The greatest number (num_levels-1)
+// is where the flippers originate.
+#define MAX_PLAYFIELD_NUM_ARRAYS 5
+#define MAX_PLAYFIELD_ARRAY_SIZE 28
+#define MAX_FLIPPERS 16
+#define MAX_BLASTER_SHOTS 4
 
 struct flipper;
 typedef enum { DISPLAY_RED, DISPLAY_BLUE, DISPLAY_GREEN } display_t;
@@ -65,36 +73,33 @@ struct flipper {
   int next_depth_timer; // timer for advancing to next depth (well, depth -1, surfacing?)
 };
 
-
+typedef enum { FIRED, READY } blaster_state_t;
+struct blaster {
+  int position;
+  int depth;
+  blaster_state_t blaster_state;
+};
   
 struct player {
   int position;
   int depth; // thinking this will always be zero, but include here anyway...
+  struct blaster blaster[MAX_BLASTER_SHOTS];
 };
 
 
-// the playfield is a list of arrays...
-// level zero being where the player is.  The greatest number (num_levels-1)
-// is where the flippers originate.
-#define MAX_PLAYFIELD_NUM_ARRAYS 5
-#define MAX_PLAYFIELD_ARRAY_SIZE 28
-#define MAX_FLIPPERS 16
 
 static const int default_flipper_move_timer = 50;
 static const int default_flipper_flip_timer = 5;
 static const int default_next_depth_timer = 250;
-static const int default_spawn_next_nasty_timer = 30;
-static const int default_max_spawning_nasties = 2;
 static const int default_spawn_move_timer = 5;  // spawn timer + randomness
-static const int default_spawn_move_timer_randomness = 5;
-
+static const int default_spawn_move_timer_randomness = 50;
+static const int default_player_blaster_move_timer = 3;
 
 struct playfield {
   int num_arrays;
   int size_per_array[MAX_PLAYFIELD_NUM_ARRAYS];
   int arrays[MAX_PLAYFIELD_NUM_ARRAYS][MAX_PLAYFIELD_ARRAY_SIZE];
   int circular; // boolean- should it wrap around?  applies to all arrays
-  int spawn_next_nasty_timer; // timer to spawn next enemy
   int num_flippers;
   struct flipper flippers[MAX_FLIPPERS];
 };
@@ -110,6 +115,7 @@ struct model {
 static struct display_strategy* create_display_strategy(struct model *this);
 static void free_display_strategy(struct display_strategy *display_strategy); 
 static void move_flippers(struct model *this);
+static void spawn_flipper(struct model *this, int index);
 static void init_playfield_for_level(struct playfield *this, int level);
 static inline int index_on_depth(int from, int sizeof_from, int sizeof_to);
 
@@ -161,6 +167,10 @@ void move_player(struct model *this, int8_t direction) {
 }
 
 
+
+void set_player_blaster_fired(struct model *this) {
+  printf("firing blaster\n");
+}
 
 
 
@@ -223,7 +233,20 @@ static void move_flippers(struct model *this) {
       index_inactive_flipper = i;
       break;
     case SPAWNING:
-      num_flippers_spawning++; // promoted flippers will get counted here, perhaps erroneously
+      num_flippers_spawning++;
+      if (--flipper->next_depth_timer == 0) {
+        flipper->flipper_state = ACTIVE;
+        flipper->depth = this->playfield.num_arrays - 1,
+        flipper->position = rand() %
+          this->playfield.size_per_array[ this->playfield.num_arrays - 1 ];
+        flipper->next_depth_timer = default_next_depth_timer;
+        flipper->intra_depth_timer = default_flipper_move_timer;
+      }
+      else {
+        // make it move around a bit- then as the next depth timer
+        // runs down launch from position 0-->7
+        flipper->position = -1 * ( 8 * flipper->next_depth_timer / default_next_depth_timer - 7);
+      }
       break;
     case ACTIVE:
 
@@ -231,16 +254,15 @@ static void move_flippers(struct model *this) {
           --flipper->next_depth_timer == 0) {
         flipper->next_depth_timer = default_next_depth_timer;
         flipper->depth--;
-        printf("flipper %d promoted to depth %d from position %d ", i, flipper->depth, flipper->position);
+        //printf("flipper %d promoted to depth %d from position %d ", i, flipper->depth, flipper->position);
         flipper->intra_depth_timer = default_flipper_move_timer;
-        // start it randomly somewhere on the next depth
-        // TODO: map this to a logical position, not random
+
         flipper->position =
           index_on_depth(flipper->position,
                          this->playfield.size_per_array[flipper->depth + 1],
                          this->playfield.size_per_array[flipper->depth]);
+        //printf("to position %d\n", flipper->position);
           
-        printf("to position %d\n", flipper->position);
       }
       else if (--flipper->intra_depth_timer == 0) {
         // reset timer to the flipper flip timer
@@ -266,8 +288,7 @@ static void move_flippers(struct model *this) {
           flipper->position =
             this->playfield.size_per_array[flipper->depth] - 1;
         }
-        printf("flipper %d moved to position %d depth %d\n", i,
-               flipper->position, flipper->depth);
+        //printf("flipper %d moved to position %d depth %d\n", i, flipper->position, flipper->depth);
       }
 
     // fallthrough
@@ -294,9 +315,33 @@ static void move_flippers(struct model *this) {
     } // switch
 
   } // for
+
+  // if nothing is spawning, setup an inactive flipper
+  if (num_flippers_spawning == 0 && index_inactive_flipper != -1) {
+    printf("spawning flipper index %d\n", index_inactive_flipper);
+    spawn_flipper(this, index_inactive_flipper);
+  }
 }
 
 
+
+/** spawn_flipper
+ *
+ * bring an INACTIVE flipper to life.
+ * Set a random time for to go from spawning to active.
+ */
+static void spawn_flipper(struct model *this, int index) {
+  struct flipper *flipper = &this->playfield.flippers[index];
+
+  *flipper = (struct flipper const)
+    {
+     .flipper_state = SPAWNING,
+     .position = rand() % 8,
+     .next_depth_timer = default_next_depth_timer,
+     .intra_depth_timer = default_spawn_move_timer,
+     .movement_direction = rand() & 0b1 ? 1 : -1
+    };
+}
 
 
 
@@ -308,41 +353,18 @@ static void init_playfield_for_level(struct playfield *playfield, int level) {
        .num_arrays = 5,
        .size_per_array = { 28, 20, 12, 4, 4 },
        .circular = 1,
-       .spawn_next_nasty_timer = default_spawn_next_nasty_timer,
        .num_flippers = 8,
       };
 
     // zero out array
     memset(playfield->arrays, 0, sizeof(int) * MAX_PLAYFIELD_NUM_ARRAYS * MAX_PLAYFIELD_ARRAY_SIZE);
 
-    // TODO: delete / refactor code once spawning rules are created
-    // for now, manually spawn two flippers
 
-    for (int i = 2; i < playfield->num_flippers; ++i) {
+    for (int i = 0; i < playfield->num_flippers; ++i) {
       // put flippers at max depth, inactive, and randomly positioned
       playfield->flippers[i].depth = playfield->num_arrays - 1;
       playfield->flippers[i].flipper_state = INACTIVE;
-      playfield->flippers[i].position = rand() %
-        playfield->size_per_array[ playfield->num_arrays - 1 ];
     }
-
-    playfield->flippers[0].depth = playfield->num_arrays - 1;
-    playfield->flippers[0].flipper_state = ACTIVE;
-    playfield->flippers[0].position = rand() %
-      playfield->size_per_array[ playfield->num_arrays - 1 ];
-    playfield->flippers[0].intra_depth_timer =
-      default_spawn_move_timer + rand() % default_spawn_move_timer_randomness;
-    playfield->flippers[0].next_depth_timer = default_next_depth_timer;
-    playfield->flippers[0].movement_direction = rand() & 0b1 ? 1 : -1;
-    
-    playfield->flippers[1].depth = playfield->num_arrays - 1;
-    playfield->flippers[1].flipper_state = ACTIVE;
-    playfield->flippers[1].position = rand() %
-      playfield->size_per_array[ playfield->num_arrays - 1 ];
-    playfield->flippers[1].intra_depth_timer =
-      default_spawn_move_timer + rand() % default_spawn_move_timer_randomness;
-    playfield->flippers[1].next_depth_timer = default_next_depth_timer;
-    playfield->flippers[1].movement_direction = rand() & 0b1 ? 1 : -1;
 
   }
 }
@@ -461,6 +483,14 @@ static display_type get_leds_display(struct display_strategy *display_strategy, 
   (*value).display_int = 0;
   *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_12;
+
+  for (int i = 0; i < MAX_FLIPPERS; ++i) {
+    if (this->playfield.flippers[i].flipper_state == SPAWNING) {
+      (*value).display_int = (1 << this->playfield.flippers[i].position) << 8;
+      break;
+    }
+  }
+
 
   return integer_display;
 }
