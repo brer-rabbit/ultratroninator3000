@@ -51,8 +51,8 @@ void free_controller(struct controller *this) {
 
 
 void controller_update(struct controller *this, uint32_t clock) {
-  clocktick_gameplay(this->model, clock);
   update_view(this->view, get_display_strategy(this->model), clock);
+  clocktick_gameplay(this->model, clock);
 }
 
 
