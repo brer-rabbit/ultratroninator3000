@@ -23,8 +23,18 @@
 #define GAMES_LOCAL_ENV_VAR "GAMES_LOCAL"
 #define DEFAULT_GAMES_BASEDIR "/usr/local/games/ultratroninator_3000"
 #define CONFIG_DIRNAME "/etc/"
-#define CONFIG_FILENAME "ultratroninator.config"
+#define CONFIG_FILENAME "tempest.config"
 #define SAMPLE_DIRNAME "/samples/"
+
+extern const char *crash_on_spike_soundkey;
+extern const char *enemy_destroyed_soundkey;
+extern const char *highscore_soundkey;
+extern const char *level_up_soundkey;
+extern const char *player_lose_life_soundkey;
+extern const char *player_move_soundkey;
+extern const char *player_multishot_soundkey;
+extern const char *player_shoot_soundkey;
+extern const char *superzapper_soundkey;
 
 
 #endif

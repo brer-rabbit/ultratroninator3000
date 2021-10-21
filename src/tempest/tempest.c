@@ -45,6 +45,19 @@ struct model *model;
 static struct controller *controller;
 static struct ut3k_view *view;
 
+// these are (should) primarily be used by the model, but define and allow
+// export here
+const char *crash_on_spike_soundkey = "crash_on_spike";
+const char *enemy_destroyed_soundkey = "enemy_destroyed";
+const char *highscore_soundkey = "highscore";
+const char *level_up_soundkey = "level_up";
+const char *player_lose_life_soundkey = "player_lose_life";
+const char *player_move_soundkey = "player_move";
+const char *player_multishot_soundkey = "player_multishot";
+const char *player_shoot_soundkey = "player_shoot";
+const char *superzapper_soundkey = "superzapper";
+
+
 void sig_cleanup_and_exit(int signum) {
   printf("caught sig %d.  Cleaning up and exiting.  Stats: %u clock ticks (%u overruns)\n",
 	 signum, clock_iterations, clock_overruns);

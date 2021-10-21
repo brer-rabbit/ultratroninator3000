@@ -23,9 +23,9 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "tempest.h"
 #include "model.h"
 #include "ut3k_pulseaudio.h"
-
 
 
 
@@ -93,8 +93,8 @@ struct player {
 static const int default_flipper_move_timer = 50;
 static const int default_flipper_flip_timer = 5;
 static const int default_next_depth_timer = 107;
-static const int default_player_blaster_move_timer = 5;
-static const int default_player_blaster_ready_timer = 25;
+static const int default_player_blaster_move_timer = 6;
+static const int default_player_blaster_ready_timer = 20;
 static const int default_next_flipper_spawn_timer_randmoness = 250;
 static const int default_next_flipper_spawn_timer_minumum = 31;
 
@@ -168,7 +168,8 @@ void move_player(struct model *this, int8_t direction) {
 
   if (direction > 0) {
     this->player.position++;
-    if (this->player.position >= this->playfield.size_per_array[0] - 1) {
+    printf("move player sizeof array: %d\n", this->playfield.size_per_array[0]);
+    if (this->player.position >= this->playfield.size_per_array[0]) {
       this->player.position = this->playfield.circular ? 0 : this->playfield.size_per_array[0] - 1;
     }
   }
@@ -181,6 +182,7 @@ void move_player(struct model *this, int8_t direction) {
   }
 
   printf("player: %d\n", this->player.position);
+  ut3k_play_sample(player_move_soundkey);
 }
 
 
@@ -205,7 +207,13 @@ void set_player_blaster_fired(struct model *this) {
            .depth = this->player.depth,
            .move_timer = default_player_blaster_move_timer
           };
-        // TODO: play blaster sound
+
+        if (i == 0) {
+          ut3k_play_sample(player_multishot_soundkey);
+        }
+        else {
+          ut3k_play_sample(player_shoot_soundkey);
+        }
         printf("blaster fired\n");
         this->player.blaster_ready_timer = default_player_blaster_ready_timer;
         return;
@@ -444,7 +452,7 @@ static void collision_check(struct model *this) {
       else if (blaster->depth == flipper->depth &&
                blaster->position == flipper->position) {
         // HIT!
-        // TODO: play sound
+        ut3k_play_sample(enemy_destroyed_soundkey);
         blaster->blaster_state = READY;
         flipper->flipper_state = DESTROYED;
       }
@@ -489,10 +497,10 @@ static void init_playfield_for_level(struct playfield *playfield, int level) {
   if (1 || level == 1) {
     *playfield = (struct playfield const)
       {
-       .num_arrays = 5,
+       .num_arrays = sizeof((((struct playfield *)0)->size_per_array)) / sizeof(int*),
        .size_per_array = { 28, 20, 12, 4, 4 },
        .circular = 1,
-       .num_flippers = 1,
+       .num_flippers = 14,
        .next_flipper_spawn_timer = rand() % default_next_flipper_spawn_timer_randmoness + default_next_flipper_spawn_timer_minumum
       };
 
@@ -519,13 +527,13 @@ static inline int index_on_depth(int from, int sizeof_from, int sizeof_to) {
 /* view methods ----------------------------------------------------- */
 
 
-static uint16_t player_glyph_red_blue[] =
-   { 0x0160, 0x0850, 0x1800, 0x3000, 0x1800, 0x3000, 0x1800, 0x3000,
-     0x1800, 0x3000, 0x2084, 0x0482 };
-
-static uint16_t player_glyph_green[] =
-  { 0x2084, 0x0482, 0x0600, 0x0300,  0x0600, 0x0300,  0x0600, 0x0300,
-    0x0600, 0x0300, 0x0160, 0x0850 };
+static uint16_t player_glyph[] =
+  {
+   0x0850, 0x0160, 0x0850, 0x1800, 0x3000, 0x1800, 0x3000, 0x1800, 0x3000,
+   0x1800, 0x3000, 0x2084, 0x0482, 0x2084, 0x0482, 0x2084, 0x0482, 0x0600,
+   0x0300, 0x0600, 0x0300, 0x0600, 0x0300, 0x0600, 0x0300, 0x0160, 0x0850,
+   0x0160
+  };
 
 
 
@@ -538,18 +546,20 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
 
   memset((*value).display_glyph, 0, sizeof(display_value));
 
-  if (this->player.position < 4) {
-    (*value).display_glyph[0] = player_glyph_red_blue[this->player.position];
+  if (this->player.position != 0) {
+    if (this->player.position > 0 && this->player.position < 5) {
+      (*value).display_glyph[0] = player_glyph[this->player.position];
+    }
+    else if (this->player.position < 7) {
+      (*value).display_glyph[1] = player_glyph[this->player.position];
+    }  
+    else if (this->player.position < 9) {
+      (*value).display_glyph[2] = player_glyph[this->player.position];
+    }  
+    else if (this->player.position < 13) {
+      (*value).display_glyph[3] = player_glyph[this->player.position];
+    }  
   }
-  else if (this->player.position < 6) {
-    (*value).display_glyph[1] = player_glyph_red_blue[this->player.position];
-  }  
-  else if (this->player.position < 8) {
-    (*value).display_glyph[2] = player_glyph_red_blue[this->player.position];
-  }  
-  else if (this->player.position < 12) {
-    (*value).display_glyph[3] = player_glyph_red_blue[this->player.position];
-  }  
 
   // draw any active flippers
   for (int i = 0; i < MAX_FLIPPERS; ++i) {
@@ -568,12 +578,12 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
 
   memset((*value).display_glyph, 0, sizeof(display_value));
 
-  if (this->player.position > 11 && this->player.position < 14) {
-    (*value).display_glyph[3] = player_glyph_red_blue[this->player.position - 2];
+  if (this->player.position == 0 || this->player.position == 27) {
+    (*value).display_glyph[0] = player_glyph[this->player.position];
   }
-  else if (this->player.position > 25) {
-    (*value).display_glyph[0] = player_glyph_red_blue[this->player.position - 26];
-  } 
+  else if (this->player.position == 13 || this->player.position == 14) {
+    (*value).display_glyph[3] = player_glyph[this->player.position];
+  }
 
   // draw any active flippers
   for (int i = 0; i < this->playfield.num_flippers; ++i) {
@@ -592,18 +602,20 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 
   memset((*value).display_glyph, 0, sizeof(display_value));
 
-  if (this->player.position > 13 && this->player.position <= 17) {
-    (*value).display_glyph[3] = player_glyph_green[this->player.position - 14];
+  if (this->player.position != 27) {
+    if (this->player.position > 22) {
+      (*value).display_glyph[0] = player_glyph[this->player.position];
+    }
+    else if (this->player.position > 20) {
+      (*value).display_glyph[1] = player_glyph[this->player.position];
+    }
+    else if (this->player.position > 18) {
+      (*value).display_glyph[2] = player_glyph[this->player.position];
+    }
+    else if (this->player.position > 14) {
+      (*value).display_glyph[3] = player_glyph[this->player.position];
+    }
   }
-  else if (this->player.position > 17 && this->player.position <= 19) {
-    (*value).display_glyph[2] = player_glyph_green[this->player.position - 14];
-  } 
-  else if (this->player.position > 19 && this->player.position <= 21) {
-    (*value).display_glyph[1] = player_glyph_green[this->player.position - 14];
-  } 
-  else if (this->player.position > 21 && this->player.position <= 25) {
-    (*value).display_glyph[0] = player_glyph_green[this->player.position - 14];
-  } 
 
   // draw any active flippers
   for (int i = 0; i < this->playfield.num_flippers; ++i) {

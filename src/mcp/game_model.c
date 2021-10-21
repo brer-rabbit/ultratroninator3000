@@ -46,11 +46,11 @@ static const uint32_t init_long_timer = 100;
 static const uint32_t init_short_timer = 30;
 static const uint32_t init_attract_sample_timer = 2000;
 
-static const char *attract_tease_sample = "attract_tease";
-static const char *attract_intimidate_sample = "attract_intimidate";
+static const char *attract_tease_sample = "default_attract_tease";
+static const char *attract_intimidate_sample = "default_attract_intimidate";
 static const char *next_game_sample = "next_game";
 static const char *previous_game_sample = "previous_game";
-static const char *attract_coin_sample = "attract_coin";
+static const char *attract_coin_sample = "default_attract_coin";
 static const char *shutdown_start_sample = "shutdown_start";
 //static const char *shutdown_abort_sample = "shutdown_abort";
 static const char *life_sample = "life";
