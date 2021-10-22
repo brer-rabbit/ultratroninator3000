@@ -71,16 +71,9 @@ void ut3k_pa_mainloop_iterate() {
 
 /** ut3k_disconnect_audio_context
  *
- * disconnect from the server.  Set argument remove_samples to iterate
- * over the cached sample list and remove samples and free associated
- * structures.  Set to zero to keep stuff in memory.
+ * disconnect from the server
  */
-void ut3k_disconnect_audio_context(int remove_samples) {
-
-    if (remove_samples) {
-        // iterate over the sample list
-        
-    }
+void ut3k_disconnect_audio_context() {
 
     if (context) {
         pa_context_disconnect(context);

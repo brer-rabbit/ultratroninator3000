@@ -126,7 +126,7 @@ void sig_cleanup_and_exit(int signum) {
   free_game_controller(controller);
   free_game_model(model);
   free_ut3k_view(view);
-  ut3k_disconnect_audio_context(1);
+  ut3k_disconnect_audio_context();
   exit(0);
 }
 

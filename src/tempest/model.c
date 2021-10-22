@@ -28,7 +28,15 @@
 #include "ut3k_pulseaudio.h"
 
 
-
+typedef enum
+{
+  GAME_ATTRACT,
+  GAME_PLAY,
+  GAME_PLAYER_HIT,
+  GAME_LEVEL_UP,
+  GAME_OVER
+} game_state_t;
+  
 
 // I keep calling this the model, but it's got the view coupled...
 static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
@@ -43,11 +51,8 @@ static display_type get_leds_display(struct display_strategy *display_strategy, 
 #define MAX_PLAYFIELD_NUM_ARRAYS 5
 #define MAX_PLAYFIELD_ARRAY_SIZE 28
 #define MAX_FLIPPERS 16
-#define MAX_BLASTER_SHOTS 4
+#define MAX_BLASTER_SHOTS 2
 
-struct flipper;
-typedef enum { DISPLAY_RED, DISPLAY_BLUE, DISPLAY_GREEN } display_t;
-static void display_flipper(struct flipper*, display_t, display_value*);
 
 
 // abuse note: ordering is important, movement of flippers iterates the enum
@@ -67,7 +72,7 @@ typedef enum { INACTIVE,  // not on game board
 struct flipper {
   int position;
   int depth;
-  int movement_direction; // direction the flipper takes during movement: cw (-11), ccw (1)
+  int movement_direction; // direction the flipper takes during movement: cw (-11), none (0), ccw (1)
   flipper_state_t flipper_state;
   int intra_depth_timer; // timer for moving within the current depth
   int next_depth_timer; // timer for advancing to next depth (well, depth -1, surfacing?)
@@ -90,13 +95,14 @@ struct player {
 
 
 
-static const int default_flipper_move_timer = 50;
+static const int default_flipper_move_timer = 25;
 static const int default_flipper_flip_timer = 5;
-static const int default_next_depth_timer = 107;
+static const int default_next_depth_timer = 99;
 static const int default_player_blaster_move_timer = 6;
-static const int default_player_blaster_ready_timer = 20;
-static const int default_next_flipper_spawn_timer_randmoness = 250;
-static const int default_next_flipper_spawn_timer_minumum = 31;
+static const int default_player_blaster_ready_timer = 60;
+static const int default_next_flipper_spawn_timer_randmoness = 200;
+static const int default_next_flipper_spawn_timer_minumum = 50;
+static const int default_max_spawning_flippers = 3;
 
 struct playfield {
   int num_arrays;
@@ -108,16 +114,24 @@ struct playfield {
   struct flipper flippers[MAX_FLIPPERS];
 };
 
+
 struct model {
-  struct display_strategy *display_strategy;
+  struct display_strategy *gameplay_display_strategy;
   struct player player;
   struct playfield playfield;
+  game_state_t game_state;
 };
 
 
+// view methods
+typedef enum { DISPLAY_RED, DISPLAY_BLUE, DISPLAY_GREEN } display_t;
+static void display_flipper(struct flipper*, display_t, display_value*);
+static void display_blaster(struct blaster*, display_t, display_value*);
 
-static struct display_strategy* create_display_strategy(struct model *this);
-static void free_display_strategy(struct display_strategy *display_strategy); 
+// model methods
+static struct display_strategy* create_gameplay_display_strategy(struct model *this);
+static void free_gameplay_display_strategy(struct display_strategy *display_strategy); 
+static void clocktick_gameplay(struct model *this, uint32_t clock);
 static int move_flippers(struct model *this);
 static int move_blasters(struct model *this);
 static void collision_check(struct model *this);
@@ -130,11 +144,12 @@ static inline int index_on_depth(int from, int sizeof_from, int sizeof_to);
  */
 struct model* create_model() {
   struct model* this = (struct model*)malloc(sizeof(struct model));
-  this->display_strategy = create_display_strategy(this);
+  this->gameplay_display_strategy = create_gameplay_display_strategy(this);
 
   this->player = (struct player const) { 0 };
 
   // just for now...get things going
+  this->game_state = GAME_PLAY;
   init_playfield_for_level(&this->playfield, 1);
 
   return this;
@@ -142,12 +157,25 @@ struct model* create_model() {
 
 
 void free_model(struct model *this) {
-  free_display_strategy(this->display_strategy);
+  free_gameplay_display_strategy(this->gameplay_display_strategy);
   return free(this);
 }
 
 
-void clocktick_gameplay(struct model *this, uint32_t clock) {
+void clocktick_model(struct model *this, uint32_t clock) {
+  switch(this->game_state) {
+  case GAME_PLAY:
+    clocktick_gameplay(this, clock);
+    break;
+  case GAME_PLAYER_HIT:
+    break;
+  default:
+    break;
+  }
+}
+
+
+static void clocktick_gameplay(struct model *this, uint32_t clock) {
   // move the nasties, decrement clock, make adjustments
   move_flippers(this);
   move_blasters(this);
@@ -168,7 +196,6 @@ void move_player(struct model *this, int8_t direction) {
 
   if (direction > 0) {
     this->player.position++;
-    printf("move player sizeof array: %d\n", this->playfield.size_per_array[0]);
     if (this->player.position >= this->playfield.size_per_array[0]) {
       this->player.position = this->playfield.circular ? 0 : this->playfield.size_per_array[0] - 1;
     }
@@ -214,7 +241,6 @@ void set_player_blaster_fired(struct model *this) {
         else {
           ut3k_play_sample(player_shoot_soundkey);
         }
-        printf("blaster fired\n");
         this->player.blaster_ready_timer = default_player_blaster_ready_timer;
         return;
       }
@@ -226,7 +252,7 @@ void set_player_blaster_fired(struct model *this) {
 
 
 struct display_strategy* get_display_strategy(struct model *this) {
-  return this->display_strategy;
+  return this->gameplay_display_strategy;
 }
 
 
@@ -234,7 +260,7 @@ struct display_strategy* get_display_strategy(struct model *this) {
 
 
 
-struct display_strategy* create_display_strategy(struct model *this) {
+struct display_strategy* create_gameplay_display_strategy(struct model *this) {
   struct display_strategy *display_strategy;
   display_strategy = (struct display_strategy*)malloc(sizeof(struct display_strategy));
   display_strategy->userdata = (void*)this;
@@ -258,7 +284,7 @@ struct display_strategy* create_display_strategy(struct model *this) {
 /* static ----------------------------------------------------------- */
 
 
-static void free_display_strategy(struct display_strategy *display_strategy) {
+static void free_gameplay_display_strategy(struct display_strategy *display_strategy) {
   free(display_strategy);
 }
 
@@ -290,7 +316,7 @@ static int move_flippers(struct model *this) {
       if (--flipper->next_depth_timer == 0) {
         something_moved = 1;
         flipper->flipper_state = ACTIVE;
-        flipper->depth = this->playfield.num_arrays - 1,
+        flipper->depth = this->playfield.num_arrays - 1;
         flipper->position = rand() %
           this->playfield.size_per_array[ this->playfield.num_arrays - 1 ];
         flipper->next_depth_timer = default_next_depth_timer;
@@ -378,8 +404,9 @@ static int move_flippers(struct model *this) {
   // if nothing is spawning, setup an inactive flipper
   if (--this->playfield.next_flipper_spawn_timer == 0) {
     this->playfield.next_flipper_spawn_timer = rand() % default_next_flipper_spawn_timer_randmoness + default_next_flipper_spawn_timer_minumum;
-    if (num_flippers_spawning == 0 && index_inactive_flipper != -1) {
-      printf("spawning flipper index %d\n", index_inactive_flipper);
+    if (num_flippers_spawning < default_max_spawning_flippers &&
+        index_inactive_flipper != -1) {
+      //printf("spawning flipper index %d\n", index_inactive_flipper);
       spawn_flipper(this, index_inactive_flipper);
     }
   }
@@ -409,13 +436,16 @@ static int move_blasters(struct model *this) {
         }
         else {
           // move the shot
-          printf("blaster %d going from %d depth %d ", i, blaster->position, blaster->depth);
+          printf("blaster %d moved from %d depth %d ",
+                 i, blaster->position, blaster->depth);
           blaster->position =
             index_on_depth(blaster->position,
                            this->playfield.size_per_array[blaster->depth],
                            this->playfield.size_per_array[blaster->depth + 1]);
           blaster->depth++;
-          printf("to position %d depth %d\n", blaster->position, blaster->depth);
+          printf("to %d depth %d\n",
+                 blaster->position, blaster->depth);
+
         }
       }
     }
@@ -499,8 +529,9 @@ static void init_playfield_for_level(struct playfield *playfield, int level) {
       {
        .num_arrays = sizeof((((struct playfield *)0)->size_per_array)) / sizeof(int*),
        .size_per_array = { 28, 20, 12, 4, 4 },
+       //.size_per_array = { 14, 10, 6, 4, 4 },
        .circular = 1,
-       .num_flippers = 14,
+       .num_flippers = 12,
        .next_flipper_spawn_timer = rand() % default_next_flipper_spawn_timer_randmoness + default_next_flipper_spawn_timer_minumum
       };
 
@@ -513,7 +544,6 @@ static void init_playfield_for_level(struct playfield *playfield, int level) {
       playfield->flippers[i].depth = playfield->num_arrays - 1;
       playfield->flippers[i].flipper_state = INACTIVE;
     }
-
   }
 }
 
@@ -527,14 +557,13 @@ static inline int index_on_depth(int from, int sizeof_from, int sizeof_to) {
 /* view methods ----------------------------------------------------- */
 
 
-static uint16_t player_glyph[] =
+static const uint16_t player_glyph[] =
   {
    0x0850, 0x0160, 0x0850, 0x1800, 0x3000, 0x1800, 0x3000, 0x1800, 0x3000,
    0x1800, 0x3000, 0x2084, 0x0482, 0x2084, 0x0482, 0x2084, 0x0482, 0x0600,
    0x0300, 0x0600, 0x0300, 0x0600, 0x0300, 0x0600, 0x0300, 0x0160, 0x0850,
    0x0160
   };
-
 
 
 // implements f_get_display for the red display
@@ -562,8 +591,15 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
   }
 
   // draw any active flippers
-  for (int i = 0; i < MAX_FLIPPERS; ++i) {
+  for (int i = 0; i < this->playfield.num_flippers; ++i) {
     display_flipper(&this->playfield.flippers[i], DISPLAY_RED, value);
+  }
+
+  for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
+    struct blaster *blaster = &this->player.blaster[i];
+    if (blaster->blaster_state == FIRED) {
+      display_blaster(blaster, DISPLAY_RED, value);
+    }
   }
 
   return glyph_display;
@@ -588,6 +624,13 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
   // draw any active flippers
   for (int i = 0; i < this->playfield.num_flippers; ++i) {
     display_flipper(&this->playfield.flippers[i], DISPLAY_BLUE, value);
+  }
+
+  for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
+    struct blaster *blaster = &this->player.blaster[i];
+    if (blaster->blaster_state == FIRED) {
+      display_blaster(blaster, DISPLAY_BLUE, value);
+    }
   }
 
   return glyph_display;
@@ -622,6 +665,13 @@ static display_type get_green_display(struct display_strategy *display_strategy,
     display_flipper(&this->playfield.flippers[i], DISPLAY_GREEN, value);
   }
 
+  for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
+    struct blaster *blaster = &this->player.blaster[i];
+    if (blaster->blaster_state == FIRED) {
+      display_blaster(blaster, DISPLAY_GREEN, value);
+    }
+  }
+
   return glyph_display;
 }
 
@@ -631,15 +681,16 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 // implements f_get_display for the leds display
 static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
-    
+
   (*value).display_int = 0;
   *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_12;
 
+  (*value).display_int = 0;
+
   for (int i = 0; i < this->playfield.num_flippers; ++i) {
     if (this->playfield.flippers[i].flipper_state == SPAWNING) {
-      (*value).display_int = (1 << this->playfield.flippers[i].position) << 8;
-      break;
+      (*value).display_int |= ((1 << this->playfield.flippers[i].position) << 8);
     }
   }
 
@@ -650,19 +701,65 @@ static display_type get_leds_display(struct display_strategy *display_strategy, 
 
 
 
-struct flipper_position_to_display_digit_and_glyph {
+
+// this completely convoluted data structure starts at the center of
+// the playfield, each list starts at 9 o'clock and goes CCW around
+// from there.
+
+// this is intended to handle blaster, flippers, and maybe other stuff
+// that gets created...and it's a mess.
+struct object_position_to_display_digit_and_glyph {
   display_t display;
   int digit;
   uint16_t glyph_active;
   uint16_t glyph_move[3];
 };
 
-// this completely convoluted data structure starts at the center of
-// the playfield, each list starts at 9 o'clock and goes CCW around
-// from there.
+static const struct object_position_to_display_digit_and_glyph blaster_glyph_by_position_d1[] =
+  {
+   { DISPLAY_BLUE, 0, 0x4000, { } },
+   { DISPLAY_RED,  0, 0x0400, { } },
+   { DISPLAY_RED,  0, 0x0400, { } },
+   { DISPLAY_RED,  1, 0x0020, { } },
+   { DISPLAY_RED,  1, 0x0002, { } },
+   { DISPLAY_RED,  2, 0x0200, { } },
+   { DISPLAY_RED,  3, 0x0020, { } },
+   { DISPLAY_RED,  3, 0x0100, { } },
+   { DISPLAY_RED,  3, 0x0001, { } },
+   { DISPLAY_BLUE, 3, 0x0008, { } },
+   { DISPLAY_BLUE, 3, 0x0001, { } },
+   { DISPLAY_GREEN,3, 0x0800, { } },
+   { DISPLAY_GREEN,3, 0x0010, { } },
+   { DISPLAY_GREEN,2, 0x0004, { } },
+   { DISPLAY_GREEN,2, 0x0010, { } },
+   { DISPLAY_GREEN,1, 0x1000, { } },
+   { DISPLAY_GREEN,0, 0x0004, { } },
+   { DISPLAY_GREEN,0, 0x2000, { } },
+   { DISPLAY_GREEN,0, 0x0008, { } },
+   { DISPLAY_BLUE, 0, 0x0080, { } }
+  };
+
+static const struct object_position_to_display_digit_and_glyph blaster_glyph_by_position_d3[] =
+  {
+   { DISPLAY_BLUE, 1, 0x0004, { } },
+   { DISPLAY_BLUE, 2, 0x0010, { } },
+   { DISPLAY_BLUE, 2, 0x0020, { } },
+   { DISPLAY_BLUE, 1, 0x0002, { } }
+  };
+
+static const struct object_position_to_display_digit_and_glyph *blaster_glyph_by_depth_position[] =
+  {
+   NULL,
+   blaster_glyph_by_position_d1,
+   NULL,
+   blaster_glyph_by_position_d3,
+   NULL
+  };
+
+
 
 // lookup by flipper position for depth3 ("d3")
-static const struct flipper_position_to_display_digit_and_glyph flipper_glyph_by_position_d4[] =
+static const struct object_position_to_display_digit_and_glyph flipper_glyph_by_position_d4[] =
   {
    { DISPLAY_BLUE, 1, 0x0004, { 0x0004, 0x0004, 0x0004 } },
    { DISPLAY_BLUE, 2, 0x0010, { 0x0010, 0x0010, 0x0010 } },
@@ -671,7 +768,7 @@ static const struct flipper_position_to_display_digit_and_glyph flipper_glyph_by
   };
 
 
-static const struct flipper_position_to_display_digit_and_glyph flipper_glyph_by_position_d3[] =
+static const struct object_position_to_display_digit_and_glyph flipper_glyph_by_position_d3[] =
   {
    { DISPLAY_BLUE, 1, 0x1000, { 0x2000, 0x0080, 0x0004 } },
    { DISPLAY_BLUE, 2, 0x1000, { 0x0800, 0x0040, 0x0010 } },
@@ -679,7 +776,7 @@ static const struct flipper_position_to_display_digit_and_glyph flipper_glyph_by
    { DISPLAY_BLUE, 1, 0x0200, { 0x0400, 0x0080, 0x0002 } }
   };
 
-static const struct flipper_position_to_display_digit_and_glyph flipper_glyph_by_position_d2[] =
+static const struct object_position_to_display_digit_and_glyph flipper_glyph_by_position_d2[] =
   // 12 elements
   {
    { DISPLAY_BLUE,  1, 0x0010, { 0x0008, 0x0800, 0x2000 } },
@@ -697,7 +794,7 @@ static const struct flipper_position_to_display_digit_and_glyph flipper_glyph_by
   };
 
 
-static const struct flipper_position_to_display_digit_and_glyph flipper_glyph_by_position_d1[] =
+static const struct object_position_to_display_digit_and_glyph flipper_glyph_by_position_d1[] =
   // 20 elements
   {
    { DISPLAY_BLUE,  0, 0x0004, { 0x0040, 0x2000, 0x1000 } },
@@ -723,7 +820,7 @@ static const struct flipper_position_to_display_digit_and_glyph flipper_glyph_by
   };
 
 
-static const struct flipper_position_to_display_digit_and_glyph flipper_glyph_by_position_d0[] =
+static const struct object_position_to_display_digit_and_glyph flipper_glyph_by_position_d0[] =
   // 28 elements
   {
    { DISPLAY_BLUE,  0, 0x0010, { 0x0800, 0x1000, 0x2000 } },
@@ -758,7 +855,7 @@ static const struct flipper_position_to_display_digit_and_glyph flipper_glyph_by
 
 
 
-static const struct flipper_position_to_display_digit_and_glyph *flipper_glyph_by_depth_position[] =
+static const struct object_position_to_display_digit_and_glyph *flipper_glyph_by_depth_position[] =
   {
    flipper_glyph_by_position_d0,
    flipper_glyph_by_position_d1,
@@ -797,6 +894,21 @@ static void display_flipper(struct flipper *flipper, display_t display, display_
 
     default:
       break;
+    }
+  }
+
+}
+
+
+static void display_blaster(struct blaster *blaster, display_t display, display_value *value) {
+  int blaster_depth = blaster->depth;
+  int blaster_position = blaster->position;
+
+    
+  if (blaster_glyph_by_depth_position[blaster->depth] != NULL) {
+    if (blaster_glyph_by_depth_position[blaster->depth][blaster_position].display == display) {
+      (*value).display_glyph[ blaster_glyph_by_depth_position[blaster_depth][blaster_position].digit ] |=
+        blaster_glyph_by_depth_position[blaster_depth][blaster_position].glyph_active;
     }
   }
 

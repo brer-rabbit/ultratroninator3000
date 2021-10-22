@@ -37,7 +37,7 @@ void free_model(struct model*);
 
 // Supported model methods
 
-void clocktick_gameplay(struct model*, uint32_t clock);
+void clocktick_model(struct model*, uint32_t clock);
 
 // move: positive/negative amount to move player by
 void move_player(struct model*, int8_t direction);

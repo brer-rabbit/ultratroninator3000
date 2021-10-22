@@ -61,11 +61,11 @@ const char *superzapper_soundkey = "superzapper";
 void sig_cleanup_and_exit(int signum) {
   printf("caught sig %d.  Cleaning up and exiting.  Stats: %u clock ticks (%u overruns)\n",
 	 signum, clock_iterations, clock_overruns);
+  ut3k_remove_all_samples();
   free_controller(controller);
   free_model(model);
   free_ut3k_view(view);
-  // TODO: blow out any samples in cache
-  ut3k_disconnect_audio_context(1);
+  ut3k_disconnect_audio_context();
   exit(0);
 }
 

@@ -52,7 +52,7 @@ void sig_cleanup_and_exit(int signum) {
   free_calc_controller(controller);
   free_calc_model(model);
   free_ut3k_view(view);
-  ut3k_disconnect_audio_context(1);
+  ut3k_disconnect_audio_context();
   exit(0);
 }
 
