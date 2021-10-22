@@ -69,7 +69,7 @@ static void free_gameplay_display_strategy(struct display_strategy *display_stra
 static void clocktick_gameplay(struct model *this, uint32_t clock);
 static int move_flippers(struct model *this);
 static int move_blasters(struct model *this);
-static void collision_check(struct model *this);
+static game_state_t collision_check(struct model *this);
 static void spawn_flipper(struct model *this, int index);
 static void init_playfield_for_level(struct playfield *this, int level);
 static inline int index_on_depth(int from, int sizeof_from, int sizeof_to);
@@ -114,7 +114,8 @@ static void clocktick_gameplay(struct model *this, uint32_t clock) {
   // move the nasties, decrement clock, make adjustments
   move_flippers(this);
   move_blasters(this);
-  collision_check(this);
+  this->game_state = collision_check(this);
+  
   // unchecked decrement blaster timer.
   // Non-positive is ready this will roll/error from negative to
   // positive in ~1 year.  That's acceptable.
@@ -128,6 +129,10 @@ static void clocktick_gameplay(struct model *this, uint32_t clock) {
  * do that.  Otherwise held at the array boundaries.
  */
 void move_player(struct model *this, int8_t direction) {
+
+  if (this->game_state != GAME_PLAY) {
+    return;
+  }
 
   if (direction > 0) {
     this->player.position++;
@@ -383,16 +388,20 @@ static int move_blasters(struct model *this) {
  * check if any blaster shots occupy the position of a nasty.
  * Check if any nasty is in the same space as the player.
  */
-static void collision_check(struct model *this) {
+static game_state_t collision_check(struct model *this) {
   struct flipper *flipper;
   struct blaster *blaster;
+  int flippers_remaining = this->playfield.num_flippers;
 
   // plain vanilla O(N*N) approach to this
-  for (int i = 0; i < MAX_FLIPPERS; ++i) {
+  for (int i = 0; i < this->playfield.num_flippers; ++i) {
     flipper = &this->playfield.flippers[i];
-    if (flipper->flipper_state == INACTIVE ||
-        flipper->flipper_state == SPAWNING ||
-        flipper->flipper_state == DESTROYED) {
+    if (flipper->flipper_state == DESTROYED) {
+      flippers_remaining--;
+      continue;
+    }
+    else if (flipper->flipper_state == INACTIVE ||
+             flipper->flipper_state == SPAWNING) {
       continue; // ignore this flipper
     }
 
@@ -408,6 +417,7 @@ static void collision_check(struct model *this) {
         ut3k_play_sample(enemy_destroyed_soundkey);
         blaster->blaster_state = READY;
         flipper->flipper_state = DESTROYED;
+        flippers_remaining--;
       }
     }
 
@@ -418,9 +428,12 @@ static void collision_check(struct model *this) {
         flipper->position == this->player.position) {
       // buh bye Player 1
       printf("Player hit!\n");
+      return GAME_PLAYER_HIT;
       // TODO: game state transiton, play sound
     }
   }
+
+  return flippers_remaining == 0 ? GAME_LEVEL_UP : GAME_PLAY;
 }
 
 
