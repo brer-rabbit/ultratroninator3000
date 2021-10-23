@@ -62,16 +62,22 @@ void free_playerhit_display_strategy(struct display_strategy *display_strategy) 
 
 
 
+
 // implements f_get_display for the red display
 static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
+  const struct player *player;
 
   *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_12;
-  (*value).display_glyph[0] = 0xffff;
-  (*value).display_glyph[1] = 0xffff;
-  (*value).display_glyph[2] = 0xffff;
-  (*value).display_glyph[3] = 0xffff;
+
+  player = get_model_player(model);
+
+  memset((*value).display_glyph, 0, sizeof(display_value));
+
+  for (int i = 0; i < player->lives_remaining && i < 4; ++i) {
+    (*value).display_glyph[i] = 0x2808;
+  }
 
   return glyph_display;
 }
@@ -82,10 +88,10 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
 
   *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_12;
-  (*value).display_glyph[0] = 0xffff;
-  (*value).display_glyph[1] = 0xffff;
-  (*value).display_glyph[2] = 0xffff;
-  (*value).display_glyph[3] = 0xffff;
+  (*value).display_glyph[0] = 0;
+  (*value).display_glyph[1] = 0;
+  (*value).display_glyph[2] = 0;
+  (*value).display_glyph[3] = 0;
 
   return glyph_display;
 }
@@ -94,15 +100,15 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
 // implements f_get_display for the green display
 static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
+  const struct player_hit_and_restart *player_restart;
+
+  player_restart = get_model_player_hit_and_restart(model);
 
   *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_12;
-  (*value).display_glyph[0] = 0xffff;
-  (*value).display_glyph[1] = 0xffff;
-  (*value).display_glyph[2] = 0xffff;
-  (*value).display_glyph[3] = 0xffff;
+  (*value).display_string = player_restart->msg_ptr;
 
-  return glyph_display;
+  return string_display;
 }
 
 

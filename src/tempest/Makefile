@@ -1,4 +1,4 @@
-TARGET = TEMP_EST
+TARGET = "TEM_P\ S_\ E\ T"
 INCLUDE = -I../../include
 LIBS = -li2c -lconfig -lpulse -lsndfile -lpthread -L../../lib/ -lut3k
 CC = gcc

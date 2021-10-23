@@ -90,6 +90,16 @@ struct playfield {
 };
 
 
+typedef enum { FLASH_SCREEN, LIVES_REMAINING, RESTART } player_hit_state_t;
+struct player_hit_and_restart {
+  int timer;
+  player_hit_state_t state;
+  int scroll_timer;
+  char messaging[48];
+  char *msg_ptr;
+};
+
+
 /* create a model for the caller.  Mem is allocated in the function;
  * caller is responsible for freeing later via free_game_mode
  */
@@ -110,6 +120,7 @@ struct display_strategy* get_display_strategy(struct model *this);
 
 const struct player* get_model_player(struct model *this);
 const struct playfield* get_model_playfield(struct model *this);
+const struct player_hit_and_restart* get_model_player_hit_and_restart(struct model *this);
 
 
 #endif
