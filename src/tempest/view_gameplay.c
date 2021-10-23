@@ -39,19 +39,23 @@ static void display_blaster(const struct blaster*, display_t, display_value*);
 struct display_strategy* create_gameplay_display_strategy(struct model *model) {
   struct display_strategy *display_strategy;
   display_strategy = (struct display_strategy*)malloc(sizeof(struct display_strategy));
-  display_strategy->userdata = (void*)model;
-  display_strategy->get_green_display = get_green_display;
-  display_strategy->green_blink = HT16K33_BLINK_OFF;
-  display_strategy->green_brightness = HT16K33_BRIGHTNESS_12;
-  display_strategy->get_blue_display = get_blue_display;
-  display_strategy->blue_blink = HT16K33_BLINK_OFF;
-  display_strategy->blue_brightness = HT16K33_BRIGHTNESS_12;
-  display_strategy->get_red_display = get_red_display;
-  display_strategy->red_blink = HT16K33_BLINK_OFF;
-  display_strategy->red_brightness = HT16K33_BRIGHTNESS_12;
-  display_strategy->get_leds_display = get_leds_display;
-  display_strategy->leds_blink = HT16K33_BLINK_OFF;
-  display_strategy->leds_brightness = HT16K33_BRIGHTNESS_12;
+  *display_strategy = (struct display_strategy const)
+    {
+     .userdata = model,
+     .get_green_display = get_green_display,
+     .green_blink = HT16K33_BLINK_OFF,
+     .green_brightness = HT16K33_BRIGHTNESS_12,
+     .get_blue_display = get_blue_display,
+     .blue_blink = HT16K33_BLINK_OFF,
+     .blue_brightness = HT16K33_BRIGHTNESS_12,
+     .get_red_display = get_red_display,
+     .red_blink = HT16K33_BLINK_OFF,
+     .red_brightness = HT16K33_BRIGHTNESS_12,
+     .get_leds_display = get_leds_display,
+     .leds_blink = HT16K33_BLINK_OFF,
+     .leds_brightness = HT16K33_BRIGHTNESS_12
+    };
+
   return display_strategy;
 }
 
