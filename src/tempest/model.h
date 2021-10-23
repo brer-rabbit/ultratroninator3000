@@ -75,6 +75,7 @@ struct player {
   int depth; // thinking this will always be zero, but include here anyway...
   struct blaster blaster[MAX_BLASTER_SHOTS];
   int blaster_ready_timer; // non-positive is a ready state
+  int lives_remaining;
 };
 
 struct playfield {
@@ -85,6 +86,7 @@ struct playfield {
   int num_flippers;
   int next_flipper_spawn_timer;
   struct flipper flippers[MAX_FLIPPERS];
+  int has_collision;
 };
 
 

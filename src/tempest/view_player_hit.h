@@ -13,15 +13,14 @@
  * limitations under the License.
  */
 
-#ifndef VIEW_GAMEPLAY_H
-#define VIEW_GAMEPLAY_H
+#ifndef VIEW_PLAYERHIT_H
+#define VIEW_PLAYERHIT_H
 
 #include "tempest.h"
 #include "model.h"
 
 
-struct display_strategy* create_gameplay_display_strategy(struct model *model);
-void free_gameplay_display_strategy(struct display_strategy *display_strategy); 
-
+struct display_strategy* create_playerhit_display_strategy(struct model *model);
+void free_playerhit_display_strategy(struct display_strategy *display_strategy); 
 
 #endif

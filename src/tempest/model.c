@@ -26,6 +26,7 @@
 #include "tempest.h"
 #include "model.h"
 #include "view_gameplay.h"
+#include "view_player_hit.h"
 #include "ut3k_pulseaudio.h"
 
 
@@ -39,7 +40,12 @@ typedef enum
 } game_state_t;
   
 
-
+// state and bizrules on how to handle player getting hit
+typedef enum { FLASH_SCREEN, LIVES_REMAINING, RESTART } player_hit_state_t;
+struct player_hit_and_restart {
+  int timer;
+  player_hit_state_t state;
+};
 
 
 
@@ -53,20 +59,27 @@ static const int default_next_flipper_spawn_timer_randmoness = 200;
 static const int default_next_flipper_spawn_timer_minumum = 50;
 static const int default_max_spawning_flippers = 3;
 
+static const int default_flash_screen_timer = 200;
+static const int default_lives_remaining_timer = 200;
+static const int default_restart_game_timer = 200;
+
 
 
 struct model {
   struct display_strategy *gameplay_display_strategy;
+  struct display_strategy *playerhit_display_strategy;
   struct player player;
   struct playfield playfield;
+
+  struct player_hit_and_restart player_hit_and_restart;
+
   game_state_t game_state;
 };
 
 
 
 // model methods
-static void free_gameplay_display_strategy(struct display_strategy *display_strategy); 
-static void clocktick_gameplay(struct model *this, uint32_t clock);
+static game_state_t clocktick_gameplay(struct model *this, uint32_t clock);
 static int move_flippers(struct model *this);
 static int move_blasters(struct model *this);
 static game_state_t collision_check(struct model *this);
@@ -80,8 +93,16 @@ static inline int index_on_depth(int from, int sizeof_from, int sizeof_to);
 struct model* create_model() {
   struct model* this = (struct model*)malloc(sizeof(struct model));
   this->gameplay_display_strategy = create_gameplay_display_strategy(this);
+  this->playerhit_display_strategy = create_playerhit_display_strategy(this);
 
-  this->player = (struct player const) { 0 };
+  this->player = (struct player const)
+    {
+     .position = 0,
+     .depth = 0,
+     .lives_remaining = 2
+    };
+
+  this->player_hit_and_restart = (struct player_hit_and_restart const) { 0 };
 
   // just for now...get things going
   this->game_state = GAME_PLAY;
@@ -93,6 +114,7 @@ struct model* create_model() {
 
 void free_model(struct model *this) {
   free_gameplay_display_strategy(this->gameplay_display_strategy);
+  free_playerhit_display_strategy(this->playerhit_display_strategy);
   return free(this);
 }
 
@@ -100,7 +122,14 @@ void free_model(struct model *this) {
 void clocktick_model(struct model *this, uint32_t clock) {
   switch(this->game_state) {
   case GAME_PLAY:
-    clocktick_gameplay(this, clock);
+    if (this->playfield.has_collision == 0) {
+      clocktick_gameplay(this, clock);
+    }
+    else if (--this->player_hit_and_restart.timer == 0) {
+      // player was hit on a previous cycle, transition to
+      // GAME_PLAYER_HIT after a delay
+      this->game_state = GAME_PLAYER_HIT;
+    }
     break;
   case GAME_PLAYER_HIT:
     break;
@@ -110,16 +139,18 @@ void clocktick_model(struct model *this, uint32_t clock) {
 }
 
 
-static void clocktick_gameplay(struct model *this, uint32_t clock) {
+static game_state_t clocktick_gameplay(struct model *this, uint32_t clock) {
+  game_state_t next_game_state;
   // move the nasties, decrement clock, make adjustments
   move_flippers(this);
   move_blasters(this);
-  this->game_state = collision_check(this);
+  next_game_state = collision_check(this);
   
   // unchecked decrement blaster timer.
   // Non-positive is ready this will roll/error from negative to
   // positive in ~1 year.  That's acceptable.
   this->player.blaster_ready_timer--;
+  return next_game_state;
 }
 
 
@@ -130,7 +161,7 @@ static void clocktick_gameplay(struct model *this, uint32_t clock) {
  */
 void move_player(struct model *this, int8_t direction) {
 
-  if (this->game_state != GAME_PLAY) {
+  if (this->playfield.has_collision == 1) {
     return;
   }
 
@@ -192,7 +223,14 @@ void set_player_blaster_fired(struct model *this) {
 
 
 struct display_strategy* get_display_strategy(struct model *this) {
-  return this->gameplay_display_strategy;
+  switch (this->game_state) {
+  case GAME_PLAY:
+    return this->gameplay_display_strategy;
+  case GAME_PLAYER_HIT:
+    return this->playerhit_display_strategy;
+  default:
+    return this->gameplay_display_strategy;
+  }    
 }
 
 
@@ -211,10 +249,6 @@ const struct playfield* get_model_playfield(struct model *this) {
 
 /* static ----------------------------------------------------------- */
 
-
-static void free_gameplay_display_strategy(struct display_strategy *display_strategy) {
-  free(display_strategy);
-}
 
 
 /** move_flippers
@@ -387,6 +421,7 @@ static int move_blasters(struct model *this) {
  * pre: everything has moved for this clocktick.
  * check if any blaster shots occupy the position of a nasty.
  * Check if any nasty is in the same space as the player.
+ * May result in a (suggested) state change for the model
  */
 static game_state_t collision_check(struct model *this) {
   struct flipper *flipper;
@@ -427,9 +462,10 @@ static game_state_t collision_check(struct model *this) {
         flipper->depth == this->player.depth &&
         flipper->position == this->player.position) {
       // buh bye Player 1
-      printf("Player hit!\n");
+      this->playfield.has_collision = 1;
+      ut3k_play_sample(rand() & 0b1 ? crash_on_spike_soundkey : player_lose_life_soundkey);
+      this->player_hit_and_restart.timer = default_flash_screen_timer;
       return GAME_PLAYER_HIT;
-      // TODO: game state transiton, play sound
     }
   }
 
@@ -468,7 +504,8 @@ static void init_playfield_for_level(struct playfield *playfield, int level) {
        //.size_per_array = { 14, 10, 6, 4, 4 },
        .circular = 1,
        .num_flippers = 12,
-       .next_flipper_spawn_timer = rand() % default_next_flipper_spawn_timer_randmoness + default_next_flipper_spawn_timer_minumum
+       .next_flipper_spawn_timer = rand() % default_next_flipper_spawn_timer_randmoness + default_next_flipper_spawn_timer_minumum,
+       .has_collision = 0
       };
 
     // zero out array

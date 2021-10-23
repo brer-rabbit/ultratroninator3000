@@ -56,6 +56,9 @@ struct display_strategy* create_gameplay_display_strategy(struct model *model) {
 }
 
 
+void free_gameplay_display_strategy(struct display_strategy *display_strategy) {
+  free(display_strategy);
+}
 
 
 static const uint16_t player_glyph[] =
@@ -74,7 +77,7 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
   const struct playfield *playfield = get_model_playfield(model);
 
   *brightness = HT16K33_BRIGHTNESS_12;
-  *blink = HT16K33_BLINK_OFF;
+  *blink = playfield->has_collision ? HT16K33_BLINK_FAST : HT16K33_BLINK_OFF;
 
   memset((*value).display_glyph, 0, sizeof(display_value));
 
@@ -115,8 +118,8 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
   const struct playfield *playfield = get_model_playfield(model);
 
 
-  *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_12;
+  *blink = playfield->has_collision ? HT16K33_BLINK_FAST : HT16K33_BLINK_OFF;
 
   memset((*value).display_glyph, 0, sizeof(display_value));
 
@@ -149,8 +152,8 @@ static display_type get_green_display(struct display_strategy *display_strategy,
   const struct playfield *playfield = get_model_playfield(model);
 
 
-  *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_12;
+  *blink = playfield->has_collision ? HT16K33_BLINK_FAST : HT16K33_BLINK_OFF;
 
   memset((*value).display_glyph, 0, sizeof(display_value));
 
