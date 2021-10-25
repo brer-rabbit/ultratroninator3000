@@ -56,6 +56,14 @@ const char *player_move_soundkey = "player_move";
 const char *player_multishot_soundkey = "player_multishot";
 const char *player_shoot_soundkey = "player_shoot";
 const char *superzapper_soundkey = "superzapper";
+const char *electric1_soundkey = "electric1";
+const char *electric2_soundkey = "electric2";
+const char *electric3_soundkey = "electric3";
+const char *electric4_soundkey = "electric4";
+const char *electric5_soundkey = "electric5";
+const char *electric6_soundkey = "electric6";
+const char *electric7_soundkey = "electric7";
+
 
 
 void sig_cleanup_and_exit(int signum) {

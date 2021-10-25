@@ -36,5 +36,12 @@ extern const char *player_multishot_soundkey;
 extern const char *player_shoot_soundkey;
 extern const char *superzapper_soundkey;
 
+extern const char *electric1_soundkey;
+extern const char *electric2_soundkey;
+extern const char *electric3_soundkey;
+extern const char *electric4_soundkey;
+extern const char *electric5_soundkey;
+extern const char *electric6_soundkey;
+extern const char *electric7_soundkey;
 
 #endif

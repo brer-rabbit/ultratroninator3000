@@ -262,7 +262,7 @@ void set_player_zapper(struct model *this) {
            0,
            sizeof(this->player.superzapper.zapped_squares));
     printf("firing ZAPPER!\n");
-    // TODO: play some discharging/firing type sound
+    ut3k_play_sample(superzapper_soundkey);
   }
 
 }
@@ -515,6 +515,33 @@ static void update_zapper(struct model *this) {
     if (--superzapper->timer == 0) {
       superzapper->timer = default_player_zapper_charging_timer;
       superzapper->range++;
+      switch (superzapper->range) {
+        // these are somewhat arbitrary-- give the player a sense
+        // the thing is powering up
+      case 2:
+        ut3k_play_sample(electric1_soundkey);
+        break;
+      case 3:
+        ut3k_play_sample(electric2_soundkey);
+        break;
+      case 5:
+        ut3k_play_sample(electric3_soundkey);
+        break;
+      case 7:
+        ut3k_play_sample(electric4_soundkey);
+        break;
+      case 9:
+        ut3k_play_sample(electric5_soundkey);
+        break;
+      case 11:
+        ut3k_play_sample(electric6_soundkey);
+        break;
+      case 13:
+        ut3k_play_sample(electric7_soundkey);
+        break;
+      default:
+        break;
+      }
     }
   }
   else if (superzapper->superzapper_state == ZAPPER_FIRING) {
@@ -523,8 +550,7 @@ static void update_zapper(struct model *this) {
 
       if (++superzapper->zapped_range > superzapper->range) {
         // that's as far as it goes, reset
-        //superzapper->superzapper_state = ZAPPER_DEPLETED;
-        superzapper->superzapper_state = ZAPPER_READY;
+        superzapper->superzapper_state = ZAPPER_DEPLETED;
         superzapper->zapped_range = 0;
         superzapper->range = 0;
       }
@@ -664,7 +690,9 @@ static void reset_player_and_nasties(struct model *this) {
     this->player.blaster[i].blaster_state = BLASTER_READY;
   }
 
-  if (this->player.superzapper.superzapper_state == ZAPPER_CHARGING) {
+  // TODO: investigate why player gets hit while firing
+  if (this->player.superzapper.superzapper_state == ZAPPER_CHARGING ||
+      this->player.superzapper.superzapper_state == ZAPPER_FIRING) {
     this->player.superzapper.superzapper_state = ZAPPER_READY;
   }
 }
