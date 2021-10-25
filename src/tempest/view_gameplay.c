@@ -44,16 +44,16 @@ struct display_strategy* create_gameplay_display_strategy(struct model *model) {
      .userdata = model,
      .get_green_display = get_green_display,
      .green_blink = HT16K33_BLINK_OFF,
-     .green_brightness = HT16K33_BRIGHTNESS_12,
+     .green_brightness = HT16K33_BRIGHTNESS_9,
      .get_blue_display = get_blue_display,
      .blue_blink = HT16K33_BLINK_OFF,
-     .blue_brightness = HT16K33_BRIGHTNESS_12,
+     .blue_brightness = HT16K33_BRIGHTNESS_9,
      .get_red_display = get_red_display,
      .red_blink = HT16K33_BLINK_OFF,
-     .red_brightness = HT16K33_BRIGHTNESS_12,
+     .red_brightness = HT16K33_BRIGHTNESS_9,
      .get_leds_display = get_leds_display,
      .leds_blink = HT16K33_BLINK_OFF,
-     .leds_brightness = HT16K33_BRIGHTNESS_12
+     .leds_brightness = HT16K33_BRIGHTNESS_9
     };
 
   return display_strategy;
@@ -74,13 +74,45 @@ static const uint16_t player_glyph[] =
   };
 
 
+static const uint16_t superzapper_zaps[] =
+  {
+   0x1858, // B0
+   0x0361, // R0
+   0x1858,
+   0x1858,
+   0x708C,
+   0x1858, // R1
+   0x708C,
+   0x1858, // R2
+   0x708C,
+   0x1858, // R3
+   0x708C,
+   0x708C,
+   0x0683,
+   0x708C, // B3
+   0x0683,
+   0x708C, // G3
+   0x0683,
+   0x0683,
+   0x0361,
+   0x0683, // G2
+   0x0361,
+   0x0683, // G1
+   0x0361,
+   0x0683, // G0
+   0x0361,
+   0x0361,
+   0x1858,
+   0x0361  // B0
+  };
+
 // implements f_get_display for the red display
 static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct player *player = get_model_player(model);
   const struct playfield *playfield = get_model_playfield(model);
 
-  *brightness = HT16K33_BRIGHTNESS_12;
+
   *blink = playfield->has_collision ? HT16K33_BLINK_FAST : HT16K33_BLINK_OFF;
 
   memset((*value).display_glyph, 0, sizeof(display_value));
@@ -107,9 +139,54 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
 
   for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
     const struct blaster *blaster = &player->blaster[i];
-    if (blaster->blaster_state == FIRED) {
+    if (blaster->blaster_state == BLASTER_FIRED) {
       display_blaster(blaster, DISPLAY_RED, value);
     }
+  }
+
+  if (player->superzapper.superzapper_state == ZAPPER_FIRING) {
+    *brightness = HT16K33_BRIGHTNESS_15;
+    // this mapping...should probably get a better way of doing this
+    const int *zapped_squares = player->superzapper.zapped_squares;
+    if (zapped_squares[1] == 1) {
+      (*value).display_glyph[0] |= superzapper_zaps[1];
+    }
+    if (zapped_squares[2] == 1) {
+      (*value).display_glyph[0] |= superzapper_zaps[2];
+    }
+    if (zapped_squares[3] == 1) {
+      (*value).display_glyph[0] |= superzapper_zaps[3];
+    }
+    if (zapped_squares[4] == 1) {
+      (*value).display_glyph[0] |= superzapper_zaps[4];
+    }
+    if (zapped_squares[5] == 1) {
+      (*value).display_glyph[1] |= superzapper_zaps[5];
+    }
+    if (zapped_squares[6] == 1) {
+      (*value).display_glyph[1] |= superzapper_zaps[6];
+    }
+    if (zapped_squares[7] == 1) {
+      (*value).display_glyph[2] |= superzapper_zaps[7];
+    }
+    if (zapped_squares[8] == 1) {
+      (*value).display_glyph[2] |= superzapper_zaps[8];
+    }
+    if (zapped_squares[9] == 1) {
+      (*value).display_glyph[3] |= superzapper_zaps[9];
+    }
+    if (zapped_squares[10] == 1) {
+      (*value).display_glyph[3] |= superzapper_zaps[10];
+    }
+    if (zapped_squares[11] == 1) {
+      (*value).display_glyph[3] |= superzapper_zaps[11];
+    }
+    if (zapped_squares[12] == 1) {
+      (*value).display_glyph[3] |= superzapper_zaps[12];
+    }
+  }
+  else {
+      *brightness = HT16K33_BRIGHTNESS_9;
   }
 
   return glyph_display;
@@ -122,7 +199,6 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
   const struct playfield *playfield = get_model_playfield(model);
 
 
-  *brightness = HT16K33_BRIGHTNESS_12;
   *blink = playfield->has_collision ? HT16K33_BLINK_FAST : HT16K33_BLINK_OFF;
 
   memset((*value).display_glyph, 0, sizeof(display_value));
@@ -141,10 +217,31 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
 
   for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
     const struct blaster *blaster = &player->blaster[i];
-    if (blaster->blaster_state == FIRED) {
+    if (blaster->blaster_state == BLASTER_FIRED) {
       display_blaster(blaster, DISPLAY_BLUE, value);
     }
   }
+
+  if (player->superzapper.superzapper_state == ZAPPER_FIRING) {
+    *brightness = HT16K33_BRIGHTNESS_15;
+    const int *zapped_squares = player->superzapper.zapped_squares;
+    if (zapped_squares[0] == 1) {
+      (*value).display_glyph[0] |= superzapper_zaps[0];
+    }
+    if (zapped_squares[13] == 1) {
+      (*value).display_glyph[3] |= superzapper_zaps[13];
+    }
+    if (zapped_squares[14] == 1) {
+      (*value).display_glyph[3] |= superzapper_zaps[14];
+    }
+    if (zapped_squares[27] == 1) {
+      (*value).display_glyph[0] |= superzapper_zaps[27];
+    }
+  }
+  else {
+    *brightness = HT16K33_BRIGHTNESS_9;
+  }
+
 
   return glyph_display;
 }
@@ -156,7 +253,7 @@ static display_type get_green_display(struct display_strategy *display_strategy,
   const struct playfield *playfield = get_model_playfield(model);
 
 
-  *brightness = HT16K33_BRIGHTNESS_12;
+  *brightness = HT16K33_BRIGHTNESS_9;
   *blink = playfield->has_collision ? HT16K33_BLINK_FAST : HT16K33_BLINK_OFF;
 
   memset((*value).display_glyph, 0, sizeof(display_value));
@@ -183,10 +280,55 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 
   for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
     const struct blaster *blaster = &player->blaster[i];
-    if (blaster->blaster_state == FIRED) {
+    if (blaster->blaster_state == BLASTER_FIRED) {
       display_blaster(blaster, DISPLAY_GREEN, value);
     }
   }
+
+  if (player->superzapper.superzapper_state == ZAPPER_FIRING) {
+    *brightness = HT16K33_BRIGHTNESS_15;
+    const int *zapped_squares = player->superzapper.zapped_squares;
+    if (zapped_squares[15] == 1) {
+      (*value).display_glyph[3] |= superzapper_zaps[15];
+    }
+    if (zapped_squares[16] == 1) {
+      (*value).display_glyph[3] |= superzapper_zaps[16];
+    }
+    if (zapped_squares[17] == 1) {
+      (*value).display_glyph[3] |= superzapper_zaps[17];
+    }
+    if (zapped_squares[18] == 1) {
+      (*value).display_glyph[3] |= superzapper_zaps[18];
+    }
+    if (zapped_squares[19] == 1) {
+      (*value).display_glyph[2] |= superzapper_zaps[19];
+    }
+    if (zapped_squares[20] == 1) {
+      (*value).display_glyph[2] |= superzapper_zaps[20];
+    }
+    if (zapped_squares[21] == 1) {
+      (*value).display_glyph[1] |= superzapper_zaps[21];
+    }
+    if (zapped_squares[22] == 1) {
+      (*value).display_glyph[1] |= superzapper_zaps[22];
+    }
+    if (zapped_squares[23] == 1) {
+      (*value).display_glyph[0] |= superzapper_zaps[23];
+    }
+    if (zapped_squares[24] == 1) {
+      (*value).display_glyph[0] |= superzapper_zaps[24];
+    }
+    if (zapped_squares[25] == 1) {
+      (*value).display_glyph[0] |= superzapper_zaps[25];
+    }
+    if (zapped_squares[26] == 1) {
+      (*value).display_glyph[0] |= superzapper_zaps[26];
+    }
+  }
+  else {
+    *brightness = HT16K33_BRIGHTNESS_9;
+  }
+
 
   return glyph_display;
 }
@@ -198,6 +340,7 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct playfield *playfield = get_model_playfield(model);
+  const struct player *player = get_model_player(model);
 
   (*value).display_int = 0;
   *blink = HT16K33_BLINK_OFF;
@@ -211,6 +354,10 @@ static display_type get_leds_display(struct display_strategy *display_strategy, 
     }
   }
 
+  // this lights the LEDs from right to left as the zapper charges
+  if (player->superzapper.superzapper_state == ZAPPER_CHARGING) {
+    (*value).display_int |= ((1 << ((player->superzapper.range + 1) / 2)) - 1);
+  }
 
   return integer_display;
 }

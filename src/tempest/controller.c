@@ -68,6 +68,8 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   struct controller *this = (struct controller*) userdata;
   const struct rotary_encoder *red_rotary_encoder = get_red_rotary_encoder(control_panel);
   const struct button *blue_button = get_blue_button(control_panel);
+  const struct toggles *toggles = get_toggles(control_panel);
+
 
   if (red_rotary_encoder->encoder_delta != 0) {
     move_player(this->model, -1 * red_rotary_encoder->encoder_delta);
@@ -78,4 +80,8 @@ void controller_callback_control_panel(const struct control_panel *control_panel
     set_player_blaster_fired(this->model);
   }
 
+
+  if (toggles->state_count == 0 && toggles->toggles_toggled == 0x01) {
+    set_player_zapper(this->model);
+  }
 }

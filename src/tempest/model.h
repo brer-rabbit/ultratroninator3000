@@ -62,7 +62,7 @@ struct flipper {
   int next_depth_timer; // timer for advancing to next depth (well, depth -1, surfacing?)
 };
 
-typedef enum { READY, FIRED } blaster_state_t;
+typedef enum { BLASTER_READY, BLASTER_FIRED } blaster_state_t;
 struct blaster {
   int position;
   int depth;
@@ -70,18 +70,30 @@ struct blaster {
   int move_timer;
 };
   
+typedef enum { ZAPPER_READY, ZAPPER_CHARGING, ZAPPER_FIRING, ZAPPER_DEPLETED } superzapper_state_t;
+struct superzapper {
+  int position;
+  int depth;
+  int range;
+  int zapped_range;
+  superzapper_state_t superzapper_state;
+  int timer;
+  int zapped_squares[MAX_PLAYFIELD_ARRAY_SIZE];
+};
+
+
 struct player {
   int position;
   int depth; // thinking this will always be zero, but include here anyway...
   struct blaster blaster[MAX_BLASTER_SHOTS];
   int blaster_ready_timer; // non-positive is a ready state
+  struct superzapper superzapper;
   int lives_remaining;
 };
 
 struct playfield {
   int num_arrays;
   int size_per_array[MAX_PLAYFIELD_NUM_ARRAYS];
-  int arrays[MAX_PLAYFIELD_NUM_ARRAYS][MAX_PLAYFIELD_ARRAY_SIZE];
   int circular; // boolean- should it wrap around?  applies to all arrays
   int num_flippers;
   int next_flipper_spawn_timer;
@@ -113,6 +125,7 @@ void clocktick_model(struct model*, uint32_t clock);
 // move: positive/negative amount to move player by
 void move_player(struct model*, int8_t direction);
 void set_player_blaster_fired(struct model*);
+void set_player_zapper(struct model*);
 
 
 // get the view

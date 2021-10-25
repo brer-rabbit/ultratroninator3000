@@ -44,11 +44,16 @@ typedef enum
 
 
 
-static const int default_flipper_move_timer = 25;
+static const int default_flipper_move_timer = 20;
 static const int default_flipper_flip_timer = 5;
-static const int default_next_depth_timer = 99;
+static const int default_next_depth_timer = 60;
 static const int default_player_blaster_move_timer = 6;
-static const int default_player_blaster_ready_timer = 60;
+static const int default_player_blaster_ready_timer = 40;
+
+static const int default_player_zapper_charging_timer = 10;
+static const int default_player_zapper_firing_timer = 2;
+static const int default_player_zapper_max_charge = 14;
+
 static const int default_next_flipper_spawn_timer_randmoness = 200;
 static const int default_next_flipper_spawn_timer_minumum = 50;
 static const int default_max_spawning_flippers = 3;
@@ -79,9 +84,11 @@ static void init_player_hit(struct player_hit_and_restart *this, int lives_remai
 static void clocktick_player_hit(struct model *this, uint32_t clock);
 static int move_flippers(struct model *this);
 static int move_blasters(struct model *this);
+static void update_zapper(struct model *this);
 static game_state_t collision_check(struct model *this);
 static void reset_player_and_nasties(struct model *this);
 static void spawn_flipper(struct model *this, int index);
+static void init_player_for_game(struct player *player);
 static void init_playfield_for_level(struct playfield *this, int level);
 static inline int index_on_depth(int from, int sizeof_from, int sizeof_to);
 
@@ -93,13 +100,7 @@ struct model* create_model() {
   this->gameplay_display_strategy = create_gameplay_display_strategy(this);
   this->playerhit_display_strategy = create_playerhit_display_strategy(this);
 
-  this->player = (struct player const)
-    {
-     .position = 0,
-     .depth = 0,
-     .lives_remaining = 3
-    };
-
+  init_player_for_game(&this->player);
   this->player_hit_and_restart = (struct player_hit_and_restart const) { 0 };
 
   // just for now...get things going
@@ -117,6 +118,13 @@ void free_model(struct model *this) {
 }
 
 
+/** clocktick_model
+ *
+ * tick the clock, updating based on current game state.  If game_play
+ * had a collision, do not immediately change state (since that would
+ * clear the board {err, model}).  Leave board up momentarily to show the
+ * player what happened, then change state.
+ */
 void clocktick_model(struct model *this, uint32_t clock) {
   switch(this->game_state) {
   case GAME_PLAY:
@@ -194,16 +202,20 @@ void move_player(struct model *this, int8_t direction) {
  * position and reset of the blaster timer.
  */
 void set_player_blaster_fired(struct model *this) {
+  if (this->game_state != GAME_PLAY || this->playfield.has_collision == 1) {
+    return;
+  }
+
   if (this->player.blaster_ready_timer <= 0) {
     // timer says it's available, see if any shots are ready
     struct blaster *blaster;
     for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
       blaster = &this->player.blaster[i];
-      if (blaster->blaster_state == READY) {
+      if (blaster->blaster_state == BLASTER_READY) {
         // got one
         *blaster = (struct blaster const)
           {
-           .blaster_state = FIRED,
+           .blaster_state = BLASTER_FIRED,
            .position = this->player.position,
            .depth = this->player.depth,
            .move_timer = default_player_blaster_move_timer
@@ -223,6 +235,37 @@ void set_player_blaster_fired(struct model *this) {
 }
 
 
+
+/** set_player_zapper_charging
+ *
+ * if the player hasn't used the super zapper this turn, start charging
+ * it
+ */
+void set_player_zapper(struct model *this) {
+  if (this->game_state != GAME_PLAY || this->playfield.has_collision == 1) {
+    return;
+  }
+
+  if (this->player.superzapper.superzapper_state == ZAPPER_READY) {
+    this->player.superzapper.superzapper_state = ZAPPER_CHARGING;
+    this->player.superzapper.range = 1;
+    printf("charging ZAPPER!\n");
+    // depth, position: set this when it's fired
+    // TODO: play some charging type sound
+  }
+  else if (this->player.superzapper.superzapper_state == ZAPPER_CHARGING) {
+    this->player.superzapper.superzapper_state = ZAPPER_FIRING;
+    this->player.superzapper.position = this->player.position;
+    this->player.superzapper.depth = this->player.depth;
+    this->player.superzapper.timer = default_player_zapper_charging_timer;
+    memset(this->player.superzapper.zapped_squares,
+           0,
+           sizeof(this->player.superzapper.zapped_squares));
+    printf("firing ZAPPER!\n");
+    // TODO: play some discharging/firing type sound
+  }
+
+}
 
 
 
@@ -263,6 +306,7 @@ static game_state_t clocktick_gameplay(struct model *this, uint32_t clock) {
   // move the nasties, decrement clock, make adjustments
   move_flippers(this);
   move_blasters(this);
+  update_zapper(this);
   next_game_state = collision_check(this);
   
   // unchecked decrement blaster timer.
@@ -433,13 +477,13 @@ static int move_blasters(struct model *this) {
 
   for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
     blaster = &this->player.blaster[i];
-    if (blaster->blaster_state == FIRED) {
+    if (blaster->blaster_state == BLASTER_FIRED) {
       if (--blaster->move_timer == 0) {
         something_moved = 1;
         blaster->move_timer = default_player_blaster_move_timer;
         if (blaster->depth == this->playfield.num_arrays - 1) {
           // blaster shot is at the max depth, reset back to ready
-          blaster->blaster_state = READY;
+          blaster->blaster_state = BLASTER_READY;
         }
         else {
           // move the shot
@@ -460,18 +504,76 @@ static int move_blasters(struct model *this) {
   return something_moved;
 }
 
+/** update_zapper
+ *
+ * if the player is charging the zapper, increment it up.
+ * if the zapper is fired, zap the necessary adjacent spaces
+ */
+static void update_zapper(struct model *this) {
+  struct superzapper *superzapper = &this->player.superzapper;
+  if (superzapper->superzapper_state == ZAPPER_CHARGING) {
+    if (--superzapper->timer == 0) {
+      superzapper->timer = default_player_zapper_charging_timer;
+      superzapper->range++;
+    }
+  }
+  else if (superzapper->superzapper_state == ZAPPER_FIRING) {
+    if (--superzapper->timer == 0) {
+      superzapper->timer = default_player_zapper_firing_timer;
+
+      if (++superzapper->zapped_range > superzapper->range) {
+        // that's as far as it goes, reset
+        //superzapper->superzapper_state = ZAPPER_DEPLETED;
+        superzapper->superzapper_state = ZAPPER_READY;
+        superzapper->zapped_range = 0;
+        superzapper->range = 0;
+      }
+      else { // calculate the square blown away
+        // anything on the same depth as the superzapper may be blown away.
+        // create map for lookup- thinking this may be the easiest way
+        // to check an index in what might be a circular buffer.
+        // range is the potential that it'll get to
+        // zapped_range is the range hit so far
+        if (this->playfield.circular == 1) {
+          for (int i = this->player.superzapper.position - this->player.superzapper.zapped_range;
+               i <= this->player.superzapper.position + this->player.superzapper.zapped_range;
+               ++i) {
+            if (i < 0) {
+              this->player.superzapper.zapped_squares[this->playfield.size_per_array[0] + i] = 1;
+            }
+            else {
+              this->player.superzapper.zapped_squares[i % this->playfield.size_per_array[0]] = 1;
+            }
+          }
+        }
+        else { // non-circular: don't wrap the superzapper spaces
+          for (int i = this->player.superzapper.position - this->player.superzapper.zapped_range;
+               i <= this->player.superzapper.position + this->player.superzapper.zapped_range;
+               ++i) {
+            if (i >= 0 && i < this->playfield.size_per_array[0]) {
+              this->player.superzapper.zapped_squares[i] = 1;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 
 /** collision_check
  *
  * pre: everything has moved for this clocktick.
  * check if any blaster shots occupy the position of a nasty.
  * Check if any nasty is in the same space as the player.
+ * Check if player overcharged the superzapper.
  * May result in a (suggested) state change for the model
  */
 static game_state_t collision_check(struct model *this) {
   struct flipper *flipper;
   struct blaster *blaster;
   int flippers_remaining = this->playfield.num_flippers;
+
 
   // plain vanilla O(N*N) approach to this
   for (int i = 0; i < this->playfield.num_flippers; ++i) {
@@ -488,14 +590,24 @@ static game_state_t collision_check(struct model *this) {
     // blaster can destroy an active or flipping nasty
     for (int j = 0; j < MAX_BLASTER_SHOTS; ++j) {
       blaster = &this->player.blaster[j];
-      if (blaster->blaster_state == READY) {
+      if (blaster->blaster_state == BLASTER_READY) {
         continue;
       }
       else if (blaster->depth == flipper->depth &&
                blaster->position == flipper->position) {
         // HIT!
         ut3k_play_sample(enemy_destroyed_soundkey);
-        blaster->blaster_state = READY;
+        blaster->blaster_state = BLASTER_READY;
+        flipper->flipper_state = DESTROYED;
+        flippers_remaining--;
+      }
+    }
+
+    // zapper check
+    if (this->player.superzapper.superzapper_state == ZAPPER_FIRING) {
+      if (flipper->depth == this->player.superzapper.depth &&
+          this->player.superzapper.zapped_squares[flipper->position] == 1) {
+        printf("flipper %d destroyed by superzapper\n", i);
         flipper->flipper_state = DESTROYED;
         flippers_remaining--;
       }
@@ -512,6 +624,16 @@ static game_state_t collision_check(struct model *this) {
       this->player_hit_and_restart.timer = default_flash_screen_timer;
       return GAME_PLAYER_HIT;
     }
+  }
+
+  if (this->player.superzapper.superzapper_state == ZAPPER_CHARGING &&
+      this->player.superzapper.range > default_player_zapper_max_charge) {
+    ut3k_play_sample(rand() & 0b1 ? crash_on_spike_soundkey : player_lose_life_soundkey);
+    this->player_hit_and_restart.timer = default_flash_screen_timer;
+    this->playfield.has_collision = 1;
+    // TODO: play some electric explosion sound
+    printf("overcharged ZAPPER!\n");
+    return GAME_PLAYER_HIT;
   }
 
   return flippers_remaining == 0 ? GAME_LEVEL_UP : GAME_PLAY;
@@ -537,6 +659,14 @@ static void reset_player_and_nasties(struct model *this) {
     this->playfield.flippers[i].next_depth_timer = default_next_depth_timer;
     this->playfield.flippers[i].depth = this->playfield.num_arrays - 1;
   }
+
+  for (int i = 0; i < MAX_BLASTER_SHOTS; ++i) {
+    this->player.blaster[i].blaster_state = BLASTER_READY;
+  }
+
+  if (this->player.superzapper.superzapper_state == ZAPPER_CHARGING) {
+    this->player.superzapper.superzapper_state = ZAPPER_READY;
+  }
 }
 
 
@@ -560,6 +690,26 @@ static void spawn_flipper(struct model *this, int index) {
 
 
 
+/** init_player_for_game
+ *
+ * start the player off ready for the game.
+ */
+static void init_player_for_game(struct player *player) {
+  *player = (struct player const)
+    {
+     .position = 0,
+     .depth = 0,
+     .lives_remaining = 3,
+     .superzapper= (struct superzapper const)
+     {
+      .range = 1,
+      .zapped_range = 0,
+      .timer = default_player_zapper_charging_timer
+     }
+    };
+
+}
+
 static void init_playfield_for_level(struct playfield *playfield, int level) {
 
   if (1 || level == 1) {
@@ -573,9 +723,6 @@ static void init_playfield_for_level(struct playfield *playfield, int level) {
        .next_flipper_spawn_timer = rand() % default_next_flipper_spawn_timer_randmoness + default_next_flipper_spawn_timer_minumum,
        .has_collision = 0
       };
-
-    // zero out array
-    memset(playfield->arrays, 0, sizeof(int) * MAX_PLAYFIELD_NUM_ARRAYS * MAX_PLAYFIELD_ARRAY_SIZE);
 
 
     for (int i = 0; i < playfield->num_flippers; ++i) {
