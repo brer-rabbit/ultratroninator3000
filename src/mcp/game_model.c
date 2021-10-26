@@ -382,35 +382,6 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
 }
 
 
-static const int32_t countdown_leds[] =
-  {
-   0x00000000,
-   0x00000001,
-   0x00000003,
-   0x00000007,
-   0x0000000F,
-   0x0000001F,
-   0x0000003F,
-   0x0000007F,
-   0x000000FF,
-   0x000001FF,
-   0x000003FF,
-   0x000007FF,
-   0x00000FFF,
-   0x00001FFF,
-   0x00003FFF,
-   0x00007FFF,
-   0x0000FFFF,
-   0x0001FFFF,
-   0x0003FFFF,
-   0x0007FFFF,
-   0x000FFFFF,
-   0x001FFFFF,
-   0x003FFFFF,
-   0x007FFFFF,
-   0x00FFFFFF
-  };
-
 
 // implements f_get_display for the leds display
 display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
@@ -431,7 +402,7 @@ display_type get_leds_display(struct display_strategy *display_strategy, display
     }
   }
   else if (this->model_state == SHUTDOWN_PROMPT) {
-    light_show = countdown_leds[this->long_timer >> 2];
+    light_show = (1 << (this->long_timer >> 2)) - 1;
   }
   else if (++led_change_timer % 15 == 0) {
     switch (rand() % 4) {
