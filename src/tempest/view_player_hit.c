@@ -20,6 +20,7 @@
 
 #include "tempest.h"
 #include "model.h"
+#include "view_player_hit.h"
 
 
 static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
@@ -28,7 +29,6 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 
 
-// view methods
 
 /* view methods ----------------------------------------------------- */
 
@@ -41,16 +41,16 @@ struct display_strategy* create_playerhit_display_strategy(struct model *model) 
      .userdata = model,
      .get_green_display = get_green_display,
      .green_blink = HT16K33_BLINK_OFF,
-     .green_brightness = HT16K33_BRIGHTNESS_12,
+     .green_brightness = HT16K33_BRIGHTNESS_5,
      .get_blue_display = get_blue_display,
      .blue_blink = HT16K33_BLINK_OFF,
-     .blue_brightness = HT16K33_BRIGHTNESS_12,
+     .blue_brightness = HT16K33_BRIGHTNESS_5,
      .get_red_display = get_red_display,
      .red_blink = HT16K33_BLINK_OFF,
-     .red_brightness = HT16K33_BRIGHTNESS_12,
+     .red_brightness = HT16K33_BRIGHTNESS_5,
      .get_leds_display = get_leds_display,
      .leds_blink = HT16K33_BLINK_OFF,
-     .leds_brightness = HT16K33_BRIGHTNESS_12
+     .leds_brightness = HT16K33_BRIGHTNESS_5
     };
 
   return display_strategy;
@@ -69,7 +69,7 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
   const struct player *player;
 
   *blink = HT16K33_BLINK_OFF;
-  *brightness = HT16K33_BRIGHTNESS_12;
+  *brightness = HT16K33_BRIGHTNESS_5;
 
   player = get_model_player(model);
 
@@ -84,10 +84,9 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
 
 // implements f_get_display for the blue display
 static display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
-  struct model *model = (struct model*) display_strategy->userdata;
 
   *blink = HT16K33_BLINK_OFF;
-  *brightness = HT16K33_BRIGHTNESS_12;
+  *brightness = HT16K33_BRIGHTNESS_5;
   (*value).display_glyph[0] = 0;
   (*value).display_glyph[1] = 0;
   (*value).display_glyph[2] = 0;
@@ -105,7 +104,7 @@ static display_type get_green_display(struct display_strategy *display_strategy,
   player_restart = get_model_player_hit_and_restart(model);
 
   *blink = HT16K33_BLINK_OFF;
-  *brightness = HT16K33_BRIGHTNESS_12;
+  *brightness = HT16K33_BRIGHTNESS_5;
   (*value).display_string = player_restart->msg_ptr;
 
   return string_display;
@@ -116,7 +115,6 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 
 // implements f_get_display for the leds display
 static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
-  struct model *model = (struct model*) display_strategy->userdata;
 
   (*value).display_int = 0;
   *blink = HT16K33_BLINK_OFF;

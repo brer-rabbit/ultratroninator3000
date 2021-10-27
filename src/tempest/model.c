@@ -27,6 +27,7 @@
 #include "model.h"
 #include "view_gameplay.h"
 #include "view_player_hit.h"
+#include "view_levelup.h"
 #include "ut3k_pulseaudio.h"
 
 
@@ -63,15 +64,23 @@ static const int default_lives_remaining_timer = 1;
 
 static const int default_text_scroll_timer = 22;
 
+static const int default_display_iterations_slow_med = 6;
+static const int default_display_iterations_fast = 18;
+static const int default_display_slow_time = 17;
+static const int default_display_medium_time = 10;
+static const int default_display_fast_time = 5;
+
 
 
 struct model {
   struct display_strategy *gameplay_display_strategy;
   struct display_strategy *playerhit_display_strategy;
+  struct display_strategy *levelup_display_strategy;
   struct player player;
   struct playfield playfield;
 
   struct player_hit_and_restart player_hit_and_restart;
+  struct levelup levelup;
 
   game_state_t game_state;
 };
@@ -82,14 +91,16 @@ struct model {
 static game_state_t clocktick_gameplay(struct model *this, uint32_t clock);
 static void init_player_hit(struct player_hit_and_restart *this, int lives_remaining);
 static void clocktick_player_hit(struct model *this, uint32_t clock);
+static game_state_t clocktick_levelup(struct model *this);
 static int move_flippers(struct model *this);
 static int move_blasters(struct model *this);
 static void update_zapper(struct model *this);
 static game_state_t collision_check(struct model *this);
-static void reset_player_and_nasties(struct model *this);
+static void reset_player_and_nasties(struct model *this, int full);
 static void spawn_flipper(struct model *this, int index);
 static void init_player_for_game(struct player *player);
 static void init_playfield_for_level(struct playfield *this, int level);
+static void set_model_state_levelup(struct model *this);
 static inline int index_on_depth(int from, int sizeof_from, int sizeof_to);
 
 
@@ -99,9 +110,11 @@ struct model* create_model() {
   struct model* this = (struct model*)malloc(sizeof(struct model));
   this->gameplay_display_strategy = create_gameplay_display_strategy(this);
   this->playerhit_display_strategy = create_playerhit_display_strategy(this);
+  this->levelup_display_strategy = create_levelup_display_strategy(this);
 
   init_player_for_game(&this->player);
   this->player_hit_and_restart = (struct player_hit_and_restart const) { 0 };
+  this->levelup = (struct levelup const) { 0 };
 
   // just for now...get things going
   this->game_state = GAME_PLAY;
@@ -114,6 +127,7 @@ struct model* create_model() {
 void free_model(struct model *this) {
   free_gameplay_display_strategy(this->gameplay_display_strategy);
   free_playerhit_display_strategy(this->playerhit_display_strategy);
+  free_levelup_display_strategy(this->levelup_display_strategy);
   return free(this);
 }
 
@@ -129,7 +143,15 @@ void clocktick_model(struct model *this, uint32_t clock) {
   switch(this->game_state) {
   case GAME_PLAY:
     if (this->playfield.has_collision == 0) {
-      clocktick_gameplay(this, clock);
+      if (clocktick_gameplay(this, clock) == GAME_LEVEL_UP) {
+        // odd: clocktick_gameplay returns what it suggests as the next
+        // state.  It's completely ignored unless it's GAME_LEVEL_UP.
+        // Next state for losing a life or game over is more determined
+        // by the playfield's has_collision flag getting set and a timer
+        // expiring.
+        set_model_state_levelup(this);
+        ut3k_play_sample(level_up_soundkey);
+      }
     }
     else if (--this->player_hit_and_restart.timer == 0) {
       // player was hit on a previous cycle, transition to
@@ -148,7 +170,7 @@ void clocktick_model(struct model *this, uint32_t clock) {
     // show lives left
     if (this->player_hit_and_restart.timer == 0) {
       // reset player and any remaining nasties
-      reset_player_and_nasties(this);
+      reset_player_and_nasties(this, 0);
       // transition to next state
       this->game_state = GAME_PLAY;
     }
@@ -157,6 +179,17 @@ void clocktick_model(struct model *this, uint32_t clock) {
     }
     
     break;
+  case GAME_LEVEL_UP:
+    // clocktick will run the between level stuff and signal
+    // back with GAME_PLAY when complete
+    this->game_state = clocktick_levelup(this);
+
+    // init_levelup_display gets set on state transition to GAME_LEVEL_UP;
+    // set it back to zero... this is awful since it'll get done on every
+    // iteration, but, whatevz...
+    this->levelup.init_levelup_display = 0;
+    break;
+
   default:
     break;
   }
@@ -250,8 +283,7 @@ void set_player_zapper(struct model *this) {
     this->player.superzapper.superzapper_state = ZAPPER_CHARGING;
     this->player.superzapper.range = 1;
     printf("charging ZAPPER!\n");
-    // depth, position: set this when it's fired
-    // TODO: play some charging type sound
+    // note: sound is queued from the update zapper based on charge level
   }
   else if (this->player.superzapper.superzapper_state == ZAPPER_CHARGING) {
     this->player.superzapper.superzapper_state = ZAPPER_FIRING;
@@ -275,6 +307,8 @@ struct display_strategy* get_display_strategy(struct model *this) {
     return this->gameplay_display_strategy;
   case GAME_PLAYER_HIT:
     return this->playerhit_display_strategy;
+  case GAME_LEVEL_UP:
+    return this->levelup_display_strategy;
   default:
     return this->gameplay_display_strategy;
   }    
@@ -293,6 +327,9 @@ const struct player_hit_and_restart* get_model_player_hit_and_restart(struct mod
   return &this->player_hit_and_restart;
 }
 
+const struct levelup* get_model_levelup(struct model *this) {
+  return &this->levelup;
+}
 
 
 
@@ -317,7 +354,7 @@ static game_state_t clocktick_gameplay(struct model *this, uint32_t clock) {
 }
 
 
-static char *lives_remaining_string = "   BLASTERS REMAINING:";
+static char *lives_remaining_string = "   ZAPPERS REMAINING:";
 
 static void init_player_hit(struct player_hit_and_restart *this, int lives_remaining) {
   this->timer = default_lives_remaining_timer;
@@ -336,6 +373,60 @@ static void clocktick_player_hit(struct model *this, uint32_t clock) {
       this->player_hit_and_restart.timer = 0;
     }
   }
+}
+
+
+/** clocktick_levelup
+ *
+ * set the state so the view can query the next frame...
+ * this is starting to look tightly coupled between view and model.
+ * Ideally, I think we'd just want to tell the view "play the
+ * animation thing" and it'd message back when it completes.
+ * as-is, the model is driving which frames to play in the view.
+ * Hey, I don't get paid for this, so suck it.
+ */
+static game_state_t clocktick_levelup(struct model *this) {
+  if (--this->levelup.scroll_timer == 0) {
+    if (*this->levelup.msg_ptr != '\0') {
+      this->levelup.scroll_timer = default_text_scroll_timer;
+      this->levelup.msg_ptr++;
+    }
+  }
+
+  if (--this->levelup.animation_timer == 0) {
+    if (++this->levelup.animation_iterations ==
+        *this->levelup.animation_iterations_max) {
+      // transition to next state
+      this->levelup.animation_iterations = 0;
+      if (this->levelup.animation_state == DIAG_FALLING_SLOW) {
+        // display over, signal transition to next state
+        return GAME_PLAY;
+      }
+      else {
+        this->levelup.animation_state++;
+      }
+    }
+    switch (this->levelup.animation_state) {
+    case DIAG_RISING_SLOW:
+    case DIAG_FALLING_SLOW:
+      this->levelup.animation_timer = default_display_slow_time;
+      this->levelup.animation_iterations_max = &default_display_iterations_slow_med;
+      break;
+    case DIAG_RISING_MED:
+    case DIAG_FALLING_MED:
+      this->levelup.animation_timer = default_display_medium_time;
+      this->levelup.animation_iterations_max = &default_display_iterations_slow_med;
+      break;
+    case DIAG_RISING_FAST:
+    case DIAG_FALLING_FAST:
+    case FLATLINE:
+      this->levelup.animation_timer = default_display_fast_time;
+      this->levelup.animation_iterations_max = &default_display_iterations_fast;
+      break;
+    }
+  }
+
+  return GAME_LEVEL_UP;
 }
 
 
@@ -669,16 +760,17 @@ static game_state_t collision_check(struct model *this) {
 
 /** reset_player_and_nasties
  *
- * after stopping the game 'cause the player was hit, prepare to resume.
- * Player can keep their position.  Nasties should go back to inactive
- * so they can respawn.
+ * after stopping the game 'cause the player was hit or a level up,
+ * prepare to resume.  Player can keep their position.  Nasties should
+ * go back to inactive so they can respawn.
+ * arg: full: set to 1 for a full reset, for level up.  Set to 0 for
+ * recovering from a player being hit.
  */
-static void reset_player_and_nasties(struct model *this) {
-
+static void reset_player_and_nasties(struct model *this, int full) {
   this->playfield.has_collision = 0;
 
   for (int i = 0; i < this->playfield.num_flippers; ++i) {
-    if (this->playfield.flippers[i].flipper_state != DESTROYED) {
+    if (full == 1 || this->playfield.flippers[i].flipper_state != DESTROYED) {
       this->playfield.flippers[i].flipper_state = INACTIVE;
     }
     this->playfield.flippers[i].position = 0;
@@ -691,7 +783,8 @@ static void reset_player_and_nasties(struct model *this) {
   }
 
   // TODO: investigate why player gets hit while firing
-  if (this->player.superzapper.superzapper_state == ZAPPER_CHARGING ||
+  if (full == 1 ||
+      this->player.superzapper.superzapper_state == ZAPPER_CHARGING ||
       this->player.superzapper.superzapper_state == ZAPPER_FIRING) {
     this->player.superzapper.superzapper_state = ZAPPER_READY;
   }
@@ -759,6 +852,23 @@ static void init_playfield_for_level(struct playfield *playfield, int level) {
       playfield->flippers[i].flipper_state = INACTIVE;
     }
   }
+}
+
+
+static const char *superzapper_recharged_message = "   SUPERZAPPER RECHARGE    ";
+static void set_model_state_levelup(struct model *this) {
+  this->game_state = GAME_LEVEL_UP;
+  this->playfield.level_number++;
+  this->levelup.scroll_timer = default_text_scroll_timer;
+  this->levelup.animation_timer = default_display_slow_time;
+  strcpy(this->levelup.messaging, superzapper_recharged_message);
+  this->levelup.msg_ptr = this->levelup.messaging;
+  this->levelup.init_levelup_display = 1;
+  this->levelup.animation_state = DIAG_RISING_SLOW;
+  this->levelup.animation_iterations = 0;
+  this->levelup.animation_iterations_max = &default_display_iterations_slow_med;
+
+  reset_player_and_nasties(this, 1);
 }
 
 

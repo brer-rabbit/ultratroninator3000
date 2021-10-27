@@ -44,16 +44,16 @@ struct display_strategy* create_gameplay_display_strategy(struct model *model) {
      .userdata = model,
      .get_green_display = get_green_display,
      .green_blink = HT16K33_BLINK_OFF,
-     .green_brightness = HT16K33_BRIGHTNESS_9,
+     .green_brightness = HT16K33_BRIGHTNESS_5,
      .get_blue_display = get_blue_display,
      .blue_blink = HT16K33_BLINK_OFF,
-     .blue_brightness = HT16K33_BRIGHTNESS_9,
+     .blue_brightness = HT16K33_BRIGHTNESS_5,
      .get_red_display = get_red_display,
      .red_blink = HT16K33_BLINK_OFF,
-     .red_brightness = HT16K33_BRIGHTNESS_9,
+     .red_brightness = HT16K33_BRIGHTNESS_5,
      .get_leds_display = get_leds_display,
      .leds_blink = HT16K33_BLINK_OFF,
-     .leds_brightness = HT16K33_BRIGHTNESS_9
+     .leds_brightness = HT16K33_BRIGHTNESS_5
     };
 
   return display_strategy;
@@ -186,7 +186,7 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
     }
   }
   else {
-      *brightness = HT16K33_BRIGHTNESS_9;
+      *brightness = HT16K33_BRIGHTNESS_5;
   }
 
   return glyph_display;
@@ -239,7 +239,7 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
     }
   }
   else {
-    *brightness = HT16K33_BRIGHTNESS_9;
+    *brightness = HT16K33_BRIGHTNESS_5;
   }
 
 
@@ -253,7 +253,7 @@ static display_type get_green_display(struct display_strategy *display_strategy,
   const struct playfield *playfield = get_model_playfield(model);
 
 
-  *brightness = HT16K33_BRIGHTNESS_9;
+  *brightness = HT16K33_BRIGHTNESS_5;
   *blink = playfield->has_collision ? HT16K33_BLINK_FAST : HT16K33_BLINK_OFF;
 
   memset((*value).display_glyph, 0, sizeof(display_value));
@@ -326,7 +326,7 @@ static display_type get_green_display(struct display_strategy *display_strategy,
     }
   }
   else {
-    *brightness = HT16K33_BRIGHTNESS_9;
+    *brightness = HT16K33_BRIGHTNESS_5;
   }
 
 

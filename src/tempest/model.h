@@ -31,7 +31,7 @@ struct model;
 
 
 // the playfield is a list of arrays...
-// level zero being where the player is.  The greatest number (num_levels-1)
+// array zero being where the player is.  The greatest number (num_arrays-1)
 // is where the flippers originate.
 #define MAX_PLAYFIELD_NUM_ARRAYS 5
 #define MAX_PLAYFIELD_ARRAY_SIZE 28
@@ -99,6 +99,7 @@ struct playfield {
   int next_flipper_spawn_timer;
   struct flipper flippers[MAX_FLIPPERS];
   int has_collision;
+  int level_number;
 };
 
 
@@ -109,6 +110,23 @@ struct player_hit_and_restart {
   int scroll_timer;
   char messaging[48];
   char *msg_ptr;
+};
+
+
+typedef enum { DIAG_RISING_SLOW, DIAG_RISING_MED,  DIAG_RISING_FAST,
+               FLATLINE,
+               DIAG_FALLING_FAST, DIAG_FALLING_MED, DIAG_FALLING_SLOW
+} animation_state_t;
+
+struct levelup {
+  int scroll_timer;
+  char messaging[48];
+  char *msg_ptr;
+  int init_levelup_display;
+  animation_state_t animation_state;
+  int animation_timer;
+  int animation_iterations;
+  int const *animation_iterations_max;
 };
 
 
@@ -134,6 +152,7 @@ struct display_strategy* get_display_strategy(struct model *this);
 const struct player* get_model_player(struct model *this);
 const struct playfield* get_model_playfield(struct model *this);
 const struct player_hit_and_restart* get_model_player_hit_and_restart(struct model *this);
+const struct levelup* get_model_levelup(struct model *this);
 
 
 #endif
