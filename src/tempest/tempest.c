@@ -41,6 +41,7 @@
 #define CONFIG_SOUND_LIST_KEY "sound_list"
 
 static uint32_t clock_iterations = 0, clock_overruns = 0; // count of iterations through event loopstatic
+static struct timeval tval_total_controller_time = { .tv_sec = 0, .tv_usec = 0 };
 struct model *model;
 static struct controller *controller;
 static struct ut3k_view *view;
@@ -67,8 +68,9 @@ const char *electric7_soundkey = "electric7";
 
 
 void sig_cleanup_and_exit(int signum) {
-  printf("caught sig %d.  Cleaning up and exiting.  Stats: %u clock ticks (%u overruns)\n",
-	 signum, clock_iterations, clock_overruns);
+  printf("caught sig %d.  Cleaning up and exiting.  Stats: %u clock ticks (%u overruns); total controller time %ld.%06ld\n",
+	 signum, clock_iterations, clock_overruns,
+         tval_total_controller_time.tv_sec, tval_total_controller_time.tv_usec);
   ut3k_remove_all_samples();
   free_controller(controller);
   free_model(model);
@@ -132,10 +134,11 @@ static void run_mvc(config_t *cfg) {
       usleep(tval_sleep_time.tv_usec);
     }
     else {
-       // this really shouldn't happen... loop takes <8 ms
+       // this really shouldn't happen... loop takes <4 ms.  2ms optimized.
       clock_overruns++;
       printf("controller took %ld.%06ld; this is longer than event loop of %ld.%06ld seconds\n", tval_controller_time.tv_sec, tval_controller_time.tv_usec, tval_fixed_loop_time.tv_sec, tval_fixed_loop_time.tv_usec);
     }
+    timeradd(&tval_total_controller_time, &tval_controller_time, &tval_total_controller_time);
 
     // should this function even exist or just rely on callback?
     // could instead just make this a loop around update_view?

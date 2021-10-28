@@ -89,6 +89,7 @@ struct player {
   int blaster_ready_timer; // non-positive is a ready state
   struct superzapper superzapper;
   int lives_remaining;
+  int score;
 };
 
 struct playfield {
@@ -129,6 +130,15 @@ struct levelup {
   int const *animation_iterations_max;
 };
 
+struct gameover {
+  int scroll_timer;
+  char score_message[32];
+  char *score_msg_ptr;
+  char level_message[32];
+  char *level_msg_ptr;
+  int animation_timer;
+};
+
 
 /* create a model for the caller.  Mem is allocated in the function;
  * caller is responsible for freeing later via free_game_mode
@@ -153,6 +163,7 @@ const struct player* get_model_player(struct model *this);
 const struct playfield* get_model_playfield(struct model *this);
 const struct player_hit_and_restart* get_model_player_hit_and_restart(struct model *this);
 const struct levelup* get_model_levelup(struct model *this);
+const struct gameover* get_model_gameover(struct model *this);
 
 
 #endif

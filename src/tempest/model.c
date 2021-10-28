@@ -28,6 +28,7 @@
 #include "view_gameplay.h"
 #include "view_player_hit.h"
 #include "view_levelup.h"
+#include "view_gameover.h"
 #include "ut3k_pulseaudio.h"
 
 
@@ -40,8 +41,6 @@ typedef enum
   GAME_OVER
 } game_state_t;
   
-
-// state and bizrules on how to handle player getting hit
 
 
 
@@ -76,11 +75,13 @@ struct model {
   struct display_strategy *gameplay_display_strategy;
   struct display_strategy *playerhit_display_strategy;
   struct display_strategy *levelup_display_strategy;
+  struct display_strategy *gameover_display_strategy;
   struct player player;
   struct playfield playfield;
 
   struct player_hit_and_restart player_hit_and_restart;
   struct levelup levelup;
+  struct gameover gameover;
 
   game_state_t game_state;
 };
@@ -92,6 +93,7 @@ static game_state_t clocktick_gameplay(struct model *this, uint32_t clock);
 static void init_player_hit(struct player_hit_and_restart *this, int lives_remaining);
 static void clocktick_player_hit(struct model *this, uint32_t clock);
 static game_state_t clocktick_levelup(struct model *this);
+static void clocktick_gameover(struct model *this);
 static int move_flippers(struct model *this);
 static int move_blasters(struct model *this);
 static void update_zapper(struct model *this);
@@ -99,8 +101,9 @@ static game_state_t collision_check(struct model *this);
 static void reset_player_and_nasties(struct model *this, int full);
 static void spawn_flipper(struct model *this, int index);
 static void init_player_for_game(struct player *player);
-static void init_playfield_for_level(struct playfield *this, int level);
+static void init_playfield_for_level(struct playfield *this);
 static void set_model_state_levelup(struct model *this);
+static void set_model_state_gameover(struct model *this);
 static inline int index_on_depth(int from, int sizeof_from, int sizeof_to);
 
 
@@ -111,14 +114,17 @@ struct model* create_model() {
   this->gameplay_display_strategy = create_gameplay_display_strategy(this);
   this->playerhit_display_strategy = create_playerhit_display_strategy(this);
   this->levelup_display_strategy = create_levelup_display_strategy(this);
+  this->gameover_display_strategy = create_gameover_display_strategy(this);
 
   init_player_for_game(&this->player);
   this->player_hit_and_restart = (struct player_hit_and_restart const) { 0 };
   this->levelup = (struct levelup const) { 0 };
+  this->gameover = (struct gameover const) { 0 };
 
   // just for now...get things going
   this->game_state = GAME_PLAY;
-  init_playfield_for_level(&this->playfield, 1);
+  this->playfield.level_number = 1;
+  init_playfield_for_level(&this->playfield);
 
   return this;
 }
@@ -128,6 +134,7 @@ void free_model(struct model *this) {
   free_gameplay_display_strategy(this->gameplay_display_strategy);
   free_playerhit_display_strategy(this->playerhit_display_strategy);
   free_levelup_display_strategy(this->levelup_display_strategy);
+  free_gameover_display_strategy(this->gameover_display_strategy);
   return free(this);
 }
 
@@ -158,7 +165,7 @@ void clocktick_model(struct model *this, uint32_t clock) {
       // GAME_PLAYER_HIT after a delay
       if (--this->player.lives_remaining == 0) {
         printf("game over\n");
-        this->game_state = GAME_OVER;        
+        set_model_state_gameover(this);        
       }
       else {
         this->game_state = GAME_PLAYER_HIT;
@@ -188,6 +195,10 @@ void clocktick_model(struct model *this, uint32_t clock) {
     // set it back to zero... this is awful since it'll get done on every
     // iteration, but, whatevz...
     this->levelup.init_levelup_display = 0;
+    break;
+
+  case GAME_OVER:
+    clocktick_gameover(this);
     break;
 
   default:
@@ -309,6 +320,8 @@ struct display_strategy* get_display_strategy(struct model *this) {
     return this->playerhit_display_strategy;
   case GAME_LEVEL_UP:
     return this->levelup_display_strategy;
+  case GAME_OVER:
+    return this->gameover_display_strategy;
   default:
     return this->gameplay_display_strategy;
   }    
@@ -331,6 +344,9 @@ const struct levelup* get_model_levelup(struct model *this) {
   return &this->levelup;
 }
 
+const struct gameover* get_model_gameover(struct model *this) {
+  return &this->gameover;
+}
 
 
 
@@ -384,6 +400,8 @@ static void clocktick_player_hit(struct model *this, uint32_t clock) {
  * animation thing" and it'd message back when it completes.
  * as-is, the model is driving which frames to play in the view.
  * Hey, I don't get paid for this, so suck it.
+ * But yeah...this is really pointing to the model/view as defined
+ * are not ideal.  Too much coupling.
  */
 static game_state_t clocktick_levelup(struct model *this) {
   if (--this->levelup.scroll_timer == 0) {
@@ -427,6 +445,24 @@ static game_state_t clocktick_levelup(struct model *this) {
   }
 
   return GAME_LEVEL_UP;
+}
+
+
+
+static void clocktick_gameover(struct model *this) {
+  if (--this->gameover.scroll_timer == 0) {
+    this->gameover.scroll_timer = default_text_scroll_timer;
+    if (this->gameover.score_msg_ptr[4] != '\0') {
+      this->gameover.score_msg_ptr++;
+    }
+    if (this->gameover.level_msg_ptr[4] != '\0') {
+      this->gameover.level_msg_ptr++;
+    }
+  }
+
+  if (--this->gameover.animation_timer == 0) {
+    this->gameover.animation_timer = default_display_slow_time;
+  }
 }
 
 
@@ -717,6 +753,7 @@ static game_state_t collision_check(struct model *this) {
         blaster->blaster_state = BLASTER_READY;
         flipper->flipper_state = DESTROYED;
         flippers_remaining--;
+        this->player.score += (flipper->depth == 0 ? 150 : 75);
       }
     }
 
@@ -727,6 +764,7 @@ static game_state_t collision_check(struct model *this) {
         printf("flipper %d destroyed by superzapper\n", i);
         flipper->flipper_state = DESTROYED;
         flippers_remaining--;
+        this->player.score += 150;
       }
     }
 
@@ -820,30 +858,28 @@ static void init_player_for_game(struct player *player) {
     {
      .position = 0,
      .depth = 0,
-     .lives_remaining = 3,
      .superzapper= (struct superzapper const)
      {
       .range = 1,
       .zapped_range = 0,
       .timer = default_player_zapper_charging_timer
-     }
+     },
+     .lives_remaining = 1,
+     .score = 0
     };
 
 }
 
-static void init_playfield_for_level(struct playfield *playfield, int level) {
+static void init_playfield_for_level(struct playfield *playfield) {
+  const int size_per_array[MAX_PLAYFIELD_NUM_ARRAYS] = { 28, 20, 12, 4, 4};
 
-  if (1 || level == 1) {
-    *playfield = (struct playfield const)
-      {
-       .num_arrays = sizeof((((struct playfield *)0)->size_per_array)) / sizeof(int*),
-       .size_per_array = { 28, 20, 12, 4, 4 },
-       //.size_per_array = { 14, 10, 6, 4, 4 },
-       .circular = 1,
-       .num_flippers = 12,
-       .next_flipper_spawn_timer = rand() % default_next_flipper_spawn_timer_randmoness + default_next_flipper_spawn_timer_minumum,
-       .has_collision = 0
-      };
+  if (playfield->level_number == 1) {
+    playfield->num_arrays = sizeof((((struct playfield *)0)->size_per_array)) / sizeof(int*);
+    memcpy(playfield->size_per_array, size_per_array, sizeof(size_per_array));
+    playfield->circular = 1;
+    playfield->num_flippers = 10;
+    playfield->next_flipper_spawn_timer = rand() % default_next_flipper_spawn_timer_randmoness + default_next_flipper_spawn_timer_minumum;
+    playfield->has_collision = 0;
 
 
     for (int i = 0; i < playfield->num_flippers; ++i) {
@@ -871,6 +907,16 @@ static void set_model_state_levelup(struct model *this) {
   reset_player_and_nasties(this, 1);
 }
 
+
+static void set_model_state_gameover(struct model *this) {
+  this->game_state = GAME_OVER;
+  this->gameover.scroll_timer = default_text_scroll_timer;
+  snprintf(this->gameover.score_message, 32, "   SCORE  %d", this->player.score);
+  this->gameover.score_msg_ptr = this->gameover.score_message;
+  snprintf(this->gameover.level_message, 32, "   LEVEL   %d", this->playfield.level_number);
+  this->gameover.level_msg_ptr = this->gameover.level_message;
+  this->gameover.animation_timer = default_display_slow_time;
+}  
 
 static inline int index_on_depth(int from, int sizeof_from, int sizeof_to) {
   return from * sizeof_to / sizeof_from;
