@@ -103,7 +103,8 @@ static void reset_player_and_nasties(struct model *this, int full);
 static void spawn_flipper(struct model *this, int index);
 static void init_player_for_game(struct player *player);
 static void init_playfield_for_level(struct playfield *this);
-static void set_model_state_levelup(struct model *this);
+static void set_model_state_gameplay(struct model *this);
+static void set_model_state_levelup_or_attract(struct model *this, game_state_t game_state);
 static void set_model_state_gameover(struct model *this);
 static inline int index_on_depth(int from, int sizeof_from, int sizeof_to);
 
@@ -117,15 +118,13 @@ struct model* create_model() {
   this->levelup_display_strategy = create_levelup_display_strategy(this);
   this->gameover_display_strategy = create_gameover_display_strategy(this);
 
-  init_player_for_game(&this->player);
+  // some sensible defaults
   this->player_hit_and_restart = (struct player_hit_and_restart const) { 0 };
   this->levelup = (struct levelup const) { 0 };
   this->gameover = (struct gameover const) { 0 };
-
-  // just for now...get things going
-  this->game_state = GAME_PLAY;
   this->playfield.level_number = 1;
   init_playfield_for_level(&this->playfield);
+  set_model_state_levelup_or_attract(this, GAME_ATTRACT);
 
   return this;
 }
@@ -157,7 +156,7 @@ void clocktick_model(struct model *this, uint32_t clock) {
         // Next state for losing a life or game over is more determined
         // by the playfield's has_collision flag getting set and a timer
         // expiring.
-        set_model_state_levelup(this);
+        set_model_state_levelup_or_attract(this, GAME_LEVEL_UP);
         ut3k_play_sample(level_up_soundkey);
       }
     }
@@ -201,8 +200,25 @@ void clocktick_model(struct model *this, uint32_t clock) {
 
   case GAME_OVER:
     this->game_state = clocktick_gameover(this);
+    if (this->game_state == GAME_ATTRACT) {
+      set_model_state_levelup_or_attract(this, GAME_ATTRACT);
+    }
     break;
 
+  case GAME_ATTRACT:
+    // odd re-use an abuse of an existing object...we'll re-use
+    // the levelup view (since it has that cool graphics) as
+    // attract mode.  The animation signals complete by returning
+    // state GAME_PLAY.  Signal that to re-start the animation.
+    if (clocktick_levelup(this) == GAME_PLAY) {
+      // reset levelup to restart animation
+      printf("reset attract state\n");
+      set_model_state_levelup_or_attract(this, GAME_ATTRACT);
+    }
+    else {
+      this->levelup.init_levelup_display = 0;
+    }
+    break;
   default:
     break;
   }
@@ -248,6 +264,11 @@ void move_player(struct model *this, int8_t direction) {
  * position and reset of the blaster timer.
  */
 void set_player_blaster_fired(struct model *this) {
+  if (this->game_state == GAME_ATTRACT) {
+    set_model_state_gameplay(this);
+    return;
+  }
+
   if (this->game_state != GAME_PLAY || this->playfield.has_collision == 1) {
     return;
   }
@@ -321,6 +342,7 @@ struct display_strategy* get_display_strategy(struct model *this) {
   case GAME_PLAYER_HIT:
     return this->playerhit_display_strategy;
   case GAME_LEVEL_UP:
+  case GAME_ATTRACT:
     return this->levelup_display_strategy;
   case GAME_OVER:
     return this->gameover_display_strategy;
@@ -404,12 +426,16 @@ static void clocktick_player_hit(struct model *this, uint32_t clock) {
  * Hey, I don't get paid for this, so suck it.
  * But yeah...this is really pointing to the model/view as defined
  * are not ideal.  Too much coupling.
+ * 
  */
 static game_state_t clocktick_levelup(struct model *this) {
   if (--this->levelup.scroll_timer == 0) {
+    this->levelup.scroll_timer = default_text_scroll_timer;
     if (*this->levelup.msg_ptr != '\0') {
-      this->levelup.scroll_timer = default_text_scroll_timer;
       this->levelup.msg_ptr++;
+    }
+    else if (this->game_state == GAME_ATTRACT) {
+      this->levelup.msg_ptr = this->levelup.messaging;
     }
   }
 
@@ -909,20 +935,43 @@ static void init_playfield_for_level(struct playfield *playfield) {
 }
 
 
+/* let the games begin...
+ */
+static void set_model_state_gameplay(struct model *this) {
+  init_player_for_game(&this->player);
+  this->player_hit_and_restart = (struct player_hit_and_restart const) { 0 };
+  this->levelup = (struct levelup const) { 0 };
+  this->gameover = (struct gameover const) { 0 };
+
+  // just for now...get things going
+  this->game_state = GAME_PLAY;
+  this->playfield.level_number = 1;
+  init_playfield_for_level(&this->playfield);
+}
+
+
 static const char *superzapper_recharged_message = "   SUPERZAPPER RECHARGE    ";
-static void set_model_state_levelup(struct model *this) {
-  this->game_state = GAME_LEVEL_UP;
-  this->playfield.level_number++;
+static const char *attract_message = "    TEMPEST   ";
+
+static void set_model_state_levelup_or_attract(struct model *this, game_state_t game_state) {
+  if (game_state == GAME_LEVEL_UP) {
+    this->game_state = GAME_LEVEL_UP;
+    this->playfield.level_number++;
+    strcpy(this->levelup.messaging, superzapper_recharged_message);
+    reset_player_and_nasties(this, 1);
+  }
+  else if (game_state == GAME_ATTRACT) {
+    this->game_state = GAME_ATTRACT;
+    strcpy(this->levelup.messaging, attract_message);
+  }
+     
+  this->levelup.msg_ptr = this->levelup.messaging;
   this->levelup.scroll_timer = default_text_scroll_timer;
   this->levelup.animation_timer = default_display_slow_time;
-  strcpy(this->levelup.messaging, superzapper_recharged_message);
-  this->levelup.msg_ptr = this->levelup.messaging;
   this->levelup.init_levelup_display = 1;
   this->levelup.animation_state = DIAG_RISING_SLOW;
   this->levelup.animation_iterations = 0;
   this->levelup.animation_iterations_max = &default_display_iterations_slow_med;
-
-  reset_player_and_nasties(this, 1);
 }
 
 
