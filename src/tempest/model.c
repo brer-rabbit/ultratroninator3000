@@ -68,6 +68,7 @@ static const int default_display_iterations_fast = 18;
 static const int default_display_slow_time = 17;
 static const int default_display_medium_time = 10;
 static const int default_display_fast_time = 5;
+static const int default_gameover_transition_time = 200;
 
 
 
@@ -93,7 +94,7 @@ static game_state_t clocktick_gameplay(struct model *this, uint32_t clock);
 static void init_player_hit(struct player_hit_and_restart *this, int lives_remaining);
 static void clocktick_player_hit(struct model *this, uint32_t clock);
 static game_state_t clocktick_levelup(struct model *this);
-static void clocktick_gameover(struct model *this);
+static game_state_t clocktick_gameover(struct model *this);
 static int move_flippers(struct model *this);
 static int move_blasters(struct model *this);
 static void update_zapper(struct model *this);
@@ -166,6 +167,7 @@ void clocktick_model(struct model *this, uint32_t clock) {
       if (--this->player.lives_remaining == 0) {
         printf("game over\n");
         set_model_state_gameover(this);        
+        ut3k_play_sample(highscore_soundkey);
       }
       else {
         this->game_state = GAME_PLAYER_HIT;
@@ -189,7 +191,7 @@ void clocktick_model(struct model *this, uint32_t clock) {
   case GAME_LEVEL_UP:
     // clocktick will run the between level stuff and signal
     // back with GAME_PLAY when complete
-    this->game_state = clocktick_levelup(this);
+     this->game_state = clocktick_levelup(this);
 
     // init_levelup_display gets set on state transition to GAME_LEVEL_UP;
     // set it back to zero... this is awful since it'll get done on every
@@ -198,7 +200,7 @@ void clocktick_model(struct model *this, uint32_t clock) {
     break;
 
   case GAME_OVER:
-    clocktick_gameover(this);
+    this->game_state = clocktick_gameover(this);
     break;
 
   default:
@@ -449,7 +451,7 @@ static game_state_t clocktick_levelup(struct model *this) {
 
 
 
-static void clocktick_gameover(struct model *this) {
+static game_state_t clocktick_gameover(struct model *this) {
   if (--this->gameover.scroll_timer == 0) {
     this->gameover.scroll_timer = default_text_scroll_timer;
     if (this->gameover.score_msg_ptr[4] != '\0') {
@@ -460,9 +462,25 @@ static void clocktick_gameover(struct model *this) {
     }
   }
 
+  if (this->gameover.level_msg_ptr[4] == '\0' &&
+      this->gameover.score_msg_ptr[4] == '\0') {
+    // show "game over" for a bit, then transition to attract mode
+    if (++this->gameover.transition_timer == default_gameover_transition_time) {
+      this->gameover.score_msg_ptr = "GAME";
+      this->gameover.level_msg_ptr = "OVER";
+      }
+    else if (this->gameover.transition_timer == 2 * default_gameover_transition_time) {
+      return GAME_ATTRACT;
+    }
+  }
+
+
   if (--this->gameover.animation_timer == 0) {
     this->gameover.animation_timer = default_display_slow_time;
+    this->gameover.led_timer++;
   }
+
+  return GAME_OVER;
 }
 
 
@@ -916,6 +934,7 @@ static void set_model_state_gameover(struct model *this) {
   snprintf(this->gameover.level_message, 32, "   LEVEL   %d", this->playfield.level_number);
   this->gameover.level_msg_ptr = this->gameover.level_message;
   this->gameover.animation_timer = default_display_slow_time;
+  this->gameover.led_timer = 0;
 }  
 
 static inline int index_on_depth(int from, int sizeof_from, int sizeof_to) {

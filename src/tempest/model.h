@@ -137,6 +137,8 @@ struct gameover {
   char level_message[32];
   char *level_msg_ptr;
   int animation_timer;
+  int transition_timer;
+  int led_timer;
 };
 
 

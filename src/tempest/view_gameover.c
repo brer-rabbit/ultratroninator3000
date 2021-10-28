@@ -122,14 +122,21 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 }
 
 
-
+static const int light_show[] = { 0x00, 0x81, 0xC3, 0xE7, 0xFF };
 
 // implements f_get_display for the leds display
 static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+  struct model *model = (struct model*) display_strategy->userdata;
+  const struct gameover *gameover = get_model_gameover(model);
 
-  (*value).display_int = 0;
   *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_12;
+
+  (*value).display_int =
+    light_show[gameover->led_timer % 5] |
+    (light_show[(gameover->led_timer + 1) % 5]) << 8 |
+    (light_show[(gameover->led_timer + 2) % 5]) << 16;
+
 
   return integer_display;
 }
