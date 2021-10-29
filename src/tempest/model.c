@@ -908,7 +908,7 @@ static void init_player_for_game(struct player *player) {
       .zapped_range = 0,
       .timer = default_player_zapper_charging_timer
      },
-     .lives_remaining = 1,
+     .lives_remaining = 3,
      .score = 0
     };
 

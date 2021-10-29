@@ -60,6 +60,8 @@ struct flipper {
   flipper_state_t flipper_state;
   int intra_depth_timer; // timer for moving within the current depth
   int next_depth_timer; // timer for advancing to next depth (well, depth -1, surfacing?)
+  int default_next_depth_timer;  // flipper may individually have a next depth timer
+  int default_intra_depth_timer;  // flipper may individually have a movement timer
 };
 
 typedef enum { BLASTER_READY, BLASTER_FIRED } blaster_state_t;
