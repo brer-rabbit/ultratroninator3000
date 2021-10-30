@@ -13,19 +13,15 @@
  * limitations under the License.
  */
 
-
-/* ut3k_view.h
- *
- */
-
 #ifndef UT3K_VIEW_H
 #define UT3K_VIEW_H
-
-struct ut3k_view;
 
 #include "display_strategy.h"
 #include "ht16k33.h"
 #include "control_panel.h"
+
+
+struct ut3k_view;
 
 
 /* Listeners / callback */

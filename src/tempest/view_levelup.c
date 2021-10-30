@@ -34,7 +34,7 @@ static display_type get_leds_display(struct display_strategy *display_strategy, 
  * down V, transition to flatline, then go to a diagonal V display.
  */
 #define DIAG_LL_UR 0x0C00
-#define DIAG_LR_UL 0x0104
+#define DIAG_LR_UL 0x2100
 #define FLATLINE_LOW 0x0008
 #define FLATLINE_MID 0x00C0
 #define FLATLINE_HIGH 0x0001
