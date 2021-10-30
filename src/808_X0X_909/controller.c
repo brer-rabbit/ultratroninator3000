@@ -58,7 +58,13 @@ void free_controller(struct controller *this) {
  */
 int controller_update(struct controller *this, uint32_t clock) {
   clocktick_model(this->model);
-  update_view(this->view, get_display_strategy(this->model), clock);
+
+  if (clock & 0b1) {
+    update_controls(this->view, clock);
+  }
+
+  update_displays(this->view, get_display_strategy(this->model), clock);
+
   return get_bpm(this->model);
 }
 

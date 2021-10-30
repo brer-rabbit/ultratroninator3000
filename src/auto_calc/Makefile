@@ -1,4 +1,4 @@
-TARGET = auto_calc
+TARGET = AUTO_CALC
 INCLUDE = -I../../include
 LIBS = -li2c -lconfig -lpulse -lsndfile -lpthread   -L../../lib/ -lut3k
 CC = gcc

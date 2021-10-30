@@ -86,7 +86,12 @@ void controller_update(struct controller *this, uint32_t clock) {
     controller_update_attract(this, clock);
   }
 
-  update_view(this->view, get_display_strategy(this->model), clock);
+  if (clock & 0b1) {
+    update_controls(this->view, clock);
+  }
+
+  update_displays(this->view, get_display_strategy(this->model), clock);
+
 
   new_game_state = get_game_state(this->model);
   if (new_game_state != game_state) { // state changed

@@ -72,7 +72,6 @@ static void* poll_rotary_encoders(void *userdata);
 
 
 struct ut3k_view {
-  f_show_displays show_displays;
 
   // Adafruit displays with backpacks
   HT16K33 *green_display;
@@ -122,8 +121,6 @@ struct ut3k_view* create_alphanum_ut3k_view() {
 
 
   this = (struct ut3k_view*) malloc(sizeof(struct ut3k_view));
-
-  this->show_displays = ht16k33_alphanum_display_game;
 
   this->green_display = (HT16K33*) malloc(sizeof(HT16K33));
   this->blue_display  = (HT16K33*) malloc(sizeof(HT16K33));
@@ -232,10 +229,9 @@ int free_ut3k_view(struct ut3k_view *this) {
 
 /** update_view
  * keyscan HT16K33
- * callback to any hooks
- * update displays
+ * callback to control panel listener (if non-null/registered)
  */
-void update_view(struct ut3k_view *this, struct display_strategy *display_strategy, uint32_t clock) {
+void update_controls(struct ut3k_view *this, uint32_t clock) {
   ht16k33keyscan_t keyscan;
   int keyscan_rc;
   unsigned long long int green_bit_queue, blue_bit_queue, red_bit_queue;
@@ -307,17 +303,27 @@ void update_view(struct ut3k_view *this, struct display_strategy *display_strate
   }
 
 
+}
+
+
+
+
+/** update_displays
+ * keyscan HT16K33
+ * callback to any hooks
+ */
+void update_displays(struct ut3k_view *this, struct display_strategy *display_strategy, uint32_t clock) {
   // odd..but abstract out implementation while passing object state.
   // maybe I should switch to an OO language?
   // show_displays is expected to update all visual info on the HT16K33s
-  this->show_displays(this, display_strategy);
+  ht16k33_alphanum_display_game(this, display_strategy);
 
 }
 
 
 
 
-/* Listeners ---------------------------------------------------------- */
+/* Listener ---------------------------------------------------------- */
 
 
 

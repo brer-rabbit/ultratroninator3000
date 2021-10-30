@@ -102,7 +102,11 @@ void controller_update(struct calc_controller *this, uint32_t clock) {
   this->green_selector_audio_timedown--;
   this->blue_selector_audio_timedown--;
 
-  update_view(this->view, get_display_strategy(this->model), clock);
+  if (clock & 0b1) {
+    update_controls(this->view, clock);
+  }
+
+  update_displays(this->view, get_display_strategy(this->model), clock);
 }
 
 

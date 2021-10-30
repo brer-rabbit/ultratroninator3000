@@ -49,13 +49,14 @@ struct ut3k_view* create_alphanum_ut3k_view();
 int free_ut3k_view(struct ut3k_view *this);
 
 
-/** show the view of the model-
- * Keyscan all controls, update all 3 displays, the rows of LEDs.
- * Keyscan results are available via the callback.
+/** 
+ * Keyscan all controls.
+ * Keyscan results are available via the callback registered listener
+ * or via the get_control_panel call.
  * This function must only be called not more than every ~20ms,
  * otherwise the caller risks getting invalid results from the chip.
  */
-void update_view(struct ut3k_view*, struct display_strategy*, uint32_t clock);
+void update_controls(struct ut3k_view*, uint32_t clock);
 
 
  /**
@@ -69,5 +70,14 @@ void register_control_panel_listener(struct ut3k_view *view, f_view_control_pane
  *   want to avoid the callback model.
  */
 const struct control_panel* get_control_panel(struct ut3k_view*);
+
+
+
+/** show the displays
+ * update all 3 displays, the rows of LEDs.
+ * This function may be called every ~10ms.
+ */
+void update_displays(struct ut3k_view*, struct display_strategy*, uint32_t clock);
+
 
 #endif

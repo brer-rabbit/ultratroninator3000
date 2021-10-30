@@ -51,7 +51,13 @@ void free_controller(struct controller *this) {
 
 
 void controller_update(struct controller *this, uint32_t clock) {
-  update_view(this->view, get_display_strategy(this->model), clock);
+  if (clock & 0b1) {
+    // keyscan only valid every 20 ms.  Assume clock is 10ms, so skip
+    // every other one.
+    update_controls(this->view, clock);
+  }
+
+  update_displays(this->view, get_display_strategy(this->model), clock);
 }
 
 
