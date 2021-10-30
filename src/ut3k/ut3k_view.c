@@ -237,71 +237,67 @@ void update_controls(struct ut3k_view *this, uint32_t clock) {
   unsigned long long int green_bit_queue, blue_bit_queue, red_bit_queue;
   int green_queue_index, blue_queue_index, red_queue_index;
 
-  // only read every other clock cycle
-  if (clock & 0b1) {
-    keyscan_rc = HT16K33_READ(this->inputs_and_leds, keyscan);
-    if (keyscan_rc != 0) {
-      printf("keyscan failed with code %d\n", keyscan_rc);
-    }
-
-    //  printf("keyscan: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X\n",
-    //  	 keyscan[0], keyscan[1], keyscan[2], keyscan[3], keyscan[4], keyscan[5]);
-
-    // drain the queue: read any rotary encoder data
-    // treat this as a critical section- just copy the data
-    // out and release the lock.  Minimize losing any reads
-    // from the gpio pins.  Maybe I'm just paranoid.
-    pthread_mutex_lock(&this->rotary_bits_queue_mutex);
-    if (this->green_rotary_queue.queue_index > 3) {
-      green_bit_queue = this->green_rotary_queue.bit_queue;
-      green_queue_index = this->green_rotary_queue.queue_index;
-      // leave the last two
-      this->green_rotary_queue.bit_queue = this->green_rotary_queue.bit_queue & 0b11;
-      this->green_rotary_queue.queue_index = 2;
-    }
-    else {  // no change-- queue size zero for no processing
-      green_bit_queue = 0;
-      green_queue_index = 0;
-    }
-
-    if (this->blue_rotary_queue.queue_index > 3) {
-      blue_bit_queue = this->blue_rotary_queue.bit_queue;
-      blue_queue_index = this->blue_rotary_queue.queue_index;
-      // leave the last two
-      this->blue_rotary_queue.bit_queue = this->blue_rotary_queue.bit_queue & 0b11;
-      this->blue_rotary_queue.queue_index = 2;
-    }
-    else {
-      blue_bit_queue = 0;
-      blue_queue_index = 0;
-    }
-
-    if (this->red_rotary_queue.queue_index > 3) {
-      red_bit_queue = this->red_rotary_queue.bit_queue;
-      red_queue_index = this->red_rotary_queue.queue_index;
-      // leave the last two
-      this->red_rotary_queue.bit_queue = this->red_rotary_queue.bit_queue & 0b11;
-      this->red_rotary_queue.queue_index = 2;
-    }
-    else {
-      red_bit_queue = 0;
-      red_queue_index = 0;
-    }
-
-    pthread_mutex_unlock(&this->rotary_bits_queue_mutex);
-
-    // update control panel here...
-    update_control_panel(this->control_panel, keyscan,
-			 green_bit_queue, green_queue_index,
-			 blue_bit_queue, blue_queue_index,
-			 red_bit_queue, red_queue_index,
-			 clock);
-
-    if (this->control_panel_listener) {
-      (*this->control_panel_listener)((const struct control_panel*)this->control_panel, this->control_panel_listener_userdata);
-    }
+  keyscan_rc = HT16K33_READ(this->inputs_and_leds, keyscan);
+  if (keyscan_rc != 0) {
+    printf("keyscan failed with code %d\n", keyscan_rc);
   }
 
+  //  printf("keyscan: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X\n",
+  //  	 keyscan[0], keyscan[1], keyscan[2], keyscan[3], keyscan[4], keyscan[5]);
+
+  // drain the queue: read any rotary encoder data
+  // treat this as a critical section- just copy the data
+  // out and release the lock.  Minimize losing any reads
+  // from the gpio pins.  Maybe I'm just paranoid.
+  pthread_mutex_lock(&this->rotary_bits_queue_mutex);
+  if (this->green_rotary_queue.queue_index > 3) {
+    green_bit_queue = this->green_rotary_queue.bit_queue;
+    green_queue_index = this->green_rotary_queue.queue_index;
+    // leave the last two
+    this->green_rotary_queue.bit_queue = this->green_rotary_queue.bit_queue & 0b11;
+    this->green_rotary_queue.queue_index = 2;
+  }
+  else {  // no change-- queue size zero for no processing
+    green_bit_queue = 0;
+    green_queue_index = 0;
+  }
+
+  if (this->blue_rotary_queue.queue_index > 3) {
+    blue_bit_queue = this->blue_rotary_queue.bit_queue;
+    blue_queue_index = this->blue_rotary_queue.queue_index;
+    // leave the last two
+    this->blue_rotary_queue.bit_queue = this->blue_rotary_queue.bit_queue & 0b11;
+    this->blue_rotary_queue.queue_index = 2;
+  }
+  else {
+    blue_bit_queue = 0;
+    blue_queue_index = 0;
+  }
+
+  if (this->red_rotary_queue.queue_index > 3) {
+    red_bit_queue = this->red_rotary_queue.bit_queue;
+    red_queue_index = this->red_rotary_queue.queue_index;
+    // leave the last two
+    this->red_rotary_queue.bit_queue = this->red_rotary_queue.bit_queue & 0b11;
+    this->red_rotary_queue.queue_index = 2;
+  }
+  else {
+    red_bit_queue = 0;
+    red_queue_index = 0;
+  }
+
+  pthread_mutex_unlock(&this->rotary_bits_queue_mutex);
+
+  // update control panel here...
+  update_control_panel(this->control_panel, keyscan,
+                       green_bit_queue, green_queue_index,
+                       blue_bit_queue, blue_queue_index,
+                       red_bit_queue, red_queue_index,
+                       clock);
+
+  if (this->control_panel_listener) {
+    (*this->control_panel_listener)((const struct control_panel*)this->control_panel, this->control_panel_listener_userdata);
+  }
 
 }
 
@@ -564,7 +560,9 @@ static int initialize_backpack(HT16K33 *backpack) {
  * is different from what was previously seen.
  * The queue is a 64 bit int.
  * "front" of the queue has the most recent two bits read, with older
- * pairs of bits following:
+ * pairs of bits following.  Pairs of bits are a single read state.
+ * Two states (four bits) are required to infer the change in the
+ * encoder.
  *
  *                   queue_index = 6                  
  * ------------- ... ---------------------------------------
@@ -573,9 +571,9 @@ static int initialize_backpack(HT16K33 *backpack) {
  *   63   62              6    5    4    3    2    1    0
  *
  * queue_index = 0 :: nothing in the queue
- * queue_index = 1 :: only one state in the queue
- * queue_index > 1 :: two ore more states in queue: these can be processed
- *                     via lookup table
+ * queue_index = 1 :: one bit in the queue: illegal; any odd index is illegal
+ * queue_index > 3 :: four or more bits in queue (two states): these
+ *                     can be processed via lookup table
  */
 static inline void push_encoder_queue(struct rotary_encoder_bits_queue *queue, int a, int b) {
 
