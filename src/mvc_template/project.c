@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <libconfig.h>
 
-#include "rota_enco.h"
+#include "project.h"
 #include "model.h"
 #include "controller.h"
 #include "ut3k_view.h"
