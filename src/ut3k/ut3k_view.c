@@ -382,6 +382,14 @@ void f_clock_text_scroller(struct display *display, uint32_t clock) {
 }
 
 
+void init_clock_text_scroller(struct clock_text_scroller *scroller, char *text, int timer) {
+  scroller->scroller_base.text = text;
+  scroller->scroller_base.position = scroller->scroller_base.text;
+  scroller->delay = timer;
+  scroller->timer = timer;
+}
+
+
 /* f_manual_text_scroller
  * side effect: sets the scroller->direction field to zero.
  * This is needed since the control panel is updated every other
@@ -406,6 +414,16 @@ void f_manual_text_scroller(struct display *display, uint32_t clock) {
   display->display_type = string_display;
   display->display_value.display_string = scroller->scroller_base.position;
 }
+
+
+void init_manual_text_scroller(struct manual_text_scroller *scroller, char *text) {
+  scroller->scroller_base.text = text;
+  scroller->scroller_base.position = scroller->scroller_base.text;
+  scroller->direction = 0;
+}
+
+
+
 
 
 /** update_displays

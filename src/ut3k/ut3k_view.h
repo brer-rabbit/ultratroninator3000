@@ -113,7 +113,7 @@ struct manual_text_scroller {
 
 
 void init_clock_text_scroller(struct clock_text_scroller *scroller, char *text, int timer);
-void init_manual_text_scroller(struct manual_text_scroller *scroller, char *text, int timer);
+void init_manual_text_scroller(struct manual_text_scroller *scroller, char *text);
 
 
 
