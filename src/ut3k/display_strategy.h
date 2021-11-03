@@ -28,22 +28,9 @@
 
 #include <stdint.h>
 #include "ht16k33.h"
+#include "ut3k_defs.h"
+#include "ut3k_view.h"
 
-/* for viewing (this *is* actually the view, despite the file
-   ut3k_view thinking it is), provide an interface the model can use to
- * set the 4-digit display.  The displayable types are:
- * integer : show an integer value, right aligned
- * string  : display a string, left aligned
- * glyph   : user provided uint16_t[4] to display, roll yer own!
- */
-
-typedef enum { integer_display, string_display, glyph_display } display_type;
-typedef union {
-  int32_t display_int;  // for the LED display the first 3 bytes are read
-  char* display_string;
-  uint16_t display_glyph[4];
-} display_value;
-    
 
 struct display_strategy;
 
@@ -65,7 +52,7 @@ struct display_strategy;
  * for the LEDs, the only valid display_type is int.  The low 8 bits
  * are for red, next 8 for blue, third 8 green.
  */
-typedef display_type (*f_get_display)(struct display_strategy*, display_value*, ht16k33blink_t*, ht16k33brightness_t*);
+typedef display_type_t (*f_get_display)(struct display_strategy*, display_value_t*, ht16k33blink_t*, ht16k33brightness_t*);
 
 /** To utilize the strategy, one must also construct a struct
  * display_strategy that gets passed to the view (and really...*this* is
@@ -92,5 +79,16 @@ struct display_strategy {
 
 };
 
+
+
+/** show the displays
+ * update all 3 displays, the rows of LEDs.
+ * This function may be called every ~10ms.
+ * @deprecated
+ * This way of getting data to the display is backasswards.  It has
+ * the view pull it in via 4 different function pointers.  That alone
+ * should make one want to run away.
+ */
+void update_displays(struct ut3k_view*, struct display_strategy*, uint32_t clock);
 
 #endif

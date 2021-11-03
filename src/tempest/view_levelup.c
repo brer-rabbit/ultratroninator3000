@@ -22,10 +22,10 @@
 #include "model.h"
 
 
-static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 
 
 
@@ -164,7 +164,7 @@ void free_levelup_display_strategy(struct display_strategy *display_strategy) {
 
 
 // implements f_get_display for the red display
-static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct view_data *view_data = (struct view_data*) display_strategy->userdata;
   struct model *model = view_data->model;
   const struct levelup *levelup = get_model_levelup(model);
@@ -177,7 +177,7 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
 }
 
 // implements f_get_display for the blue display
-static display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct view_data *view_data = (struct view_data*) display_strategy->userdata;
   struct model *model = view_data->model;
   const struct levelup *levelup = get_model_levelup(model);
@@ -224,7 +224,7 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
 
 
 // implements f_get_display for the green display
-static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct view_data *view_data = (struct view_data*) display_strategy->userdata;
   struct model *model = view_data->model;
   const struct levelup *levelup = get_model_levelup(model);
@@ -288,7 +288,7 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 
 
 // implements f_get_display for the leds display
-static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct view_data *view_data = (struct view_data*) display_strategy->userdata;
   struct model *model = view_data->model;
 

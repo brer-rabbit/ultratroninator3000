@@ -23,10 +23,10 @@
 #include "view_player_hit.h"
 
 
-static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 
 
 
@@ -64,7 +64,7 @@ void free_playerhit_display_strategy(struct display_strategy *display_strategy) 
 
 
 // implements f_get_display for the red display
-static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct player *player;
 
@@ -73,7 +73,7 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
 
   player = get_model_player(model);
 
-  memset((*value).display_glyph, 0, sizeof(display_value));
+  memset((*value).display_glyph, 0, sizeof(display_value_t));
 
   for (int i = 0; i < player->lives_remaining && i < 4; ++i) {
     (*value).display_glyph[i] = 0x2808;
@@ -83,7 +83,7 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
 }
 
 // implements f_get_display for the blue display
-static display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
 
   *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_5;
@@ -97,7 +97,7 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
 
 
 // implements f_get_display for the green display
-static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct player_hit_and_restart *player_restart;
 
@@ -114,7 +114,7 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 
 
 // implements f_get_display for the leds display
-static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
 
   (*value).display_int = 0;
   *blink = HT16K33_BLINK_OFF;

@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include "ut3k_view.h"
+#include "display_strategy.h"
 
 #define GREEN_DISPLAY_ADDRESS HT16K33_ADDR_07
 #define BLUE_DISPLAY_ADDRESS HT16K33_ADDR_06
@@ -54,6 +55,10 @@ typedef void (*f_show_displays)(struct ut3k_view*, struct display_strategy*);
 
 // implements f_show_displays
 static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display_strategy *display);
+static void commit_string(HT16K33 *display, char *string);
+static void commit_glyph(HT16K33 *display, uint16_t glyph[]);
+static void commit_integer(HT16K33 *display, int16_t value);
+
 
 /** rotary encoder stuff
  *
@@ -304,9 +309,109 @@ void update_controls(struct ut3k_view *this, uint32_t clock) {
 
 
 
+
+
+
+/** 
+ * implementation for the ut3k with four HT16K33
+ */
+
+void ut3k_update_display(struct ut3k_view *this, struct ut3k_display *ut3k_display, uint32_t clock) {
+  uint32_t led_display_value = 0;
+  
+
+  for (int i = 0; i < 3; ++i) {
+    struct display *display = &ut3k_display->displays[i];
+
+    if (display->f_animate != NULL) {
+      display->f_animate(display, clock);
+    }
+
+    switch (display->display_type) {
+    case integer_display:
+      commit_integer(this->display_array[i], display->display_value.display_int);
+      break;
+    case glyph_display:
+      commit_glyph(this->display_array[i], display->display_value.display_glyph);
+      break;
+    case string_display:
+      commit_string(this->display_array[i], display->display_value.display_string);
+      break;
+    }
+
+    if (this->display_array[i]->brightness != display->brightness) {
+      HT16K33_BRIGHTNESS(this->display_array[i], display->brightness);
+    }
+
+    if (this->display_array[i]->blink_state != display->blink) {
+      HT16K33_BLINK(this->display_array[i], display->blink);
+    }
+
+  }
+
+  // TODO: LEDs...
+}
+
+
+
+
+// f_animator functions
+
+/** f_clock_text_scroller
+ * keep a timer and after delay of clockticks the text is scrolled on
+ * character.  When a NUL char is found the scroll_completed flag is set
+ * and scrolling stops.
+ */
+void f_clock_text_scroller(struct display *display, uint32_t clock) {
+  struct clock_text_scroller *scroller = (struct clock_text_scroller*) display->userdata;
+  if (--scroller->timer == 0) {
+    scroller->timer = scroller->delay;
+    if (scroller->scroller_base.position[0] != '\0' &&
+        scroller->scroller_base.position[1] != '\0' &&
+        scroller->scroller_base.position[2] != '\0' &&
+        scroller->scroller_base.position[3] != '\0') {
+      scroller->scroller_base.position++;
+    }
+    else {
+      scroller->scroller_base.scroll_completed = 1;
+    }
+  }
+
+  display->display_type = string_display;
+  display->display_value.display_string = scroller->scroller_base.position;
+}
+
+
+/* f_manual_text_scroller
+ * side effect: sets the scroller->direction field to zero.
+ * This is needed since the control panel is updated every other
+ * display cycle.  Another option may be this function could no-op
+ * on even clock cycles, though that's inexplicably odd as well.
+ */
+void f_manual_text_scroller(struct display *display, uint32_t clock) {
+  struct manual_text_scroller *scroller = (struct manual_text_scroller*) display->userdata;
+  if (scroller->direction < 0 &&
+      scroller->scroller_base.position > scroller->scroller_base.text) {
+    scroller->scroller_base.position--;
+  }
+  else if (scroller->direction > 0 &&
+           scroller->scroller_base.position[0] != '\0' &&
+           scroller->scroller_base.position[1] != '\0' &&
+           scroller->scroller_base.position[2] != '\0' &&
+           scroller->scroller_base.position[3] != '\0') {
+    scroller->scroller_base.position++;
+  }
+
+  scroller->direction = 0;
+  display->display_type = string_display;
+  display->display_value.display_string = scroller->scroller_base.position;
+}
+
+
 /** update_displays
  * keyscan HT16K33
  * callback to any hooks
+ * @deprecated use ut3k_update_display instead
  */
 void update_displays(struct ut3k_view *this, struct display_strategy *display_strategy, uint32_t clock) {
   // odd..but abstract out implementation while passing object state.
@@ -317,98 +422,12 @@ void update_displays(struct ut3k_view *this, struct display_strategy *display_st
 }
 
 
-
-
-/* Listener ---------------------------------------------------------- */
-
-
-
-void register_control_panel_listener(struct ut3k_view *view, f_view_control_panel_listener f, void *userdata) {
-  view->control_panel_listener = f;
-  view->control_panel_listener_userdata = userdata;
-}
-
-
-/* Accessors ---------------------------------------------------------- */
-
-const struct control_panel* get_control_panel(struct ut3k_view *this) {
-  return (const struct control_panel*) this->control_panel;
-}
-
-
-
-/* Static ------------------------------------------------------------- */
-
-
-/** commit_string
- * 
- * write a string to a specific HT16K33 display.  Only the first 4
- * chars are written.  Commit is called.
- */
-static void commit_string(HT16K33 *display, char *string) {
-  int digit;
-
-  for (digit = 0; digit < 4; ++digit) { // digit
-    if (string == NULL || string[digit] == '\0') {
-      break;
-    }
-    HT16K33_UPDATE_ALPHANUM(display, digit, string[digit], 0);
-  }
-
-  for (; digit < 4; ++digit) {
-    // clear any remaining digits
-    HT16K33_CLEAN_DIGIT(display, digit);
-  }
-
-  HT16K33_COMMIT(display);
-}
-
-
-
-/** commit_glyph
- *
- * raw read of four 16 bit ints sent straight to the update raw method.
- * more than enough rope to hang yourself with this.
- */
-static void commit_glyph(HT16K33 *display, uint16_t glyph[]) {
-  HT16K33_UPDATE_RAW(display, glyph);
-  HT16K33_COMMIT(display);
-}
-
-
-
-/** commit_integer
- * 
- * write a string to a specific HT16K33 display.  Only the first 4
- * chars are written.  Commit is called.
- */
-static void commit_integer(HT16K33 *display, int16_t value) {
-
-  if (value >= 0 && value < 256) {
-    HT16K33_DISPLAY_INTEGER(display, (uint8_t)value);
-  }
-  else {
-    char buffer[5];
-    snprintf(buffer, 5, "%4hd", value);
-
-    for (int digit = 0; digit < 4; ++digit) { // digit
-      HT16K33_UPDATE_ALPHANUM(display, digit, buffer[digit], 0);
-    }
-  }
-
-  HT16K33_COMMIT(display);
-}
-
-
-
-
-
 /** ht16k33_alphanum_display_game: implements f_show_displays
  * specific implementation for the Adafruit alphanum display
  */
 
 static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display_strategy *display_strategy) {
-  display_value union_result;
+  display_value_t union_result;
   ht16k33blink_t blink;
   ht16k33brightness_t brightness;
   uint32_t led_display_value = 0;
@@ -501,6 +520,93 @@ static void ht16k33_alphanum_display_game(struct ut3k_view *this, struct display
   HT16K33_COMMIT(this->inputs_and_leds);
 
 }
+
+
+
+
+
+
+/* Listener ---------------------------------------------------------- */
+
+
+
+void register_control_panel_listener(struct ut3k_view *view, f_view_control_panel_listener f, void *userdata) {
+  view->control_panel_listener = f;
+  view->control_panel_listener_userdata = userdata;
+}
+
+
+/* Accessors ---------------------------------------------------------- */
+
+const struct control_panel* get_control_panel(struct ut3k_view *this) {
+  return (const struct control_panel*) this->control_panel;
+}
+
+
+
+/* Static ------------------------------------------------------------- */
+
+
+/** commit_string
+ * 
+ * write a string to a specific HT16K33 display.  Only the first 4
+ * chars are written.  Commit is called.
+ */
+static void commit_string(HT16K33 *display, char *string) {
+  int digit;
+
+  for (digit = 0; digit < 4; ++digit) { // digit
+    if (string == NULL || string[digit] == '\0') {
+      break;
+    }
+    HT16K33_UPDATE_ALPHANUM(display, digit, string[digit], 0);
+  }
+
+  for (; digit < 4; ++digit) {
+    // clear any remaining digits
+    HT16K33_CLEAN_DIGIT(display, digit);
+  }
+
+  HT16K33_COMMIT(display);
+}
+
+
+
+/** commit_glyph
+ *
+ * raw read of four 16 bit ints sent straight to the update raw method.
+ * more than enough rope to hang yourself with this.
+ */
+static void commit_glyph(HT16K33 *display, uint16_t glyph[]) {
+  HT16K33_UPDATE_RAW(display, glyph);
+  HT16K33_COMMIT(display);
+}
+
+
+
+/** commit_integer
+ * 
+ * write a string to a specific HT16K33 display.  Only the first 4
+ * chars are written.  Commit is called.
+ */
+static void commit_integer(HT16K33 *display, int16_t value) {
+
+  if (value >= 0 && value < 256) {
+    HT16K33_DISPLAY_INTEGER(display, (uint8_t)value);
+  }
+  else {
+    char buffer[5];
+    snprintf(buffer, 5, "%4hd", value);
+
+    for (int digit = 0; digit < 4; ++digit) { // digit
+      HT16K33_UPDATE_ALPHANUM(display, digit, buffer[digit], 0);
+    }
+  }
+
+  HT16K33_COMMIT(display);
+}
+
+
 
 
 

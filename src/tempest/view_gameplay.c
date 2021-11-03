@@ -22,16 +22,16 @@
 #include "model.h"
 #include "view_gameplay.h"
 
-static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 
 
 // view methods
 typedef enum { DISPLAY_RED, DISPLAY_BLUE, DISPLAY_GREEN } display_t;
-static void display_flipper(const struct flipper*, display_t, display_value*);
-static void display_blaster(const struct blaster*, display_t, display_value*);
+static void display_flipper(const struct flipper*, display_t, display_value_t*);
+static void display_blaster(const struct blaster*, display_t, display_value_t*);
 
 /* view methods ----------------------------------------------------- */
 
@@ -107,7 +107,7 @@ static const uint16_t superzapper_zaps[] =
   };
 
 // implements f_get_display for the red display
-static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct player *player = get_model_player(model);
   const struct playfield *playfield = get_model_playfield(model);
@@ -115,7 +115,7 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
 
   *blink = playfield->has_collision ? HT16K33_BLINK_FAST : HT16K33_BLINK_OFF;
 
-  memset((*value).display_glyph, 0, sizeof(display_value));
+  memset((*value).display_glyph, 0, sizeof(display_value_t));
 
   if (player->position != 0) {
     if (player->position > 0 && player->position < 5) {
@@ -193,7 +193,7 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
 }
 
 // implements f_get_display for the blue display
-static display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct player *player = get_model_player(model);
   const struct playfield *playfield = get_model_playfield(model);
@@ -201,7 +201,7 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
 
   *blink = playfield->has_collision ? HT16K33_BLINK_FAST : HT16K33_BLINK_OFF;
 
-  memset((*value).display_glyph, 0, sizeof(display_value));
+  memset((*value).display_glyph, 0, sizeof(display_value_t));
 
   if (player->position == 0 || player->position == 27) {
     (*value).display_glyph[0] = player_glyph[player->position];
@@ -247,7 +247,7 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
 }
 
 // implements f_get_display for the green display
-static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct player *player = get_model_player(model);
   const struct playfield *playfield = get_model_playfield(model);
@@ -256,7 +256,7 @@ static display_type get_green_display(struct display_strategy *display_strategy,
   *brightness = HT16K33_BRIGHTNESS_5;
   *blink = playfield->has_collision ? HT16K33_BLINK_FAST : HT16K33_BLINK_OFF;
 
-  memset((*value).display_glyph, 0, sizeof(display_value));
+  memset((*value).display_glyph, 0, sizeof(display_value_t));
 
   if (player->position != 27) {
     if (player->position > 22) {
@@ -337,7 +337,7 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 
 
 // implements f_get_display for the leds display
-static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct playfield *playfield = get_model_playfield(model);
   const struct player *player = get_model_player(model);
@@ -529,7 +529,7 @@ static const struct object_position_to_display_digit_and_glyph *flipper_glyph_by
   };
 
 
-static void display_flipper(const struct flipper *flipper, display_t display, display_value *value) {
+static void display_flipper(const struct flipper *flipper, display_t display, display_value_t *value) {
   int flipper_depth = flipper->depth;
   int flipper_position = flipper->position;
   int flipper_state = flipper->flipper_state;
@@ -564,7 +564,7 @@ static void display_flipper(const struct flipper *flipper, display_t display, di
 }
 
 
-static void display_blaster(const struct blaster *blaster, display_t display, display_value *value) {
+static void display_blaster(const struct blaster *blaster, display_t display, display_value_t *value) {
   int blaster_depth = blaster->depth;
   int blaster_position = blaster->position;
 

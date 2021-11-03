@@ -263,7 +263,7 @@ void set_shuffle(struct model *this, shuffle_t shuffle) {
 
 
 // implements f_get_display for the red display
-display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
 
   //(*value).display_int = ...
@@ -275,7 +275,7 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
 }
 
 // implements f_get_display for the blue display
-display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
 
   (*value).display_string = this->triggered_instruments[this->current_triggered_instrument_index].instrument->display_name;
@@ -286,7 +286,7 @@ display_type get_blue_display(struct display_strategy *display_strategy, display
 }
 
 // implements f_get_display for the green display
-display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
 
   (*value).display_int = this->bpm;
@@ -302,7 +302,7 @@ static const uint8_t green_led_offset = 16;
 static const uint8_t blue_led_offset = 8;
 
 // implements f_get_display for the leds display
-display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
 
   if (this->run_state == SEQUENCE_RUN) {

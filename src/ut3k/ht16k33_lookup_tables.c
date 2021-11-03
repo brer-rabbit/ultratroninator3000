@@ -132,6 +132,21 @@ const uint8_t ht16k33_7seg_digits[] = {
  *                             ROW14 - DP   - 0100000000000000(0X4000)
  */
 
+const uint16_t seg_A = 0x0001;
+const uint16_t seg_B = 0x0002;
+const uint16_t seg_C = 0x0004;
+const uint16_t seg_D = 0x0008;
+const uint16_t seg_E = 0x0010;
+const uint16_t seg_F = 0x0020;
+const uint16_t seg_G1 = 0x0040;
+const uint16_t seg_G2 = 0x0080;
+const uint16_t seg_H = 0x0100;
+const uint16_t seg_J = 0x0200;
+const uint16_t seg_K = 0x0400;
+const uint16_t seg_L = 0x0800;
+const uint16_t seg_M = 0x1000;
+const uint16_t seg_N = 0x2000;
+const uint16_t seg_DP = 0x4000;
 
 
 const uint16_t ht16k33_alphanum[] = {

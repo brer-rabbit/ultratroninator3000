@@ -696,7 +696,7 @@ static const ht16k33brightness_t brightness_bright = HT16K33_BRIGHTNESS_12;
 static const ht16k33brightness_t brightness_dim = HT16K33_BRIGHTNESS_7;
 
 // implements f_get_display for the red display
-display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
 
   *brightness = brightness_bright;
@@ -705,7 +705,7 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
   if (this->game_state == GAME_PLAYING ||
       this->game_state == GAME_LEVEL_UP) {
     // clean existing display
-    memset((*value).display_glyph, 0, sizeof(display_value));
+    memset((*value).display_glyph, 0, sizeof(display_value_t));
 
     // player position is in the range 8-11.  Subtract 8 to get index to this
     (*value).display_glyph[this->player.position - 8] = this->player.glyph;
@@ -731,7 +731,7 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
     return string_display;
   }
   else if (this->game_state == GAME_ATTRACT) {
-    memset((*value).display_glyph, 0, sizeof(display_value));
+    memset((*value).display_glyph, 0, sizeof(display_value_t));
 
     (*value).display_glyph[attract_movement_backandforth[this->messaging.clockticks % 6]] = player_ship_glyph;
     return glyph_display;
@@ -744,7 +744,7 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
 
 
 // implements f_get_display for the blue display
-display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
 
   *brightness = brightness_dim;
@@ -752,7 +752,7 @@ display_type get_blue_display(struct display_strategy *display_strategy, display
 
   if (this->game_state == GAME_PLAYING) {
     // clean existing display
-    memset((*value).display_glyph, 0, sizeof(display_value));
+    memset((*value).display_glyph, 0, sizeof(display_value_t));
 
     // draw any invaders on this display
     for (int i = 0; i < num_invaders; ++i) {
@@ -786,7 +786,7 @@ display_type get_blue_display(struct display_strategy *display_strategy, display
 }
 
 // implements f_get_display for the green display
-display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
 
 
@@ -795,7 +795,7 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
 
   if (this->game_state == GAME_PLAYING) {
     // clean existing display
-    memset((*value).display_glyph, 0, sizeof(display_value));
+    memset((*value).display_glyph, 0, sizeof(display_value_t));
 
     // draw any invaders on this display
     for (int i = 0; i < num_invaders; ++i) {
@@ -821,7 +821,7 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
     return string_display;
   }
   else if (this->game_state == GAME_ATTRACT) {
-    memset((*value).display_glyph, 0, sizeof(display_value));
+    memset((*value).display_glyph, 0, sizeof(display_value_t));
     (*value).display_glyph[attract_movement_backandforth[(this->messaging.clockticks + 3) % 6]] = invader_hex_glyph_unshielded;
     return glyph_display;
   }
@@ -853,7 +853,7 @@ static const int32_t attract_leds[] =
   };
 
 // implements f_get_display for the leds display
-display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *this = (struct model*) display_strategy->userdata;
   uint8_t shield = this->player.shield;
   // flash the increase in shield if we're levelling up and increasing shield

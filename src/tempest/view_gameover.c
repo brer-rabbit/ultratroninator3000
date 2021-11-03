@@ -23,10 +23,10 @@
 #include "view_gameover.h"
 
 
-static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
-static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
+static display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness);
 
 
 
@@ -65,7 +65,7 @@ void free_gameover_display_strategy(struct display_strategy *display_strategy) {
 
 
 // implements f_get_display for the red display
-static display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct gameover *gameover = get_model_gameover(model);
 
@@ -78,7 +78,7 @@ static display_type get_red_display(struct display_strategy *display_strategy, d
 }
 
 // implements f_get_display for the blue display
-static display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct gameover *gameover = get_model_gameover(model);
 
@@ -92,14 +92,14 @@ static display_type get_blue_display(struct display_strategy *display_strategy, 
 
 
 // implements f_get_display for the green display
-static display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct gameover *gameover = get_model_gameover(model);
 
   *blink = HT16K33_BLINK_OFF;
   *brightness = HT16K33_BRIGHTNESS_5;
 
-  memset((*value).display_glyph, 0, sizeof(display_value));
+  memset((*value).display_glyph, 0, sizeof(display_value_t));
 
   switch (gameover->animation_timer) {
   case 1:
@@ -125,7 +125,7 @@ static display_type get_green_display(struct display_strategy *display_strategy,
 static const int light_show[] = { 0x00, 0x81, 0xC3, 0xE7, 0xFF };
 
 // implements f_get_display for the leds display
-static display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+static display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct model *model = (struct model*) display_strategy->userdata;
   const struct gameover *gameover = get_model_gameover(model);
 
