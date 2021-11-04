@@ -25,47 +25,29 @@
 #include <unistd.h>
 #include <libconfig.h>
 
-#include "tempest.h"
+#include "pong.h"
 #include "model.h"
+#include "view.h"
 #include "controller.h"
 #include "ut3k_view.h"
+#include "ut3k_pulseaudio.h"
 
 
-/** tempest
+/** pong demo
  *
  */
 
 // configurable duration for event loop; default to 10ms
 #define CONFIG_EVENT_LOOP_DURATION_TIME_KEY "event_loop_duration"
-#define EVENT_LOOP_DURATION_TIME_DEFAULT 10
+#define EVENT_LOOP_DURATION_TIME_DEFAULT 25
 #define CONFIG_SOUND_LIST_KEY "sound_list"
 
-static uint32_t clock_iterations = 0, clock_overruns = 0; // count of iterations through event loopstatic
+static uint32_t clock_iterations = 0, clock_overruns = 0; // count of iterations through event loopstatic struct model *model;
 static struct timeval tval_total_controller_time = { .tv_sec = 0, .tv_usec = 0 };
-struct model *model;
+static struct ut3k_view *ut3k_view;
+static struct view *view;
 static struct controller *controller;
-static struct ut3k_view *view;
-
-// these are (should) primarily be used by the model, but define and allow
-// export here
-const char *crash_on_spike_soundkey = "crash_on_spike";
-const char *enemy_destroyed_soundkey = "enemy_destroyed";
-const char *highscore_soundkey = "highscore";
-const char *level_up_soundkey = "level_up";
-const char *player_lose_life_soundkey = "player_lose_life";
-const char *player_move_soundkey = "player_move";
-const char *player_multishot_soundkey = "player_multishot";
-const char *player_shoot_soundkey = "player_shoot";
-const char *superzapper_soundkey = "superzapper";
-const char *electric1_soundkey = "electric1";
-const char *electric2_soundkey = "electric2";
-const char *electric3_soundkey = "electric3";
-const char *electric4_soundkey = "electric4";
-const char *electric5_soundkey = "electric5";
-const char *electric6_soundkey = "electric6";
-const char *electric7_soundkey = "electric7";
-
-
+static struct model *model;
 
 void sig_cleanup_and_exit(int signum) {
   printf("caught sig %d.  Cleaning up and exiting.  Stats: %u clock ticks (%u overruns); total controller time %ld.%06ld\n",
@@ -73,8 +55,9 @@ void sig_cleanup_and_exit(int signum) {
          tval_total_controller_time.tv_sec, tval_total_controller_time.tv_usec);
   ut3k_remove_all_samples();
   free_controller(controller);
+  free_pong_view(view);
   free_model(model);
-  free_ut3k_view(view);
+  free_ut3k_view(ut3k_view);
   ut3k_disconnect_audio_context();
   exit(0);
 }
@@ -102,20 +85,22 @@ static void run_mvc(config_t *cfg) {
     return;
   }
 
-  view = create_alphanum_ut3k_view();
-  if (view == NULL) {
-    printf("error creating game view\n");
+  ut3k_view = create_alphanum_ut3k_view();
+  if (ut3k_view == NULL) {
+    printf("error creating game ut3k_view\n");
     return;
   }
 
 
-  controller = create_controller(model, view);
+  view = create_pong_view(ut3k_view);
+
+  controller = create_controller(model, view, ut3k_view);
   if (controller == NULL) {
     printf("error creating game controller\n");
     return;
   }
 
-  register_control_panel_listener(view, controller_callback_control_panel, controller);
+  register_control_panel_listener(ut3k_view, controller_callback_control_panel, controller);
 
   // init and hack:
   // start with a sleep since the view does a read from the ht16k33
@@ -134,14 +119,16 @@ static void run_mvc(config_t *cfg) {
       usleep(tval_sleep_time.tv_usec);
     }
     else {
-       // this really shouldn't happen... loop takes <4 ms.  2ms optimized.
+       // this really shouldn't happen... loop takes <8 ms
       clock_overruns++;
       printf("controller took %ld.%06ld; this is longer than event loop of %ld.%06ld seconds\n", tval_controller_time.tv_sec, tval_controller_time.tv_usec, tval_fixed_loop_time.tv_sec, tval_fixed_loop_time.tv_usec);
     }
 
+
     gettimeofday(&tval_controller_start, NULL);
 
     controller_update(controller, clock_iterations);
+
     ut3k_pa_mainloop_iterate();
 
     gettimeofday(&tval_controller_end, NULL);
@@ -149,8 +136,8 @@ static void run_mvc(config_t *cfg) {
     // tval_fixed_loop_time - tval_controller_time ==> time to sleep between iterations
     timersub(&tval_controller_end, &tval_controller_start, &tval_controller_time);
     timersub(&tval_fixed_loop_time, &tval_controller_time, &tval_sleep_time);
-    timeradd(&tval_total_controller_time, &tval_controller_time, &tval_total_controller_time);
 
+    timeradd(&tval_total_controller_time, &tval_controller_time, &tval_total_controller_time);
 
     clock_iterations++;
 
@@ -161,7 +148,7 @@ static void run_mvc(config_t *cfg) {
 
   free_controller(controller);
   free_model(model);
-  free_ut3k_view(view);
+  free_ut3k_view(ut3k_view);
 
 }
 
@@ -198,7 +185,6 @@ void load_audio_from_config(config_t *cfg, char *games_directory) {
       sound_type_key = config_setting_get_string_elem(key_sound_array, sound_array_index);
       key_sound_samples_array = config_lookup(cfg, sound_type_key);
       sound_samples_array_setting_length = config_setting_length(key_sound_samples_array);
-      printf("for samples %s got array of length %d\n", sound_type_key, sound_samples_array_setting_length);
       random_sample_index = rand() % sound_samples_array_setting_length;
       sample_name = config_setting_get_string_elem(key_sound_samples_array, random_sample_index);
       snprintf(sample_filename, 256, "%s%s%s", games_directory, SAMPLE_DIRNAME, sample_name);

@@ -69,6 +69,15 @@ const struct control_panel* get_control_panel(struct ut3k_view*);
 
 typedef void (*f_animator)(struct display*, uint32_t clock);
 
+/***
+ * struct ut3k_display and it's underlying struct display are the
+ * display buffers the client has to work with.  Update and modify these
+ * to get something usable out of this infernal machine.  Method
+ * commit_ut3k_display will write the buffer to the display and, between
+ * cycles, clear_ut3k_display to get a clean slate.
+ * How this is better than the previous way I had I dunno.
+ */
+
 struct display {
   // a display has a type and a value.  It can blink, it has a brightness
   // level.  It may, if not null, be manipulated by an animator.  The
@@ -87,6 +96,30 @@ struct display {
   void *userdata;  // may be a struct text_scroller, but that's not enforced...
 };
 
+
+// The whole enchilada of the displays.  This is the thing.
+struct ut3k_display {
+  struct display displays[3];
+  struct display leds;
+};
+
+
+/** commit_ut3k_display
+ *
+ * this method take a ut3k_view and a pointer to the entire display, a
+ * ut3k_display, along with the clock.  Commits the ut3k_display buffer,
+ * writing it to HT16K33s.
+ */
+void commit_ut3k_display(struct ut3k_view *this, struct ut3k_display *ut3k_display, uint32_t clock);
+
+// convenience function - clears the buffer only, no write/commit is involved.
+// so one can start a display cycle with a clean slate.
+// This does not change brightness or blink values.
+void clear_ut3k_display(struct ut3k_display*);
+
+void set_green_leds(struct ut3k_display*, uint16_t);
+void set_blue_leds(struct ut3k_display*, uint16_t);
+void set_red_leds(struct ut3k_display*, uint16_t);
 
 
 // f_animator functions
@@ -114,27 +147,6 @@ struct manual_text_scroller {
 
 void init_clock_text_scroller(struct clock_text_scroller *scroller, char *text, int timer);
 void init_manual_text_scroller(struct manual_text_scroller *scroller, char *text);
-
-
-
-// The whole enchilada of the displays.  This is the thing.
-struct ut3k_display {
-  struct display displays[3];
-  struct display leds;
-};
-
-
-
-/** ut3k_update_display
- *
- * preferred update method over update_displays above.
- * this method take a ut3k_view and a pointer to the entire display, a
- * ut3k_display, along with the clock.
- */
-void ut3k_update_display(struct ut3k_view *this, struct ut3k_display *ut3k_display, uint32_t clock);
-
-
-
 
 
 #endif

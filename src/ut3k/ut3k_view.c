@@ -37,6 +37,7 @@
 #define DISPLAY_GREEN 0
 #define DISPLAY_BLUE 1
 #define DISPLAY_RED 2
+#define DISPLAY_LEDS 3
 #define DISPLAY_ROWS 3
 
 
@@ -83,11 +84,12 @@ struct ut3k_view {
   HT16K33 *blue_display;
   HT16K33 *red_display;
 
+  // bunch-o-knobs and the 3 sets of discrete LEDs are here
+  HT16K33 *inputs_and_leds;
+
   // aliases for the above
   HT16K33 *display_array[3];
 
-  // bunch-o-knobs and the 3 sets of discrete LEDs are here
-  HT16K33 *inputs_and_leds;
 
   struct control_panel *control_panel;
   void *control_panel_listener_userdata;  // for callback
@@ -149,6 +151,7 @@ struct ut3k_view* create_alphanum_ut3k_view() {
   this->display_array[DISPLAY_GREEN] = this->green_display;
   this->display_array[DISPLAY_BLUE] = this->blue_display;
   this->display_array[DISPLAY_RED] = this->red_display;
+
 
   // error codes positive...just sum them up
 
@@ -232,7 +235,7 @@ int free_ut3k_view(struct ut3k_view *this) {
 }
 
 
-/** update_view
+/** update_controls
  * keyscan HT16K33
  * callback to control panel listener (if non-null/registered)
  */
@@ -313,15 +316,15 @@ void update_controls(struct ut3k_view *this, uint32_t clock) {
 
 
 /** 
- * implementation for the ut3k with four HT16K33
+ * implementation for the ut3k with four HT16K33.
+ * Take the ut3k_display buffer and write it out to the HT16K33s.
  */
 
-void ut3k_update_display(struct ut3k_view *this, struct ut3k_display *ut3k_display, uint32_t clock) {
-  uint32_t led_display_value = 0;
-  
+void commit_ut3k_display(struct ut3k_view *this, struct ut3k_display *ut3k_display, uint32_t clock) {
+  struct display *display;  
 
   for (int i = 0; i < 3; ++i) {
-    struct display *display = &ut3k_display->displays[i];
+    display = &ut3k_display->displays[i];
 
     if (display->f_animate != NULL) {
       display->f_animate(display, clock);
@@ -349,13 +352,99 @@ void ut3k_update_display(struct ut3k_view *this, struct ut3k_display *ut3k_displ
 
   }
 
-  // TODO: LEDs...
+
+  // LED display is treated slightly differently due to COM mappings
+  display = &ut3k_display->leds;
+
+  if (display->f_animate != NULL) {
+    display->f_animate(display, clock);
+  }
+
+  switch (display->display_type) {
+  case glyph_display:
+    HT16K33_UPDATE_RAW_BYDIGIT(this->inputs_and_leds, 4, display->display_value.display_glyph[0]);
+    HT16K33_UPDATE_RAW_BYDIGIT(this->inputs_and_leds, 5, display->display_value.display_glyph[1]);
+    HT16K33_UPDATE_RAW_BYDIGIT(this->inputs_and_leds, 6, display->display_value.display_glyph[2]);
+    HT16K33_COMMIT(this->inputs_and_leds);
+    break;
+  case integer_display:
+  case string_display:
+  default:
+    printf("ut3k_view:commit_ut3k_display: unsupported display mode set for LED display\n");
+    break;
+  }
+  
+  if (this->inputs_and_leds->brightness != display->brightness) {
+    HT16K33_BRIGHTNESS(this->inputs_and_leds, display->brightness);
+  }
+
+  if (this->inputs_and_leds->blink_state != display->blink) {
+    HT16K33_BLINK(this->inputs_and_leds, display->blink);
+  }
+
+}
+
+
+void clear_ut3k_display(struct ut3k_display *this) {
+
+  for (int i = 0; i < 3; ++i) {
+    this->displays[i].display_type = glyph_display;
+    memset(this->displays[i].display_value.display_glyph, 0, 8);
+  }
+  this->leds.display_type = glyph_display;
+  memset(this->leds.display_value.display_glyph, 0, 8);
+}
+
+
+void set_green_leds(struct ut3k_display *this, uint16_t value) {
+  this->leds.display_value.display_glyph[2] = value;
+}
+void set_blue_leds(struct ut3k_display *this, uint16_t value) {
+  this->leds.display_value.display_glyph[1] = value;
+}
+void set_red_leds(struct ut3k_display *this, uint16_t value) {
+  this->leds.display_value.display_glyph[0] = value;
 }
 
 
 
+// f_animator functions and related
+// this is all looking a bit too wanna be OO.
 
-// f_animator functions
+// "base class" scroller that doesn't do much of any bizlogic.
+// just the facts: check if it's legal to scroll, and do the thing.
+
+static void init_text_scroller(struct text_scroller *scroller, char *text) {
+  scroller->text = text;
+  scroller->position = scroller->text;
+}
+
+static void text_scroller_forward(struct text_scroller *scroller) {
+  if (scroller->position[0] != '\0' &&
+      scroller->position[1] != '\0' &&
+      scroller->position[2] != '\0' &&
+      scroller->position[3] != '\0') {
+    scroller->position++;
+  }
+  else {
+    scroller->scroll_completed = 1;
+  }
+}
+
+static void text_scroller_backward(struct text_scroller *scroller) {
+  if (scroller->position > scroller->text) {
+    scroller->position--;
+  }
+}
+
+static int is_scroll_complete(struct text_scroller *scroller) {
+  return scroller->scroll_completed;
+}
+
+
+// clock_text_scroller
+// bizlogic to take a delay between scrolling the text.  timer counts
+// down to zero, text shifted, timer reset to delay.
 
 /** f_clock_text_scroller
  * keep a timer and after delay of clockticks the text is scrolled on
@@ -366,15 +455,7 @@ void f_clock_text_scroller(struct display *display, uint32_t clock) {
   struct clock_text_scroller *scroller = (struct clock_text_scroller*) display->userdata;
   if (--scroller->timer == 0) {
     scroller->timer = scroller->delay;
-    if (scroller->scroller_base.position[0] != '\0' &&
-        scroller->scroller_base.position[1] != '\0' &&
-        scroller->scroller_base.position[2] != '\0' &&
-        scroller->scroller_base.position[3] != '\0') {
-      scroller->scroller_base.position++;
-    }
-    else {
-      scroller->scroller_base.scroll_completed = 1;
-    }
+    text_scroller_forward(&scroller->scroller_base);
   }
 
   display->display_type = string_display;
@@ -383,12 +464,14 @@ void f_clock_text_scroller(struct display *display, uint32_t clock) {
 
 
 void init_clock_text_scroller(struct clock_text_scroller *scroller, char *text, int timer) {
-  scroller->scroller_base.text = text;
-  scroller->scroller_base.position = scroller->scroller_base.text;
+  init_text_scroller(&scroller->scroller_base, text);
   scroller->delay = timer;
   scroller->timer = timer;
 }
 
+
+// manual_text_scroller.
+// client, you tell me to scroll. and which direction, left/right.
 
 /* f_manual_text_scroller
  * side effect: sets the scroller->direction field to zero.
@@ -398,18 +481,16 @@ void init_clock_text_scroller(struct clock_text_scroller *scroller, char *text, 
  */
 void f_manual_text_scroller(struct display *display, uint32_t clock) {
   struct manual_text_scroller *scroller = (struct manual_text_scroller*) display->userdata;
-  if (scroller->direction < 0 &&
-      scroller->scroller_base.position > scroller->scroller_base.text) {
-    scroller->scroller_base.position--;
+  if (scroller->direction < 0) {
+    text_scroller_backward(&scroller->scroller_base);
   }
-  else if (scroller->direction > 0 &&
-           scroller->scroller_base.position[0] != '\0' &&
-           scroller->scroller_base.position[1] != '\0' &&
-           scroller->scroller_base.position[2] != '\0' &&
-           scroller->scroller_base.position[3] != '\0') {
-    scroller->scroller_base.position++;
+  else if (scroller->direction > 0) {
+    text_scroller_forward(&scroller->scroller_base);
   }
 
+  // reset to zero, forcing client to set it on each pass.
+  // Reality it if display updates are more frequence than user input updates
+  // then this will just keep scrolling despite absent user input.
   scroller->direction = 0;
   display->display_type = string_display;
   display->display_value.display_string = scroller->scroller_base.position;
@@ -417,8 +498,7 @@ void f_manual_text_scroller(struct display *display, uint32_t clock) {
 
 
 void init_manual_text_scroller(struct manual_text_scroller *scroller, char *text) {
-  scroller->scroller_base.text = text;
-  scroller->scroller_base.position = scroller->scroller_base.text;
+  init_text_scroller(&scroller->scroller_base, text);
   scroller->direction = 0;
 }
 
