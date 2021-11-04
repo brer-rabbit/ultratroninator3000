@@ -49,47 +49,22 @@ void set_attract(struct view *this, void *scroller, f_animator animation) {
 
 
 void draw_player1_paddle(struct view *this, int y_position) {
-  // only 6 positions...just switch it
   int display = y_position / 2;
   int glyph = y_position % 2;
 
   this->ut3k_display.displays[display].display_type = glyph_display;
   this->ut3k_display.displays[display].display_value.display_glyph[0] |=
     glyph ? SEG_E : SEG_F;
-
 }
 
 
 void draw_player2_paddle(struct view *this, int y_position) {
-  // only 6 positions...just switch it
-  switch (y_position) {
-  case 5:
-    this->ut3k_display.displays[2].display_type = glyph_display;
-    this->ut3k_display.displays[2].display_value.display_glyph[3] |= SEG_C;
-    break;
-  case 4:
-    this->ut3k_display.displays[2].display_type = glyph_display;
-    this->ut3k_display.displays[2].display_value.display_glyph[3] |= SEG_B;
-    break;
-  case 3:
-    this->ut3k_display.displays[1].display_type = glyph_display;
-    this->ut3k_display.displays[1].display_value.display_glyph[3] |= SEG_C;
-    break;
-  case 2:
-    this->ut3k_display.displays[1].display_type = glyph_display;
-    this->ut3k_display.displays[1].display_value.display_glyph[3] |= SEG_B;
-    break;
-  case 1:
-    this->ut3k_display.displays[0].display_type = glyph_display;
-    this->ut3k_display.displays[0].display_value.display_glyph[3] |= SEG_C;
-    break;
-  case 0:
-    this->ut3k_display.displays[0].display_type = glyph_display;
-    this->ut3k_display.displays[0].display_value.display_glyph[3] |= SEG_B;
-    break;
-  default:
-    break;
-  }
+  int display = y_position / 2;
+  int glyph = y_position % 2;
+
+  this->ut3k_display.displays[display].display_type = glyph_display;
+  this->ut3k_display.displays[display].display_value.display_glyph[3] |=
+    glyph ? SEG_C : SEG_B;
 }
 
 
