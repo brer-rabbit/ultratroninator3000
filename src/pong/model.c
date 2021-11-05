@@ -24,6 +24,7 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "pong.h"
 #include "model.h"
 #include "view.h"
 #include "ut3k_pulseaudio.h"
@@ -34,6 +35,7 @@ static const int field_y_max = 5;
 static const int field_y_min = 0;
 static const int default_x_move_timer = 12;
 static const int default_y_move_timer = 77;
+static const int default_win_score = 2;
 
 
 static void init_ball(struct model *this);
@@ -43,10 +45,10 @@ static void collision_detect(struct model*);
 
 struct model {
   game_state_t game_state;
-  struct paddle player1_paddle;
-  struct paddle player2_paddle;
+  struct player player1;
+  struct player player2;
   struct ball ball;
-  struct paddle *server; // who is serving the ball
+  struct player *server; // who is serving the ball
 };
 
 
@@ -59,11 +61,11 @@ struct model* create_model() {
   *this = (struct model const) { 0 };
 
   // reasonable defaults for players & ball
-  this->player1_paddle.y_position = (field_y_max - field_y_min) / 2;
-  this->player2_paddle.y_position = (field_y_max - field_y_min) / 2;
+  this->player1.y_position = (field_y_max - field_y_min) / 2;
+  this->player2.y_position = (field_y_max - field_y_min) / 2;
 
   // player 1 serves
-  this->server = &this->player1_paddle;
+  this->server = &this->player1;
   init_ball(this);
   this->game_state = GAME_SERVE;
 
@@ -76,63 +78,100 @@ void free_model(struct model *this) {
 }
 
 
-void clocktick_model(struct model *this) {
+game_state_t clocktick_model(struct model *this) {
   // update the ball
   clocktick_ball(this);
   collision_detect(this);
+
+  if (this->game_state == GAME_SERVE &&
+      (this->player1.score == default_win_score ||
+       this->player2.score == default_win_score)) {
+    this->game_state = GAME_OVER;
+  }
+  return this->game_state;
+}
+
+game_state_t get_game_state(struct model *this) {
+  return this->game_state;
 }
 
 
-
 void player1_move(struct model *this, int distance) {
-  if (distance > 0) {
-    this->player1_paddle.y_position =
-      this->player1_paddle.y_position + distance > field_y_max ?
-      field_y_max : this->player1_paddle.y_position + distance;
-  }
-  else if (distance < 0) {
-    this->player1_paddle.y_position =
-      this->player1_paddle.y_position + distance < field_y_min ?
-      field_y_min : this->player1_paddle.y_position + distance;
+  if (this->game_state == GAME_SERVE ||
+      this->game_state == GAME_PLAY) {
+    if (distance > 0) {
+      this->player1.y_position =
+        this->player1.y_position + distance > field_y_max ?
+        field_y_max : this->player1.y_position + distance;
+    }
+    else if (distance < 0) {
+      this->player1.y_position =
+        this->player1.y_position + distance < field_y_min ?
+        field_y_min : this->player1.y_position + distance;
+    }
   }
 }
 
 
 
 void player2_move(struct model *this, int distance) {
-  if (distance > 0) {
-    this->player2_paddle.y_position =
-      this->player2_paddle.y_position + distance > field_y_max ?
-      field_y_max : this->player2_paddle.y_position + distance;
-  }
-  else if (distance < 0) {
-    this->player2_paddle.y_position =
-      this->player2_paddle.y_position + distance < field_y_min ?
-      field_y_min : this->player2_paddle.y_position + distance;
+  if (this->game_state == GAME_SERVE ||
+      this->game_state == GAME_PLAY) {
+    if (distance > 0) {
+      this->player2.y_position =
+        this->player2.y_position + distance > field_y_max ?
+        field_y_max : this->player2.y_position + distance;
+    }
+    else if (distance < 0) {
+      this->player2.y_position =
+        this->player2.y_position + distance < field_y_min ?
+        field_y_min : this->player2.y_position + distance;
+    }
   }
 }
 
 
-void player1_serve(struct model *this) {
+void player1_button_pushed(struct model *this) {
   if (this->game_state == GAME_SERVE &&
-      this->server == &this->player1_paddle) {
+      this->server == &this->player1) {
     this->game_state = GAME_PLAY;
+    ut3k_play_sample(serve1_soundkey);
+  }
+  else if (this->game_state == GAME_OVER) {
+    this->game_state = GAME_ATTRACT;
+  }
+  else if (this->game_state == GAME_ATTRACT) {
+    // reset for next game
+    this->player1.score = 0;
+    this->player2.score = 0;
+    this->game_state = GAME_SERVE;
   }
 }
 
-void player2_serve(struct model *this) {
+void player2_button_pushed(struct model *this) {
   if (this->game_state == GAME_SERVE &&
-      this->server == &this->player2_paddle) {
+      this->server == &this->player2) {
     this->game_state = GAME_PLAY;
+    ut3k_play_sample(serve1_soundkey);
+  }
+  else if (this->game_state == GAME_OVER) {
+    this->game_state = GAME_ATTRACT;
+    printf("set state from over to attract\n");
+  }
+  else if (this->game_state == GAME_ATTRACT) {
+    this->player1.score = 0;
+    this->player2.score = 0;
+    this->game_state = GAME_SERVE;
+    printf("set state from attract to serve\n");
   }
 }
 
 
-const struct paddle* get_player1(struct model *this) {
-  return (const struct paddle*) &this->player1_paddle;
+const struct player* get_player1(struct model *this) {
+  return (const struct player*) &this->player1;
 }
-const struct paddle* get_player2(struct model *this) {
-  return (const struct paddle*) &this->player2_paddle;
+const struct player* get_player2(struct model *this) {
+  return (const struct player*) &this->player2;
 }
 
 const struct ball* get_ball(struct model *this) {
@@ -167,8 +206,12 @@ static void clocktick_ball(struct model *this) {
 
 static void collision_detect(struct model *this) {
   struct ball *ball = &this->ball;
-  struct paddle *player1 = &this->player1_paddle;
-  struct paddle *player2 = &this->player2_paddle;
+  struct player *player1 = &this->player1;
+  struct player *player2 = &this->player2;
+
+  if (this->game_state != GAME_PLAY) {
+    return;
+  }
 
   // check if the ball has hit a player paddle
   // criteria is ball position and direction
@@ -179,13 +222,17 @@ static void collision_detect(struct model *this) {
       ball->x_direction = 1;
       ball->x_clocks_per_move--;
       printf("player1 hit the ball: clock/move: %d\n", ball->x_clocks_per_move);
+      // TODO MAGIC NUMBER
+      ut3k_play_sample( hit_soundkeys[ rand() % 4 ] );
     }
     else {
       printf("player1 missed the ball!\n");
       this->game_state = GAME_SERVE;
-      this->server = &this->player2_paddle;
-      this->player2_paddle.score++;
+      this->server = &this->player2;
+      this->player2.score++;
       init_ball(this);
+      // TODO MAGIC NUMBER
+      ut3k_play_sample( miss_soundkeys[rand() % 3] );
     }
   }
     
@@ -196,13 +243,15 @@ static void collision_detect(struct model *this) {
       ball->x_direction = -1;
       ball->x_clocks_per_move--;
       printf("player2 hit the ball: clock/move: %d\n", ball->x_clocks_per_move);
+      ut3k_play_sample( hit_soundkeys[ rand() % 4 ] );
     }
     else {
       printf("player2 missed the ball!\n");
       this->game_state = GAME_SERVE;
-      this->server = &this->player1_paddle;
-      this->player1_paddle.score++;
+      this->server = &this->player1;
+      this->player1.score++;
       init_ball(this);
+      ut3k_play_sample( miss_soundkeys[ rand() % 4 ] );
     }
   }
 
@@ -224,7 +273,7 @@ void init_ball(struct model *this) {
   struct ball *ball = &this->ball;
 
   // ball start next to whoever is serving and moves to the opposite player
-  if (this->server == &this->player1_paddle) {
+  if (this->server == &this->player1) {
     ball->x_position = field_x_min + 1;
     ball->x_direction = 1;
   }

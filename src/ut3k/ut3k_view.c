@@ -414,12 +414,13 @@ void set_red_leds(struct ut3k_display *this, uint16_t value) {
 // "base class" scroller that doesn't do much of any bizlogic.
 // just the facts: check if it's legal to scroll, and do the thing.
 
-static void init_text_scroller(struct text_scroller *scroller, char *text) {
+void init_text_scroller(struct text_scroller *scroller, char *text) {
   scroller->text = text;
   scroller->position = scroller->text;
+  scroller->scroll_completed = 0;
 }
 
-static void text_scroller_forward(struct text_scroller *scroller) {
+void text_scroller_forward(struct text_scroller *scroller) {
   if (scroller->position[0] != '\0' &&
       scroller->position[1] != '\0' &&
       scroller->position[2] != '\0' &&
@@ -431,15 +432,21 @@ static void text_scroller_forward(struct text_scroller *scroller) {
   }
 }
 
-static void text_scroller_backward(struct text_scroller *scroller) {
+void text_scroller_backward(struct text_scroller *scroller) {
   if (scroller->position > scroller->text) {
     scroller->position--;
   }
 }
 
-static int is_scroll_complete(struct text_scroller *scroller) {
+int text_scroller_is_complete(struct text_scroller *scroller) {
   return scroller->scroll_completed;
 }
+
+void text_scroller_reset(struct text_scroller *scroller) {
+  scroller->position = scroller->text;
+  scroller->scroll_completed = 0;
+}
+
 
 
 // clock_text_scroller

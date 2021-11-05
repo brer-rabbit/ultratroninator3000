@@ -25,12 +25,12 @@ struct controller {
   struct model *model;
   struct view *view;
   struct ut3k_view *ut3k_view;
-  struct manual_text_scroller manual_scroller;
-  struct clock_text_scroller clock_scroller;
+  struct clock_text_scroller clock_scroller_green;
+  char messaging_green[32];
 };
 
 
-
+static const int default_scroll_time = 13;
 
 
 
@@ -58,9 +58,10 @@ void free_controller(struct controller *this) {
 
 
 void controller_update(struct controller *this, uint32_t clock) {
-  const struct paddle *player1_paddle;
-  const struct paddle *player2_paddle;
+  const struct player *player1;
+  const struct player *player2;
   const struct ball *ball;
+  // game_state- it may change after clockticking the model.  Identify state transition.
 
   // given we can only update controls every other clock, it's
   // not fair to update the model.  That's the only processing done
@@ -69,18 +70,49 @@ void controller_update(struct controller *this, uint32_t clock) {
     return;
   }
 
+  game_state_t prev_game_state = get_game_state(this->model);
+
   update_controls(this->ut3k_view, clock);
-  clocktick_model(this->model);
+  switch (clocktick_model(this->model)) {
+  case GAME_OVER:
+    player1 = get_player1(this->model);
+    player2 = get_player2(this->model);
 
-  player1_paddle = get_player1(this->model);
-  player2_paddle = get_player2(this->model);
-  draw_player1_paddle(this->view, player1_paddle->y_position);
-  draw_player2_paddle(this->view, player2_paddle->y_position);
+    if (prev_game_state == GAME_PLAY) {
+      snprintf(this->messaging_green, 32, "   PLAYER %d WINS   ",
+               player1->score > player2->score ? 1 : 2);
+      init_clock_text_scroller(&this->clock_scroller_green,
+                               this->messaging_green,
+                               default_scroll_time);
+    }
+               
+    draw_gameover(this->view, &this->clock_scroller_green, f_clock_text_scroller, player1->score, player2->score);
 
-  ball = get_ball(this->model);
-  draw_ball(this->view, ball->x_position, ball->y_position);
-  draw_player1_score(this->view, player1_paddle->score);
-  draw_player2_score(this->view, player2_paddle->score);
+    if (text_scroller_is_complete(&this->clock_scroller_green.scroller_base)) {
+      text_scroller_reset(&this->clock_scroller_green.scroller_base);
+    }
+
+    draw_player1_score(this->view, player1->score);
+    draw_player2_score(this->view, player2->score);
+
+    break;
+  case GAME_PLAY:
+  case GAME_SERVE:
+    player1 = get_player1(this->model);
+    player2 = get_player2(this->model);
+    draw_player1_paddle(this->view, player1->y_position);
+    draw_player2_paddle(this->view, player2->y_position);
+
+    ball = get_ball(this->model);
+    draw_ball(this->view, ball->x_position, ball->y_position);
+    draw_player1_score(this->view, player1->score);
+    draw_player2_score(this->view, player2->score);
+    break;
+  case GAME_ATTRACT:
+    break;
+  default:
+    break;
+  }
 
   render_view(this->view, clock);
 }
@@ -108,11 +140,11 @@ void controller_callback_control_panel(const struct control_panel *control_panel
 
 
   if (red_button->button_state == 1 && red_button->state_count == 0) {
-    player1_serve(this->model);
+    player1_button_pushed(this->model);
   }
 
   if (blue_button->button_state == 1 && blue_button->state_count == 0) {
-    player2_serve(this->model);
+    player2_button_pushed(this->model);
   }
 
 }

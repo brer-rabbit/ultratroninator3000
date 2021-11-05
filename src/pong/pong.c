@@ -49,6 +49,13 @@ static struct view *view;
 static struct controller *controller;
 static struct model *model;
 
+const char *hit_soundkeys[] = { "hit1", "hit2", "hit3", "hit4" };
+const char *miss_soundkeys[] = { "miss1", "miss2", "miss3" };
+const char *serve1_soundkey = "serve1";
+
+
+
+
 void sig_cleanup_and_exit(int signum) {
   printf("caught sig %d.  Cleaning up and exiting.  Stats: %u clock ticks (%u overruns); total controller time %ld.%06ld\n",
 	 signum, clock_iterations, clock_overruns,

@@ -29,16 +29,19 @@
 
 struct model;
 
+typedef enum { GAME_ATTRACT, GAME_SERVE, GAME_PLAY, GAME_OVER } game_state_t;
+
 /* create a model for the caller.  Mem is allocated in the function;
  * caller is responsible for freeing later via free_game_mode
  */
+
 struct model* create_model();
 void free_model(struct model*);
-void clocktick_model(struct model*);
+game_state_t clocktick_model(struct model*);
 
-typedef enum { GAME_SERVE, GAME_PLAY, GAME_OVER } game_state_t;
 
-struct paddle {
+
+struct player {
   int y_position;
   int score;
   int velocity;
@@ -63,12 +66,12 @@ game_state_t get_game_state(struct model *this);
 
 void player1_move(struct model *this, int distance);
 void player2_move(struct model *this, int distance);
-void player1_serve(struct model *this);
-void player2_serve(struct model *this);
+void player1_button_pushed(struct model *this);
+void player2_button_pushed(struct model *this);
 
-const struct paddle* get_player1(struct model *this);
+const struct player* get_player1(struct model *this);
 
-const struct paddle* get_player2(struct model *this);
+const struct player* get_player2(struct model *this);
 
 const struct ball* get_ball(struct model *this);
 

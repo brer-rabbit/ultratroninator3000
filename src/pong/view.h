@@ -27,6 +27,7 @@ void free_pong_view(struct view*);
 
 
 void set_attract(struct view*, void*, f_animator);
+void draw_gameover(struct view *this, void *scroller, f_animator animation, int p1_score, int p2_score);
 
 void draw_player1_paddle(struct view *this, int y_position);
 void draw_player2_paddle(struct view *this, int y_position);

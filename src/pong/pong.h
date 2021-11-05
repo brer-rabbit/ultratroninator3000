@@ -26,5 +26,9 @@
 #define CONFIG_FILENAME "pong.config"
 #define SAMPLE_DIRNAME "/samples/"
 
+extern const char *hit_soundkeys[];
+extern const char *miss_soundkeys[];
+extern const char *serve1_soundkey;
+
 
 #endif

@@ -47,6 +47,19 @@ void set_attract(struct view *this, void *scroller, f_animator animation) {
   this->ut3k_display.displays[0].userdata = scroller;
 }
 
+void draw_gameover(struct view *this, void *scroller, f_animator animation, int p1_score, int p2_score) {
+  this->ut3k_display.displays[0].f_animate = animation;
+  this->ut3k_display.displays[0].userdata = scroller;
+
+  this->ut3k_display.displays[1].display_type = integer_display;
+  this->ut3k_display.displays[1].display_value.display_int = p2_score;
+
+  this->ut3k_display.displays[2].display_type = integer_display;
+  this->ut3k_display.displays[2].display_value.display_int = p1_score;
+
+  this->ut3k_display.displays[ p1_score > p2_score ? 2 : 1].blink = HT16K33_BLINK_FAST;
+}
+
 
 void draw_player1_paddle(struct view *this, int y_position) {
   int display = y_position / 2;
