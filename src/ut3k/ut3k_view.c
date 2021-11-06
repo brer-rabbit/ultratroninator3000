@@ -396,6 +396,42 @@ void clear_ut3k_display(struct ut3k_display *this) {
 }
 
 
+/** reset_ut3k_display
+ *
+ * set some sane default to wipe the view.
+ */
+void reset_ut3k_display(struct ut3k_display *this) {
+  *this = (struct ut3k_display const)
+    {
+     .displays[0].display_type = glyph_display,
+     .displays[0].display_value.display_glyph = { 0 },
+     .displays[0].blink = HT16K33_BLINK_OFF,
+     .displays[0].brightness = HT16K33_BRIGHTNESS_7,
+     .displays[0].f_animate = NULL,
+     .displays[0].userdata = NULL,
+     .displays[1].display_type = glyph_display,
+     .displays[1].display_value.display_glyph = { 0 },
+     .displays[1].blink = HT16K33_BLINK_OFF,
+     .displays[1].brightness = HT16K33_BRIGHTNESS_7,
+     .displays[1].f_animate = NULL,
+     .displays[1].userdata = NULL,
+     .displays[2].display_type = glyph_display,
+     .displays[2].display_value.display_glyph = { 0 },
+     .displays[2].blink = HT16K33_BLINK_OFF,
+     .displays[2].brightness = HT16K33_BRIGHTNESS_7,
+     .displays[2].f_animate = NULL,
+     .displays[2].userdata = NULL,
+     .leds.display_type = glyph_display,
+     .leds.display_value.display_glyph = { 0 },
+     .leds.blink = HT16K33_BLINK_OFF,
+     .leds.brightness = HT16K33_BRIGHTNESS_7,
+     .leds.f_animate = NULL,
+     .leds.userdata = NULL
+    };
+}
+
+
+
 void set_green_leds(struct ut3k_display *this, uint16_t value) {
   this->leds.display_value.display_glyph[2] = value;
 }
@@ -517,7 +553,7 @@ void init_manual_text_scroller(struct manual_text_scroller *scroller, const char
 /** update_displays
  * keyscan HT16K33
  * callback to any hooks
- * @deprecated use ut3k_update_display instead
+ * @deprecated use commit_ut3k_display instead
  */
 void update_displays(struct ut3k_view *this, struct display_strategy *display_strategy, uint32_t clock) {
   // odd..but abstract out implementation while passing object state.

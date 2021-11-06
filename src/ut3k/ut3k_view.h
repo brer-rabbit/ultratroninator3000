@@ -112,10 +112,15 @@ struct ut3k_display {
  */
 void commit_ut3k_display(struct ut3k_view *this, struct ut3k_display *ut3k_display, uint32_t clock);
 
-// convenience function - clears the buffer only, no write/commit is involved.
-// so one can start a display cycle with a clean slate.
-// This does not change brightness or blink values.
+// convenience function - clears the display buffer only, no
+// write/commit is involved.  so one can start a display cycle with a
+// clean slate.
+// This does _not_ change brightness, blink, f_animate, userdata values.
 void clear_ut3k_display(struct ut3k_display*);
+
+// As per clear above, but do clear blink (Off), reset brightness (7),
+// clear/null f_animate and userdata.
+void reset_ut3k_display(struct ut3k_display*);
 
 void set_green_leds(struct ut3k_display*, uint16_t);
 void set_blue_leds(struct ut3k_display*, uint16_t);
