@@ -31,7 +31,7 @@ struct controller {
 
 
 static const int default_scroll_time = 13;
-
+static const char *title_attract = "PONG";
 
 
 /* start off with accurate front panel state */
@@ -48,6 +48,12 @@ struct controller* create_controller(struct model *model, struct view *view, str
   this->ut3k_view = ut3k_view;
 
   initialize_model_from_control_panel(this, get_control_panel(ut3k_view));
+  
+  init_clock_text_scroller(&this->clock_scroller_green,
+                           title_attract,
+                           default_scroll_time);
+
+  draw_attract(this->view, &this->clock_scroller_green, f_clock_text_scroller);
 
   return this;
 }
@@ -78,8 +84,9 @@ void controller_update(struct controller *this, uint32_t clock) {
     player1 = get_player1(this->model);
     player2 = get_player2(this->model);
 
-    if (prev_game_state == GAME_PLAY) {
-      snprintf(this->messaging_green, 32, "   PLAYER %d WINS   ",
+    if (prev_game_state != GAME_OVER) {
+      clear_view(this->view);
+      snprintf(this->messaging_green, 32, "    PLAYER %d WINS    ",
                player1->score > player2->score ? 1 : 2);
       init_clock_text_scroller(&this->clock_scroller_green,
                                this->messaging_green,
@@ -98,6 +105,10 @@ void controller_update(struct controller *this, uint32_t clock) {
     break;
   case GAME_PLAY:
   case GAME_SERVE:
+    if (prev_game_state != GAME_PLAY ||
+        prev_game_state != GAME_SERVE) {
+      clear_view(this->view);
+    }
     player1 = get_player1(this->model);
     player2 = get_player2(this->model);
     draw_player1_paddle(this->view, player1->y_position);
@@ -109,6 +120,19 @@ void controller_update(struct controller *this, uint32_t clock) {
     draw_player2_score(this->view, player2->score);
     break;
   case GAME_ATTRACT:
+    if (prev_game_state != GAME_ATTRACT) {
+      clear_view(this->view);
+      init_clock_text_scroller(&this->clock_scroller_green,
+                               title_attract,
+                               default_scroll_time);
+      draw_attract(this->view, &this->clock_scroller_green, f_clock_text_scroller);
+    }
+
+    if (text_scroller_is_complete(&this->clock_scroller_green.scroller_base)) {
+      text_scroller_reset(&this->clock_scroller_green.scroller_base);
+      draw_attract(this->view, &this->clock_scroller_green, f_clock_text_scroller);
+    }
+
     break;
   default:
     break;

@@ -126,12 +126,12 @@ void set_red_leds(struct ut3k_display*, uint16_t);
 
 // "base" class
 struct text_scroller {
-  char *text;
+  const char *text;
   char *position;
   int scroll_completed;
 };
 
-void init_text_scroller(struct text_scroller *scroller, char *text);
+void init_text_scroller(struct text_scroller *scroller, const char *text);
 void text_scroller_forward(struct text_scroller *scroller);
 void text_scroller_backward(struct text_scroller *scroller);
 int text_scroller_is_complete(struct text_scroller *scroller);
@@ -156,8 +156,8 @@ struct manual_text_scroller {
 void f_clock_text_scroller(struct display *display, uint32_t clock);
 void f_manual_text_scroller(struct display *display, uint32_t clock);
 
-void init_clock_text_scroller(struct clock_text_scroller *scroller, char *text, int timer);
-void init_manual_text_scroller(struct manual_text_scroller *scroller, char *text);
+void init_clock_text_scroller(struct clock_text_scroller *scroller, const char *text, int timer);
+void init_manual_text_scroller(struct manual_text_scroller *scroller, const char *text);
 
 
 #endif

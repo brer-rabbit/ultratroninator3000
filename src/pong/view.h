@@ -24,10 +24,10 @@ struct view;
 
 struct view* create_pong_view(struct ut3k_view *ut3k_view);
 void free_pong_view(struct view*);
+void clear_view(struct view *this);
 
-
-void set_attract(struct view*, void*, f_animator);
 void draw_gameover(struct view *this, void *scroller, f_animator animation, int p1_score, int p2_score);
+void draw_attract(struct view *this, void *scroller, f_animator animation);
 
 void draw_player1_paddle(struct view *this, int y_position);
 void draw_player2_paddle(struct view *this, int y_position);

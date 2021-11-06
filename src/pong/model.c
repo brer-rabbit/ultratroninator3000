@@ -67,7 +67,7 @@ struct model* create_model() {
   // player 1 serves
   this->server = &this->player1;
   init_ball(this);
-  this->game_state = GAME_SERVE;
+  this->game_state = GAME_ATTRACT;
 
   return this;
 }

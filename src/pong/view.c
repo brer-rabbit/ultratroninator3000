@@ -41,11 +41,22 @@ void free_pong_view(struct view *this) {
 }
 
 
-
-void set_attract(struct view *this, void *scroller, f_animator animation) {
-  this->ut3k_display.displays[0].f_animate = animation;
-  this->ut3k_display.displays[0].userdata = scroller;
+void clear_view(struct view *this) {
+  // TODO: change this to designated initializer
+  this->ut3k_display.displays[0].f_animate = NULL;
+  this->ut3k_display.displays[0].userdata = NULL;
+  this->ut3k_display.displays[0].blink = HT16K33_BLINK_OFF;
+  this->ut3k_display.displays[1].f_animate = NULL;
+  this->ut3k_display.displays[1].userdata = NULL;
+  this->ut3k_display.displays[2].blink = HT16K33_BLINK_OFF;
+  this->ut3k_display.displays[2].f_animate = NULL;
+  this->ut3k_display.displays[2].userdata = NULL;
+  this->ut3k_display.displays[2].blink = HT16K33_BLINK_OFF;
+  this->ut3k_display.leds.f_animate = NULL;
+  this->ut3k_display.leds.userdata = NULL;
+  this->ut3k_display.leds.blink = HT16K33_BLINK_OFF;
 }
+
 
 void draw_gameover(struct view *this, void *scroller, f_animator animation, int p1_score, int p2_score) {
   this->ut3k_display.displays[0].f_animate = animation;
@@ -58,6 +69,37 @@ void draw_gameover(struct view *this, void *scroller, f_animator animation, int 
   this->ut3k_display.displays[2].display_value.display_int = p1_score;
 
   this->ut3k_display.displays[ p1_score > p2_score ? 2 : 1].blink = HT16K33_BLINK_FAST;
+}
+
+
+void draw_attract(struct view *this, void *scroller, f_animator animation) {
+  // rotate through the displays
+  if (this->ut3k_display.displays[0].f_animate == animation) {
+    this->ut3k_display.displays[0].f_animate = NULL;
+    this->ut3k_display.displays[1].f_animate = animation;
+    this->ut3k_display.displays[1].userdata = scroller;
+  }
+  else if (this->ut3k_display.displays[1].f_animate == animation) {
+    this->ut3k_display.displays[1].f_animate = NULL;
+    this->ut3k_display.displays[2].f_animate = animation;
+    this->ut3k_display.displays[2].userdata = scroller;
+  }
+  else if  (this->ut3k_display.displays[2].f_animate == animation) {
+    this->ut3k_display.displays[2].f_animate = NULL;
+    this->ut3k_display.displays[0].f_animate = animation;
+    this->ut3k_display.displays[0].userdata = scroller;
+  }
+  else {
+    // initial case
+    this->ut3k_display.displays[0].f_animate = animation;
+    this->ut3k_display.displays[0].userdata = scroller;
+    this->ut3k_display.displays[0].blink = HT16K33_BLINK_OFF;
+    this->ut3k_display.displays[1].f_animate = NULL;
+    this->ut3k_display.displays[1].blink = HT16K33_BLINK_OFF;
+    this->ut3k_display.displays[2].f_animate = NULL;
+    this->ut3k_display.displays[2].blink = HT16K33_BLINK_OFF;
+  }
+  
 }
 
 

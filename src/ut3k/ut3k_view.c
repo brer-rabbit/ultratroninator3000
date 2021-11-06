@@ -414,9 +414,9 @@ void set_red_leds(struct ut3k_display *this, uint16_t value) {
 // "base class" scroller that doesn't do much of any bizlogic.
 // just the facts: check if it's legal to scroll, and do the thing.
 
-void init_text_scroller(struct text_scroller *scroller, char *text) {
+void init_text_scroller(struct text_scroller *scroller, const char *text) {
   scroller->text = text;
-  scroller->position = scroller->text;
+  scroller->position = (char*) scroller->text;
   scroller->scroll_completed = 0;
 }
 
@@ -424,7 +424,8 @@ void text_scroller_forward(struct text_scroller *scroller) {
   if (scroller->position[0] != '\0' &&
       scroller->position[1] != '\0' &&
       scroller->position[2] != '\0' &&
-      scroller->position[3] != '\0') {
+      scroller->position[3] != '\0' &&
+      scroller->position[4] != '\0') {
     scroller->position++;
   }
   else {
@@ -443,7 +444,7 @@ int text_scroller_is_complete(struct text_scroller *scroller) {
 }
 
 void text_scroller_reset(struct text_scroller *scroller) {
-  scroller->position = scroller->text;
+  scroller->position = (char*) scroller->text;
   scroller->scroll_completed = 0;
 }
 
@@ -470,7 +471,7 @@ void f_clock_text_scroller(struct display *display, uint32_t clock) {
 }
 
 
-void init_clock_text_scroller(struct clock_text_scroller *scroller, char *text, int timer) {
+void init_clock_text_scroller(struct clock_text_scroller *scroller, const char *text, int timer) {
   init_text_scroller(&scroller->scroller_base, text);
   scroller->delay = timer;
   scroller->timer = timer;
@@ -504,7 +505,7 @@ void f_manual_text_scroller(struct display *display, uint32_t clock) {
 }
 
 
-void init_manual_text_scroller(struct manual_text_scroller *scroller, char *text) {
+void init_manual_text_scroller(struct manual_text_scroller *scroller, const char *text) {
   init_text_scroller(&scroller->scroller_base, text);
   scroller->direction = 0;
 }
