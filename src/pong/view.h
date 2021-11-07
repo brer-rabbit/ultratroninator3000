@@ -29,8 +29,8 @@ void clear_view(struct view *this);
 void draw_gameover(struct view *this, void *scroller, f_animator animation, int p1_score, int p2_score);
 void draw_attract(struct view *this, void *scroller, f_animator animation);
 
-void draw_player1_paddle(struct view *this, int y_position);
-void draw_player2_paddle(struct view *this, int y_position);
+void draw_player1_paddle(struct view *this, int y_position, int handicap);
+void draw_player2_paddle(struct view *this, int y_position, int handicap);
 void draw_ball(struct view *this, int x, int y);
 void draw_player1_score(struct view *this, int score);
 void draw_player2_score(struct view *this, int score);

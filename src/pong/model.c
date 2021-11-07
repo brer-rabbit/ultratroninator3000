@@ -33,9 +33,9 @@ static const int field_x_max = 19;
 static const int field_x_min = 0;
 static const int field_y_max = 5;
 static const int field_y_min = 0;
-static const int default_x_move_timer = 12;
+static const int default_x_move_timer = 10;
 static const int default_y_move_timer = 77;
-static const int default_win_score = 2;
+static const int default_win_score = 8;
 
 
 static void init_ball(struct model *this);
@@ -96,39 +96,36 @@ game_state_t get_game_state(struct model *this) {
 }
 
 
-void player1_move(struct model *this, int distance) {
-  if (this->game_state == GAME_SERVE ||
-      this->game_state == GAME_PLAY) {
-    if (distance > 0) {
-      this->player1.y_position =
-        this->player1.y_position + distance > field_y_max ?
-        field_y_max : this->player1.y_position + distance;
-    }
-    else if (distance < 0) {
-      this->player1.y_position =
-        this->player1.y_position + distance < field_y_min ?
-        field_y_min : this->player1.y_position + distance;
-    }
+
+static void player_move(struct player *player, int distance) {
+  if (distance > 0) {
+    // take into account handicap- it'll extend from y_position
+    player->y_position =
+      player->y_position + player->handicap + distance > field_y_max ?
+      field_y_max - player->handicap :
+      player->y_position + distance;
+  }
+  else if (distance < 0) {
+    player->y_position =
+      player->y_position + distance < field_y_min ?
+      field_y_min : player->y_position + distance;
   }
 }
 
-
+void player1_move(struct model *this, int distance) {
+  if (this->game_state == GAME_SERVE ||
+      this->game_state == GAME_PLAY) {
+    player_move(&this->player1, distance);
+  }
+}
 
 void player2_move(struct model *this, int distance) {
   if (this->game_state == GAME_SERVE ||
       this->game_state == GAME_PLAY) {
-    if (distance > 0) {
-      this->player2.y_position =
-        this->player2.y_position + distance > field_y_max ?
-        field_y_max : this->player2.y_position + distance;
-    }
-    else if (distance < 0) {
-      this->player2.y_position =
-        this->player2.y_position + distance < field_y_min ?
-        field_y_min : this->player2.y_position + distance;
-    }
+    player_move(&this->player2, distance);
   }
 }
+
 
 
 void player1_button_pushed(struct model *this) {
@@ -164,6 +161,15 @@ void player2_button_pushed(struct model *this) {
     this->game_state = GAME_SERVE;
     printf("set state from attract to serve\n");
   }
+}
+
+
+void set_player1_handicap(struct model *this, handicap_t handicap) {
+  this->player1.handicap = handicap;
+}
+
+void set_player2_handicap(struct model *this, handicap_t handicap) {
+  this->player2.handicap = handicap;
 }
 
 
@@ -218,9 +224,12 @@ static void collision_detect(struct model *this) {
   if (ball->x_position == field_x_min &&
       ball->x_direction == -1) {
     // it's either be volleyed back by player1 or going out of bounds
-    if (player1->y_position == ball->y_position) {
+    if (ball->y_position >= player1->y_position &&
+        ball->y_position <= player1->y_position + player1->handicap) {
       ball->x_direction = 1;
-      ball->x_clocks_per_move--;
+      if (ball->x_clocks_per_move > 1) {
+          ball->x_clocks_per_move--;
+      }
       printf("player1 hit the ball: clock/move: %d\n", ball->x_clocks_per_move);
       // TODO MAGIC NUMBER
       ut3k_play_sample( hit_soundkeys[ rand() % 4 ] );
@@ -239,9 +248,12 @@ static void collision_detect(struct model *this) {
   if (ball->x_position == field_x_max &&
       ball->x_direction == 1) {
     // it's either be volleyed back by player1 or going out of bounds
-    if (player2->y_position == ball->y_position) {
+    if (ball->y_position >= player2->y_position &&
+        ball->y_position <= player2->y_position + player2->handicap) {
       ball->x_direction = -1;
-      ball->x_clocks_per_move--;
+      if (ball->x_clocks_per_move > 1) {
+          ball->x_clocks_per_move--;
+      }
       printf("player2 hit the ball: clock/move: %d\n", ball->x_clocks_per_move);
       ut3k_play_sample( hit_soundkeys[ rand() % 4 ] );
     }

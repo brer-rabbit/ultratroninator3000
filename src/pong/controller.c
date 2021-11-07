@@ -111,8 +111,8 @@ void controller_update(struct controller *this, uint32_t clock) {
     }
     player1 = get_player1(this->model);
     player2 = get_player2(this->model);
-    draw_player1_paddle(this->view, player1->y_position);
-    draw_player2_paddle(this->view, player2->y_position);
+    draw_player1_paddle(this->view, player1->y_position, player1->handicap);
+    draw_player2_paddle(this->view, player2->y_position, player2->handicap);
 
     ball = get_ball(this->model);
     draw_ball(this->view, ball->x_position, ball->y_position);
@@ -154,8 +154,8 @@ void controller_callback_control_panel(const struct control_panel *control_panel
   struct controller *this = (struct controller*) userdata;
   const struct button *blue_button = get_blue_button(control_panel);
   const struct button *red_button = get_red_button(control_panel);
-
-  const struct rotary_encoder *green_rotary_encoder = get_green_rotary_encoder(control_panel);
+  const struct selector *blue_selector = get_blue_selector(control_panel);
+  const struct selector *green_selector = get_green_selector(control_panel);
   const struct rotary_encoder *blue_rotary_encoder = get_blue_rotary_encoder(control_panel);
   const struct rotary_encoder *red_rotary_encoder = get_red_rotary_encoder(control_panel);
   
@@ -169,6 +169,43 @@ void controller_callback_control_panel(const struct control_panel *control_panel
 
   if (blue_button->button_state == 1 && blue_button->state_count == 0) {
     player2_button_pushed(this->model);
+  }
+
+  if (green_selector->state_count == 0) {
+    switch (green_selector->selector_state) {
+    case SELECTOR_ZERO:
+      set_player1_handicap(this->model, HANDICAP_EXPERT);
+      break;
+    case SELECTOR_ONE:
+      set_player1_handicap(this->model, HANDICAP_MED2);
+      break;
+    case SELECTOR_TWO:
+      set_player1_handicap(this->model, HANDICAP_MED1);
+      break;
+    case SELECTOR_THREE:
+      set_player1_handicap(this->model, HANDICAP_NOVICE);
+      break;
+    default:
+      set_player1_handicap(this->model, HANDICAP_EXPERT);
+      break;
+    }
+  }
+
+  if (blue_selector->state_count == 0) {
+    switch (blue_selector->selector_state) {
+    case SELECTOR_ZERO:
+      set_player2_handicap(this->model, HANDICAP_EXPERT);
+      break;
+    case SELECTOR_ONE:
+      set_player2_handicap(this->model, HANDICAP_MED2);
+      break;
+    case SELECTOR_TWO:
+      set_player2_handicap(this->model, HANDICAP_MED1);
+      break;
+    case SELECTOR_THREE:
+      set_player2_handicap(this->model, HANDICAP_NOVICE);
+      break;
+    }
   }
 
 }

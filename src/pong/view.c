@@ -94,23 +94,32 @@ void draw_attract(struct view *this, void *scroller, f_animator animation) {
 }
 
 
-void draw_player1_paddle(struct view *this, int y_position) {
-  int display = y_position / 2;
-  int glyph = y_position % 2;
+void draw_player1_paddle(struct view *this, int y_position, int handicap) {
+  int display;
+  int glyph;
 
-  this->ut3k_display.displays[display].display_type = glyph_display;
-  this->ut3k_display.displays[display].display_value.display_glyph[0] |=
-    glyph ? SEG_E : SEG_F;
+  for (int i = y_position; i <= y_position + handicap; ++i) {
+    display = i / 2;
+    glyph = i % 2;
+
+    this->ut3k_display.displays[display].display_type = glyph_display;
+    this->ut3k_display.displays[display].display_value.display_glyph[0] |=
+      glyph ? SEG_E : SEG_F;
+  }
 }
 
 
-void draw_player2_paddle(struct view *this, int y_position) {
-  int display = y_position / 2;
-  int glyph = y_position % 2;
+void draw_player2_paddle(struct view *this, int y_position, int handicap) {
+  int display;
+  int glyph;
 
-  this->ut3k_display.displays[display].display_type = glyph_display;
-  this->ut3k_display.displays[display].display_value.display_glyph[3] |=
-    glyph ? SEG_C : SEG_B;
+  for (int i = y_position; i <= y_position + handicap; ++i) {
+    display = i / 2;
+    glyph = i % 2;
+    this->ut3k_display.displays[display].display_type = glyph_display;
+    this->ut3k_display.displays[display].display_value.display_glyph[3] |=
+      glyph ? SEG_C : SEG_B;
+  }
 }
 
 

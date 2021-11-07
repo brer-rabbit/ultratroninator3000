@@ -30,6 +30,7 @@
 struct model;
 
 typedef enum { GAME_ATTRACT, GAME_SERVE, GAME_PLAY, GAME_OVER } game_state_t;
+typedef enum { HANDICAP_EXPERT = 0, HANDICAP_MED2 = 1, HANDICAP_MED1 = 2, HANDICAP_NOVICE = 3 } handicap_t;
 
 /* create a model for the caller.  Mem is allocated in the function;
  * caller is responsible for freeing later via free_game_mode
@@ -42,6 +43,7 @@ game_state_t clocktick_model(struct model*);
 
 
 struct player {
+  handicap_t handicap; // length beyond one unit
   int y_position;
   int score;
   int velocity;
@@ -69,8 +71,10 @@ void player2_move(struct model *this, int distance);
 void player1_button_pushed(struct model *this);
 void player2_button_pushed(struct model *this);
 
-const struct player* get_player1(struct model *this);
+void set_player1_handicap(struct model *this, handicap_t handicap);
+void set_player2_handicap(struct model *this, handicap_t handicap);
 
+const struct player* get_player1(struct model *this);
 const struct player* get_player2(struct model *this);
 
 const struct ball* get_ball(struct model *this);
