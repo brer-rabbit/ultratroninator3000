@@ -18,7 +18,6 @@
  *
  * get the backpacks up and going. Clear their mem first.
  **/
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -106,7 +105,7 @@ struct game_model* create_game_model() {
   }
 
   this->num_games = get_games(games_bin_directory, this->games, MAX_GAMES);
-  this->game_index = 0;
+  this->game_index = rand() % this->num_games;
   this->model_state = INIT;
   this->long_timer = init_long_timer;
   this->attract_sample_timer = init_attract_sample_timer;
@@ -254,7 +253,7 @@ int update_full_intro(struct game_model *this) {
 
 
 // implements f_get_display for the red display
-display_type get_red_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_red_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct game_model *this = (struct game_model*) display_strategy->userdata;
 
 
@@ -292,7 +291,7 @@ display_type get_red_display(struct display_strategy *display_strategy, display_
 }
 
 // implements f_get_display for the blue display
-display_type get_blue_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_blue_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct game_model *this = (struct game_model*) display_strategy->userdata;
 
   // no change
@@ -332,7 +331,7 @@ display_type get_blue_display(struct display_strategy *display_strategy, display
 }
 
 // implements f_get_display for the green display
-display_type get_green_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_green_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct game_model *this = (struct game_model*) display_strategy->userdata;
 
   // no change
@@ -384,7 +383,7 @@ display_type get_green_display(struct display_strategy *display_strategy, displa
 
 
 // implements f_get_display for the leds display
-display_type get_leds_display(struct display_strategy *display_strategy, display_value *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
+display_type_t get_leds_display(struct display_strategy *display_strategy, display_value_t *value, ht16k33blink_t *blink, ht16k33brightness_t *brightness) {
   struct game_model *this = (struct game_model*) display_strategy->userdata;
 
   // no change
