@@ -122,9 +122,9 @@ void clear_ut3k_display(struct ut3k_display*);
 // clear/null f_animate and userdata.
 void reset_ut3k_display(struct ut3k_display*);
 
-void set_green_leds(struct ut3k_display*, uint16_t);
-void set_blue_leds(struct ut3k_display*, uint16_t);
-void set_red_leds(struct ut3k_display*, uint16_t);
+void set_green_leds(struct display*, uint16_t);
+void set_blue_leds(struct display*, uint16_t);
+void set_red_leds(struct display*, uint16_t);
 
 
 ///// f_animator functionality

@@ -432,14 +432,14 @@ void reset_ut3k_display(struct ut3k_display *this) {
 
 
 
-void set_green_leds(struct ut3k_display *this, uint16_t value) {
-  this->leds.display_value.display_glyph[2] = value;
+void set_green_leds(struct display *this, uint16_t value) {
+  this->display_value.display_glyph[2] = value;
 }
-void set_blue_leds(struct ut3k_display *this, uint16_t value) {
-  this->leds.display_value.display_glyph[1] = value;
+void set_blue_leds(struct display *this, uint16_t value) {
+  this->display_value.display_glyph[1] = value;
 }
-void set_red_leds(struct ut3k_display *this, uint16_t value) {
-  this->leds.display_value.display_glyph[0] = value;
+void set_red_leds(struct display *this, uint16_t value) {
+  this->display_value.display_glyph[0] = value;
 }
 
 

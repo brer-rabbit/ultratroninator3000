@@ -143,10 +143,10 @@ void draw_ball(struct view *this, int x, int y) {
 
 void draw_player1_score(struct view *this, int score) {
   // light a number of LEDs to match the score
-  set_red_leds(&this->ut3k_display, (1 << score) - 1);
+  set_red_leds(&this->ut3k_display.leds, (1 << score) - 1);
 }
 void draw_player2_score(struct view *this, int score) {
-  set_blue_leds(&this->ut3k_display, (1 << score) - 1);
+  set_blue_leds(&this->ut3k_display.leds, (1 << score) - 1);
 }
 
 
