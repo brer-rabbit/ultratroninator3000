@@ -104,13 +104,13 @@ struct ut3k_display {
 };
 
 
-/** commit_ut3k_display
+/** commit_ut3k_view
  *
  * this method take a ut3k_view and a pointer to the entire display, a
  * ut3k_display, along with the clock.  Commits the ut3k_display buffer,
  * writing it to HT16K33s.
  */
-void commit_ut3k_display(struct ut3k_view *this, struct ut3k_display *ut3k_display, uint32_t clock);
+void commit_ut3k_view(struct ut3k_view *this, struct ut3k_display *ut3k_display, uint32_t clock);
 
 // convenience function - clears the display buffer only, no
 // write/commit is involved.  so one can start a display cycle with a

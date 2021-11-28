@@ -152,7 +152,7 @@ void draw_player2_score(struct view *this, int score) {
 
 
 void render_view(struct view *this, uint32_t clock) {
-  commit_ut3k_display(this->ut3k_view, &this->ut3k_display, clock);
+  commit_ut3k_view(this->ut3k_view, &this->ut3k_display, clock);
   // wipe after render
   clear_ut3k_display(&this->ut3k_display);
 }

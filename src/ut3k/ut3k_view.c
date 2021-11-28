@@ -320,7 +320,7 @@ void update_controls(struct ut3k_view *this, uint32_t clock) {
  * Take the ut3k_display buffer and write it out to the HT16K33s.
  */
 
-void commit_ut3k_display(struct ut3k_view *this, struct ut3k_display *ut3k_display, uint32_t clock) {
+void commit_ut3k_view(struct ut3k_view *this, struct ut3k_display *ut3k_display, uint32_t clock) {
   struct display *display;  
 
   for (int i = 0; i < 3; ++i) {
@@ -370,7 +370,7 @@ void commit_ut3k_display(struct ut3k_view *this, struct ut3k_display *ut3k_displ
   case integer_display:
   case string_display:
   default:
-    printf("ut3k_view:commit_ut3k_display: unsupported display mode set for LED display\n");
+    printf("ut3k_view:commit_ut3k_view: unsupported display mode set for LED display\n");
     break;
   }
   
@@ -553,7 +553,7 @@ void init_manual_text_scroller(struct manual_text_scroller *scroller, const char
 /** update_displays
  * keyscan HT16K33
  * callback to any hooks
- * @deprecated use commit_ut3k_display instead
+ * @deprecated use commit_ut3k_view instead
  */
 void update_displays(struct ut3k_view *this, struct display_strategy *display_strategy, uint32_t clock) {
   // odd..but abstract out implementation while passing object state.
