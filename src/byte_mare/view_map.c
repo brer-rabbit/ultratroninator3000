@@ -14,6 +14,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "view_map.h"
 
 
@@ -21,6 +22,18 @@ struct view_map {
   struct ut3k_view *ut3k_view;
   struct ut3k_display ut3k_display;
 };
+
+
+static const uint16_t player_top_glyph = SEG_F | SEG_A | SEG_B;
+static const uint16_t player_bottom_glyph = SEG_E | SEG_D | SEG_C;
+static const uint16_t moto_top_glyph = SEG_H;
+static const uint16_t moto_bottom_glyph = SEG_L;
+
+// coordinates are mapped from bottom to top as 0,1,2 while displays are
+// numerically 2,1,0 from bottom to top.  Create a mapping to index.
+static const int display_map[] = { 2, 1, 0 };
+
+
 
 
 struct view_map* create_view_map(struct ut3k_view *ut3k_view) {
@@ -44,12 +57,45 @@ void clear_view_map(struct view_map *this) {
 
 
 
-void draw_map(struct view_map *this, void *scroller, f_animator animation) {
+/** draw_player
+ *
+ * place the player on the map by the given xy coordinate
+ */
 
+void draw_player(struct view_map *this, const struct xy *quadrant) {
+  int display, is_top;
+  int digit;
+
+  display = display_map[ quadrant->y / 2 ];
+  is_top = quadrant->y & 0b1; // top or bottom part of digit?
+  digit = quadrant->x;
+
+  this->ut3k_display.displays[display].display_type = glyph_display;
+  this->ut3k_display.displays[display].display_value.display_glyph[digit] |=
+    is_top ? player_top_glyph : player_bottom_glyph;
+}
+
+
+void draw_moto_groups(struct view_map *this, const struct moto_group *moto_groups) {
+  int display, is_top;
+  int digit;
+
+  for (int i = 0; i < MAX_MOTO_GROUPS; ++i) {
+    if (moto_groups[i].status == ACTIVE) {
+      display = display_map[ moto_groups[i].quadrant.y / 2 ];
+      is_top = moto_groups[i].quadrant.y & 0b1;
+      digit = moto_groups[i].quadrant.x;
+
+      this->ut3k_display.displays[display].display_type = glyph_display;
+      this->ut3k_display.displays[display].display_value.display_glyph[digit] |=
+        is_top ? moto_top_glyph : moto_bottom_glyph;
+    }
+  }
 }
 
 
 void render_map_display(struct view_map *this, uint32_t clock) {
+  commit_ut3k_view(this->ut3k_view, &this->ut3k_display, clock);
   clear_ut3k_display(&this->ut3k_display);
 }
 

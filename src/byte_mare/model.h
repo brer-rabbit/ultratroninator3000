@@ -27,6 +27,7 @@
 
 #include "display_strategy.h"
 
+#define MAX_MOTO_GROUPS 8
 #define MAX_MOTOS_PER_GROUP 8
 
 
@@ -72,12 +73,14 @@ struct moto_group {
   object_state_t status; // is it visible yet?
   int num_motos;
   struct moto motos[MAX_MOTOS_PER_GROUP];
+  int movement_timer;
+  int movement_timer_remaining;
 };
 
 
 struct level {
   int num_level;
-  struct moto_group moto_groups[8];
+  struct moto_group moto_groups[MAX_MOTO_GROUPS];
   int num_moto_groups;
 };
 
@@ -95,10 +98,14 @@ void free_model(struct model*);
 
 // Supported model methods
 game_state_t clocktick_model(struct model *this);
+
 game_state_t get_game_state(struct model *this);
 void set_game_start(struct model *this);
+
+const struct player* get_player(struct model *this);
 void move_player(struct model *this, enum direction direction);
 
+const struct moto_group* get_moto_groups(struct model *this);
 
 
 

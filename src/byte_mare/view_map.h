@@ -19,6 +19,7 @@
 struct view_map;
 
 #include "ut3k_view.h"
+#include "model.h"
 #include "controller_map.h"
 
 
@@ -28,7 +29,8 @@ void free_view_map(struct view_map*);
 void clear_view_map(struct view_map *this);
 
 void toggle_map_display(struct view_map *this);
-void draw_map(struct view_map*, void*, f_animator);
+void draw_player(struct view_map *this, const struct xy *quadrant);
+void draw_moto_groups(struct view_map *this, const struct moto_group *moto_groups);
 
 void render_map_display(struct view_map*, uint32_t clock);
 

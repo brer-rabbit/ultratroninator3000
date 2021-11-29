@@ -60,8 +60,17 @@ void controller_map_update(struct controller_map *this, uint32_t clock) {
     clocktick_model(this->model);
   }
 
+  const struct player *player = get_player(this->model);
+  draw_player(this->view, &player->quadrant);
+
+  const struct moto_group *moto_groups = get_moto_groups(this->model);
+  draw_moto_groups(this->view, moto_groups);
+
+
   render_map_display(this->view, clock);
 }
+
+
 
 
 
