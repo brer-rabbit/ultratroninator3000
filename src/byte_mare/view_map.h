@@ -29,7 +29,7 @@ void free_view_map(struct view_map*);
 void clear_view_map(struct view_map *this);
 
 void toggle_map_display(struct view_map *this);
-void draw_player(struct view_map *this, const struct xy *quadrant);
+void draw_player(struct view_map *this, const struct xy *quadrant, uint32_t clock);
 void draw_moto_groups(struct view_map *this, const struct moto_group *moto_groups);
 
 void render_map_display(struct view_map*, uint32_t clock);

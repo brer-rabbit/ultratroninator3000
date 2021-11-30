@@ -62,7 +62,7 @@ void clear_view_map(struct view_map *this) {
  * place the player on the map by the given xy coordinate
  */
 
-void draw_player(struct view_map *this, const struct xy *quadrant) {
+void draw_player(struct view_map *this, const struct xy *quadrant, uint32_t clock) {
   int display, is_top;
   int digit;
 
@@ -73,6 +73,7 @@ void draw_player(struct view_map *this, const struct xy *quadrant) {
   this->ut3k_display.displays[display].display_type = glyph_display;
   this->ut3k_display.displays[display].display_value.display_glyph[digit] |=
     is_top ? player_top_glyph : player_bottom_glyph;
+
 }
 
 

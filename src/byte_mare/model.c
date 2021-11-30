@@ -41,6 +41,7 @@ static const int default_player_start_sector_y = sector_max_y / 2;
 static const int default_player_start_sector_z = sector_max_z;
 
 static const int default_motogroup_movement_timer = 250;
+static const int default_motogroup_movement_timer_randomness = 100;
 
 
 
@@ -165,18 +166,36 @@ static void init_player(struct player *player) {
 }
 
 
-// populate the level with moto groups and such
+static int get_new_moto_group_movement_timer() {
+  return default_motogroup_movement_timer +
+    rand() % default_motogroup_movement_timer_randomness;
+}
 
+// populate the level with moto groups and such
 static void init_level(struct level *level) {
   for (int i = 0; i < MAX_MOTO_GROUPS; ++i) {
-    if (i < level->num_level) {
-      // TODO: some smarts on placement
-      level->moto_groups[i].status = ACTIVE;
-      level->moto_groups[i].quadrant.x = 0;
-      level->moto_groups[i].quadrant.y = quadrant_max_y;
+    //if (i < level->num_level) {
+    if (i < 4) {
       level->moto_groups[i].num_motos = 1 + rand() % 3;
-      level->moto_groups[i].movement_timer = default_motogroup_movement_timer;
-      level->moto_groups[i].movement_timer_remaining = default_motogroup_movement_timer;
+      level->moto_groups[i].movement_timer = get_new_moto_group_movement_timer();
+      level->moto_groups[i].movement_timer_remaining = level->moto_groups[i].movement_timer;
+      // TODO: some smarts on placement.  This'll do for now.
+      // only allow up to 3 visible from the start
+      level->moto_groups[i].status = i < 3 ? ACTIVE : INACTIVE;
+      switch (i % 3) {
+      case 0:
+        level->moto_groups[i].quadrant.x = 0;
+        level->moto_groups[i].quadrant.y = quadrant_max_y;
+        break;
+      case 1:
+        level->moto_groups[i].quadrant.x = 1;
+        level->moto_groups[i].quadrant.y = quadrant_max_y;
+        break;
+      case 2:
+        level->moto_groups[i].quadrant.x = 0;
+        level->moto_groups[i].quadrant.y = quadrant_max_y - 1;
+        break;
+      }
     }
     else {
       level->moto_groups[i].status = NOT_IN_LEVEL;
@@ -185,11 +204,27 @@ static void init_level(struct level *level) {
 }
 
 
+/** check is a quadrant is occupied by an active motogroup
+ * return 0 if empty of motogroup or non-zero if occupied
+ */
+static int is_quadrant_occupied_by_motogroup(struct level *level, struct xy *quadrant) {
+  for (int i = 0; i < MAX_MOTO_GROUPS; ++i) {
+    if (level->moto_groups[i].status == ACTIVE &&
+        level->moto_groups[i].quadrant.x == quadrant->x &&
+        level->moto_groups[i].quadrant.y == quadrant->y) {
+      return 1;
+    }      
+  }
+  return 0;
+}
+
 /** move_motogroups
  *
  * clocktick the groups, move if timer goes bing
  */
 static void move_motogroups(struct level *level) {
+  struct xy intended_quadrant;
+  
   for (int i = 0; i < MAX_MOTO_GROUPS; ++i) {
     if (level->moto_groups[i].status == ACTIVE) {
       if (level->moto_groups[i].movement_timer_remaining-- == 0) {
@@ -197,15 +232,21 @@ static void move_motogroups(struct level *level) {
           level->moto_groups[i].movement_timer;
         // move either right or down-- if already maxed in that direction
         // then this movement turn is lost
-        if (rand() & 0b1) {
-          level->moto_groups[i].quadrant.x =
-            level->moto_groups[i].quadrant.x == quadrant_max_x ?
-            quadrant_max_x : level->moto_groups[i].quadrant.x + 1;
+        if (rand() & 0b1 && level->moto_groups[i].quadrant.x != quadrant_max_x) {
+          intended_quadrant.x = level->moto_groups[i].quadrant.x + 1;
+          intended_quadrant.y = level->moto_groups[i].quadrant.y;
+          if (is_quadrant_occupied_by_motogroup(level, &intended_quadrant) == 0) {
+            level->moto_groups[i].quadrant.x = intended_quadrant.x;
+            level->moto_groups[i].quadrant.y = intended_quadrant.y;
+          }
         }
-        else {
-          level->moto_groups[i].quadrant.y =
-            level->moto_groups[i].quadrant.y == 0 ?
-            0 : level->moto_groups[i].quadrant.y - 1;
+        else if (level->moto_groups[i].quadrant.y != 0) {
+          intended_quadrant.x = level->moto_groups[i].quadrant.x;
+          intended_quadrant.y = level->moto_groups[i].quadrant.y - 1;
+          if (is_quadrant_occupied_by_motogroup(level, &intended_quadrant) == 0) {
+            level->moto_groups[i].quadrant.x = intended_quadrant.x;
+            level->moto_groups[i].quadrant.y = intended_quadrant.y;
+          }
         }
         printf("motogroup %d to %d %d\n", i,
                level->moto_groups[i].quadrant.x,
