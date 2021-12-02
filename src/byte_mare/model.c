@@ -108,33 +108,56 @@ const struct player* get_player(struct model *this) {
   return &this->player;
 }
 
-void move_player(struct model *this, enum direction direction) {
+void map_move_cursor(struct model *this, enum direction direction) {
   if (this->game_state == GAME_PLAY_MAP) {
     switch (direction) {
     case JOY_UP:
-      this->player.quadrant.y =
-        this->player.quadrant.y == quadrant_max_y ?
-        quadrant_max_y : this->player.quadrant.y + 1;
+      this->player.cursor_quadrant.y =
+        this->player.cursor_quadrant.y == quadrant_max_y ?
+        quadrant_max_y : this->player.cursor_quadrant.y + 1;
       break;
     case JOY_DOWN:
-      this->player.quadrant.y =
-        this->player.quadrant.y == 0 ? 0 : this->player.quadrant.y - 1;
+      this->player.cursor_quadrant.y =
+        this->player.cursor_quadrant.y == 0 ? 0 : this->player.cursor_quadrant.y - 1;
       break;
     case JOY_LEFT:
-      this->player.quadrant.x =
-        this->player.quadrant.x == 0 ? 0 : this->player.quadrant.x - 1;
+      this->player.cursor_quadrant.x =
+        this->player.cursor_quadrant.x == 0 ? 0 : this->player.cursor_quadrant.x - 1;
       break;
     case JOY_RIGHT:
-      this->player.quadrant.x =
-        this->player.quadrant.x == quadrant_max_x ?
-        quadrant_max_x : this->player.quadrant.x + 1;
+      this->player.cursor_quadrant.x =
+        this->player.cursor_quadrant.x == quadrant_max_x ?
+        quadrant_max_x : this->player.cursor_quadrant.x + 1;
       break;
     default:
       break;
     }
   }
 
-  printf("move_player: quadrant %d, %d\n", this->player.quadrant.x, this->player.quadrant.y);
+  printf("map_move_cursor: quadrant %d, %d\n", this->player.cursor_quadrant.x, this->player.cursor_quadrant.y);
+}
+
+
+/** map_player_move
+ *
+ * on the map, the player has initiated a move.  Attempt to move from
+ * current position to where the cursor is.  Only move there if the
+ * position is occupied by something- don't allow a move to an empty space.
+ */
+void map_player_move(struct model *this) {
+  // check if cursor is at a valid spot for a move
+  for (int i = 0; i < this->level.num_moto_groups; ++i) {
+    if (this->level.moto_groups[i].status == ACTIVE &&
+        this->player.cursor_quadrant.x == this->level.moto_groups[i].quadrant.x &&
+        this->player.cursor_quadrant.y == this->level.moto_groups[i].quadrant.y) {
+      // legal move
+      printf("player move to %d %d\n",
+             this->player.quadrant.x, this->player.quadrant.y);
+      return;
+    }
+  }
+
+  printf("map_player_move: empty space / not allowed\n");
 }
 
 
@@ -157,6 +180,10 @@ static void init_player(struct player *player) {
                   .x = default_player_start_quadrant_x,
                   .y = default_player_start_quadrant_y
                  },
+     .cursor_quadrant = {
+                  .x = default_player_start_quadrant_x,
+                  .y = default_player_start_quadrant_y
+                 },
      .sector = {
                 .x = default_player_start_sector_x,
                 .y = default_player_start_sector_y,
@@ -173,9 +200,12 @@ static int get_new_moto_group_movement_timer() {
 
 // populate the level with moto groups and such
 static void init_level(struct level *level) {
+  level->num_moto_groups = 3; // should be: level->num_level
+
   for (int i = 0; i < MAX_MOTO_GROUPS; ++i) {
     //if (i < level->num_level) {
     if (i < 4) {
+
       level->moto_groups[i].num_motos = 1 + rand() % 3;
       level->moto_groups[i].movement_timer = get_new_moto_group_movement_timer();
       level->moto_groups[i].movement_timer_remaining = level->moto_groups[i].movement_timer;

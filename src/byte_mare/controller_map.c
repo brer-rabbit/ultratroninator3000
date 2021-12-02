@@ -61,7 +61,7 @@ void controller_map_update(struct controller_map *this, uint32_t clock) {
   }
 
   const struct player *player = get_player(this->model);
-  draw_player(this->view, &player->quadrant, clock);
+  draw_player(this->view, player, clock);
 
   const struct moto_group *moto_groups = get_moto_groups(this->model);
   draw_moto_groups(this->view, moto_groups);
@@ -81,11 +81,20 @@ void controller_map_update(struct controller_map *this, uint32_t clock) {
 void controller_map_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
   struct controller_map *this = (struct controller_map*) userdata;
   const struct joystick *joystick = get_joystick(control_panel);
+  const struct button *blue_button = get_blue_button(control_panel);
+  const struct button *green_button = get_green_button(control_panel);
+  const struct button *red_button = get_red_button(control_panel);
 
 
   if (joystick->state_count == 0 && joystick->direction != JOY_CENTERED) {
-    move_player(this->model, joystick->direction);
+    map_move_cursor(this->model, joystick->direction);
   }
 
+  // any button depressed starts the game
+  if ((green_button->button_state == 0 && green_button->state_count == 0) ||
+      (blue_button->button_state == 0 && blue_button->state_count == 0) ||
+      (red_button->button_state == 0 && red_button->state_count == 0)) {
+    map_player_move(this->model);
+  }
 
 }

@@ -29,6 +29,7 @@
 
 #define MAX_MOTO_GROUPS 8
 #define MAX_MOTOS_PER_GROUP 8
+#define MAX_FLIGHT_PATH_LENGTH 128
 
 
 typedef enum { GAME_ATTRACT, GAME_PLAY_MAP, GAME_PLAY_BATTLE, GAME_OVER } game_state_t;
@@ -60,6 +61,7 @@ struct player_bullet {
 struct player {
   struct ammo ammo;
   struct xy quadrant;
+  struct xy cursor_quadrant;
   struct xyz sector;
 };
 
@@ -77,6 +79,22 @@ struct moto_group {
   int movement_timer_remaining;
 };
 
+
+// flight corridor: this is a single y point in the path of flight.
+// It has a "width" of an opening the player must fly through.  The
+// offset is how far from the left wall the opening is.
+struct flight_path_slice {
+  int width;
+  int offset;
+};
+
+// flight path is a sequence of flight_path_slices the player must
+// navigate through.  The sequence scrolls by one when the timer ticks
+// down.
+struct flight_path {
+  struct flight_path_slice slice[MAX_FLIGHT_PATH_LENGTH];
+  int scroll_timer_remaining;
+};
 
 struct level {
   int num_level;
@@ -103,7 +121,9 @@ game_state_t get_game_state(struct model *this);
 void set_game_start(struct model *this);
 
 const struct player* get_player(struct model *this);
-void move_player(struct model *this, enum direction direction);
+
+void map_move_cursor(struct model *this, enum direction direction);
+void map_player_move(struct model *this);
 
 const struct moto_group* get_moto_groups(struct model *this);
 

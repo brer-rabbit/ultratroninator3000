@@ -75,7 +75,7 @@ void controller_battle_callback_control_panel(const struct control_panel *contro
 
 
   if (joystick->state_count == 0 && joystick->direction != JOY_CENTERED) {
-    move_player(this->model, joystick->direction);
+    //move_player(this->model, joystick->direction);
   }
 
 

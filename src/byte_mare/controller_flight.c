@@ -17,13 +17,13 @@
 #include <stdio.h>
 
 #include "control_panel.h"
-#include "controller_gameover.h"
+#include "controller_flight.h"
 #include "ut3k_pulseaudio.h"
 
 
-struct controller_gameover {
+struct controller_flight {
   struct model *model;
-  struct view_gameover *view;
+  struct view_flight *view;
   struct ut3k_view *ut3k_view;
 };
 
@@ -32,25 +32,25 @@ struct controller_gameover {
 
 
 
-struct controller_gameover* create_controller_gameover(struct model *model, struct view_gameover *view, struct ut3k_view *ut3k_view) {
-  struct controller_gameover *this;
+struct controller_flight* create_controller_flight(struct model *model, struct view_flight *view, struct ut3k_view *ut3k_view) {
+  struct controller_flight *this;
 
-  this = (struct controller_gameover*) malloc(sizeof(struct controller_gameover));
+  this = (struct controller_flight*) malloc(sizeof(struct controller_flight));
   this->model = model;
   this->view = view;
   this->ut3k_view = ut3k_view;
-  clear_view_gameover(this->view);
+  clear_view_flight(this->view);
 
 
   return this;
 }
 
-void free_controller_gameover(struct controller_gameover *this) {
+void free_controller_flight(struct controller_flight *this) {
   free(this);
 }
 
 
-void controller_gameover_update(struct controller_gameover *this, uint32_t clock) {
+void controller_flight_update(struct controller_flight *this, uint32_t clock) {
   if (clock & 0b1) {
     // keyscan only valid every 20 ms.  Assume clock is 10ms, so skip
     // every other one.
@@ -60,17 +60,17 @@ void controller_gameover_update(struct controller_gameover *this, uint32_t clock
     clocktick_model(this->model);
   }
 
-  render_gameover_display(this->view, clock);
+  render_flight_display(this->view, clock);
 }
 
 
 
-/** controller_gameover callback
+/** controller_flight callback
  * 
  * implements f_view_control_panel_updates
  */
-void controller_gameover_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
-  struct controller_gameover *this = (struct controller_gameover*) userdata;
+void controller_flight_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
+  struct controller_flight *this = (struct controller_flight*) userdata;
   const struct joystick *joystick = get_joystick(control_panel);
 
 
@@ -80,6 +80,3 @@ void controller_gameover_callback_control_panel(const struct control_panel *cont
 
 
 }
-
-
-

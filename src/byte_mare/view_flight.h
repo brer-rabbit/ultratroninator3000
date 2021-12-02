@@ -13,25 +13,23 @@
  * limitations under the License.
  */
 
-#ifndef VIEW_MAP_H
-#define VIEW_MAP_H
+#ifndef VIEW_FLIGHT_H
+#define VIEW_FLIGHT_H
 
-struct view_map;
+struct view_flight;
 
 #include "ut3k_view.h"
-#include "model.h"
-#include "controller_map.h"
+#include "controller_flight.h"
 
 
-struct view_map* create_view_map(struct ut3k_view *ut3k_view);
-void free_view_map(struct view_map*);
+struct view_flight* create_view_flight(struct ut3k_view *ut3k_view);
+void free_view_flight(struct view_flight*);
 
-void clear_view_map(struct view_map *this);
+void clear_view_flight(struct view_flight *this);
 
-void toggle_map_display(struct view_map *this);
-void draw_player(struct view_map *this, const struct player *player, uint32_t clock);
-void draw_moto_groups(struct view_map *this, const struct moto_group *moto_groups);
+void toggle_flight_display(struct view_flight *this);
+void draw_flight(struct view_flight*, void*, f_animator);
 
-void render_map_display(struct view_map*, uint32_t clock);
+void render_flight_display(struct view_flight*, uint32_t clock);
 
 #endif
