@@ -29,10 +29,10 @@
 
 #define MAX_MOTO_GROUPS 8
 #define MAX_MOTOS_PER_GROUP 8
-#define MAX_FLIGHT_PATH_LENGTH 128
+#define MAX_FLIGHT_PATH_LENGTH 512
 
 
-typedef enum { GAME_ATTRACT, GAME_PLAY_MAP, GAME_PLAY_BATTLE, GAME_OVER } game_state_t;
+typedef enum { GAME_ATTRACT, GAME_PLAY_MAP, GAME_PLAY_FLIGHT_TUNNEL, GAME_PLAY_BATTLE, GAME_OVER } game_state_t;
 typedef enum { ACTIVE, DESTROYED, INACTIVE, NOT_IN_LEVEL } object_state_t;
 
 
@@ -63,6 +63,7 @@ struct player {
   struct xy quadrant;
   struct xy cursor_quadrant;
   struct xyz sector;
+  struct xy flight_tunnel;
 };
 
 struct moto {
@@ -75,7 +76,7 @@ struct moto_group {
   object_state_t status; // is it visible yet?
   int num_motos;
   struct moto motos[MAX_MOTOS_PER_GROUP];
-  int movement_timer;
+  int movement_timer_reset;
   int movement_timer_remaining;
 };
 
@@ -93,6 +94,8 @@ struct flight_path_slice {
 // down.
 struct flight_path {
   struct flight_path_slice slice[MAX_FLIGHT_PATH_LENGTH];
+  int flight_path_length;
+  int scroll_timer_reset;
   int scroll_timer_remaining;
 };
 
@@ -127,7 +130,9 @@ void map_player_move(struct model *this);
 
 const struct moto_group* get_moto_groups(struct model *this);
 
-
+const struct flight_path* get_flight_path(struct model *this);
+int is_flight_path_complete(struct model *this);
+void flight_move_player(struct model *this, int position);
 
 // accessors here- but these may be decoupled via the display_strategy
 

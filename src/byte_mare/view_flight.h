@@ -27,8 +27,9 @@ void free_view_flight(struct view_flight*);
 
 void clear_view_flight(struct view_flight *this);
 
-void toggle_flight_display(struct view_flight *this);
-void draw_flight(struct view_flight*, void*, f_animator);
+
+void set_flight_messaging(struct view_flight *this, void *scroller, f_animator animation);
+void draw_flight_tunnel(struct view_flight *this, const struct flight_path *flight_path, const struct player *player, uint32_t clock);
 
 void render_flight_display(struct view_flight*, uint32_t clock);
 

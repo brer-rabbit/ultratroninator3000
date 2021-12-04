@@ -29,10 +29,12 @@
 #include "model.h"
 #include "view_attract.h"
 #include "view_map.h"
+#include "view_flight.h"
 #include "view_battle.h"
 #include "view_gameover.h"
 #include "controller_attract.h"
 #include "controller_map.h"
+#include "controller_flight.h"
 #include "controller_battle.h"
 #include "controller_gameover.h"
 #include "ut3k_view.h"
@@ -52,10 +54,12 @@ static uint32_t clock_iterations = 0, clock_overruns = 0; // count of iterations
 static struct ut3k_view *ut3k_view;
 static struct view_attract *view_attract;
 static struct view_map *view_map;
+static struct view_flight *view_flight;
 static struct view_battle *view_battle;
 static struct view_gameover *view_gameover;
 static struct controller_attract *controller_attract;
 static struct controller_map *controller_map;
+static struct controller_flight *controller_flight;
 static struct controller_battle *controller_battle;
 static struct controller_gameover *controller_gameover;
 static struct model *model;
@@ -66,10 +70,12 @@ void sig_cleanup_and_exit(int signum) {
   ut3k_remove_all_samples();
   free_view_attract(view_attract);
   free_view_map(view_map);
+  free_view_flight(view_flight);
   free_view_battle(view_battle);
   free_view_gameover(view_gameover);
   free_controller_attract(controller_attract);
   free_controller_map(controller_map);
+  free_controller_flight(controller_flight);
   free_controller_battle(controller_battle);
   free_controller_gameover(controller_gameover);
   free_model(model);
@@ -82,6 +88,7 @@ void sig_cleanup_and_exit(int signum) {
 static void run_mvc(config_t *cfg) {
   struct timeval tval_controller_start, tval_controller_end, tval_controller_time, tval_fixed_loop_time, tval_sleep_time;
   int loop_time_ms;
+  game_state_t current_game_state, next_game_state;
 
   if (cfg != NULL &&
       config_lookup_int(cfg, CONFIG_EVENT_LOOP_DURATION_TIME_KEY, &loop_time_ms)) {
@@ -114,6 +121,9 @@ static void run_mvc(config_t *cfg) {
   view_map = create_view_map(ut3k_view);
   controller_map = create_controller_map(model, view_map, ut3k_view);
 
+  view_flight = create_view_flight(ut3k_view);
+  controller_flight = create_controller_flight(model, view_flight, ut3k_view);
+
   view_battle = create_view_battle(ut3k_view);
   controller_battle = create_controller_battle(model, view_battle, ut3k_view);
 
@@ -122,8 +132,10 @@ static void run_mvc(config_t *cfg) {
 
   if (controller_attract == NULL || controller_map == NULL ||
       controller_battle == NULL || controller_gameover == NULL ||
+      controller_flight == NULL ||
       view_attract == NULL || view_map == NULL ||
-      view_battle == NULL || view_gameover == NULL) {
+      view_battle == NULL || view_gameover == NULL ||
+      view_flight == NULL) {
     printf("error creating game components\n");
     return;
   }
@@ -153,29 +165,52 @@ static void run_mvc(config_t *cfg) {
       printf("controller took %ld.%06ld; this is longer than event loop of %ld.%06ld seconds\n", tval_controller_time.tv_sec, tval_controller_time.tv_usec, tval_fixed_loop_time.tv_sec, tval_fixed_loop_time.tv_usec);
     }
 
-    // should this function even exist or just rely on callback?
-    // could instead just make this a loop around update_view?
     gettimeofday(&tval_controller_start, NULL);
 
-    switch (get_game_state(model)) {
+    current_game_state = get_game_state(model);
+    switch (current_game_state) {
     case GAME_ATTRACT:
-      register_control_panel_listener(ut3k_view, controller_attract_callback_control_panel, controller_attract);
       controller_attract_update(controller_attract, clock_iterations);
       break;
     case GAME_PLAY_MAP:
-      register_control_panel_listener(ut3k_view, controller_map_callback_control_panel, controller_map);
       controller_map_update(controller_map, clock_iterations);
       break;
+    case GAME_PLAY_FLIGHT_TUNNEL:
+      controller_flight_update(controller_flight, clock_iterations);
+      break;
     case GAME_PLAY_BATTLE:
-      register_control_panel_listener(ut3k_view, controller_battle_callback_control_panel, controller_battle);
       controller_battle_update(controller_battle, clock_iterations);
       break;
     case GAME_OVER:
-      register_control_panel_listener(ut3k_view, controller_gameover_callback_control_panel, controller_gameover);
       controller_gameover_update(controller_gameover, clock_iterations);
       break;
     default:
       printf("no controller for state\n");
+    }
+
+    next_game_state = get_game_state(model);
+    if (current_game_state != next_game_state) {
+      // swap out the listener based on what the next state will be
+      switch (next_game_state){
+      case GAME_ATTRACT:
+        register_control_panel_listener(ut3k_view, controller_attract_callback_control_panel, controller_attract);
+        break;
+      case GAME_PLAY_MAP:
+        register_control_panel_listener(ut3k_view, controller_map_callback_control_panel, controller_map);
+        break;
+      case GAME_PLAY_FLIGHT_TUNNEL:
+        register_control_panel_listener(ut3k_view, controller_flight_callback_control_panel, controller_flight);
+        controller_flight_init(controller_flight);
+        break;
+      case GAME_PLAY_BATTLE:
+        register_control_panel_listener(ut3k_view, controller_battle_callback_control_panel, controller_battle);
+        break;
+      case GAME_OVER:
+        register_control_panel_listener(ut3k_view, controller_gameover_callback_control_panel, controller_gameover);
+        break;
+      default:
+        printf("no controller for state\n");
+      }
     }
 
     ut3k_pa_mainloop_iterate();

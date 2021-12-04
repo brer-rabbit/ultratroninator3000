@@ -43,6 +43,10 @@ static const int default_player_start_sector_z = sector_max_z;
 static const int default_motogroup_movement_timer = 250;
 static const int default_motogroup_movement_timer_randomness = 100;
 
+static const int default_flight_tunnel_movement_timer = 5;
+static const int default_flight_tunnel_min_width = 4;
+static const int default_flight_tunnel_max_width = 6;
+static const int default_flight_tunnel_max_offset_and_width = 20;
 
 
 
@@ -51,6 +55,7 @@ struct model {
   game_state_t game_state;
   struct player player;
   struct level level;
+  struct flight_path flight_path;
 };
 
 
@@ -59,6 +64,7 @@ static void init_level(struct level *level);
 
 static void move_motogroups(struct level *level);
 
+static void set_flight_tunnel_state(struct model *this);
 
 
 
@@ -70,6 +76,10 @@ struct model* create_model() {
   *this = (struct model const) { 0 };
   this->game_state = GAME_ATTRACT;
   this->level.num_level = 1;
+  this->flight_path = (struct flight_path const) { 0 };
+  for (int i = 0; i < MAX_FLIGHT_PATH_LENGTH; ++i) {
+    this->flight_path.slice[i].width = default_flight_tunnel_max_offset_and_width;
+  }
 
   return this;
 }
@@ -85,6 +95,12 @@ void free_model(struct model *this) {
 game_state_t clocktick_model(struct model *this) {
   if (this->game_state == GAME_PLAY_MAP) {
     move_motogroups(&this->level);
+  }
+  else if (this->game_state == GAME_PLAY_FLIGHT_TUNNEL) {
+    if (this->flight_path.scroll_timer_remaining-- == 0) {
+      this->flight_path.scroll_timer_remaining = this->flight_path.scroll_timer_reset;
+      this->player.flight_tunnel.y++;
+    }
   }
 
   return this->game_state;
@@ -153,6 +169,8 @@ void map_player_move(struct model *this) {
       // legal move
       printf("player move to %d %d\n",
              this->player.quadrant.x, this->player.quadrant.y);
+      set_flight_tunnel_state(this);
+      // TODO: set game state
       return;
     }
   }
@@ -165,7 +183,30 @@ const struct moto_group* get_moto_groups(struct model *this) {
   return this->level.moto_groups;
 }
 
+const struct flight_path* get_flight_path(struct model *this) {
+  return &this->flight_path;
+}
 
+
+int is_flight_path_complete(struct model *this) {
+  if (this->player.flight_tunnel.y == this->flight_path.flight_path_length) {
+    return 1;
+  }
+  return 0;
+}
+
+/** flight_move_player
+ * move the player in flight:
+ * -1 for left or 1 for right
+ */
+void flight_move_player(struct model *this, int position) {
+  if (position < 0 && this->player.flight_tunnel.x > 0) {
+    this->player.flight_tunnel.x--;
+  }
+  else if (position > 0 && this->player.flight_tunnel.x < default_flight_tunnel_max_offset_and_width - 1) {
+    this->player.flight_tunnel.x++;
+  }
+}
 
 /* static ----------------------------------------------------------- */
 
@@ -207,8 +248,8 @@ static void init_level(struct level *level) {
     if (i < 4) {
 
       level->moto_groups[i].num_motos = 1 + rand() % 3;
-      level->moto_groups[i].movement_timer = get_new_moto_group_movement_timer();
-      level->moto_groups[i].movement_timer_remaining = level->moto_groups[i].movement_timer;
+      level->moto_groups[i].movement_timer_reset = get_new_moto_group_movement_timer();
+      level->moto_groups[i].movement_timer_remaining = level->moto_groups[i].movement_timer_reset;
       // TODO: some smarts on placement.  This'll do for now.
       // only allow up to 3 visible from the start
       level->moto_groups[i].status = i < 3 ? ACTIVE : INACTIVE;
@@ -259,7 +300,7 @@ static void move_motogroups(struct level *level) {
     if (level->moto_groups[i].status == ACTIVE) {
       if (level->moto_groups[i].movement_timer_remaining-- == 0) {
         level->moto_groups[i].movement_timer_remaining =
-          level->moto_groups[i].movement_timer;
+          level->moto_groups[i].movement_timer_reset;
         // move either right or down-- if already maxed in that direction
         // then this movement turn is lost
         if (rand() & 0b1 && level->moto_groups[i].quadrant.x != quadrant_max_x) {
@@ -284,4 +325,106 @@ static void move_motogroups(struct level *level) {
       }
     }
   }
+}
+
+/** set_flight_tunnel_state
+ *
+ * set state to the flight tunnel thingy.  Init the data structures required.
+ */
+static void set_flight_tunnel_state(struct model *this) {
+  int width, offset, i;
+
+  // construct a tunnel
+
+  // intro to tunnel- narrow it down
+  for (width = default_flight_tunnel_max_offset_and_width, offset = 0, i = 0;
+       i < 8; ++i, width = width - 2, ++offset) {
+    this->flight_path.slice[i].width = width;
+    this->flight_path.slice[i].offset = offset;
+  }
+
+  for (width = this->flight_path.slice[i - 1].width,
+       offset = this->flight_path.slice[i - 1].offset;
+       i < 150; ++i) {
+    // TODO the fun stuff
+    // for now just make it basically random.  This will need to be addressed later.
+    switch (rand() % 8) {
+    case 0:
+      // increase width, if permissible, and only change offset if needed
+      if (width < default_flight_tunnel_max_width &&
+          width + offset < default_flight_tunnel_max_offset_and_width) {
+        // can make it wider
+        width++;
+      }
+      break;
+    case 1:
+      // increase width, if permissible.  Offset change.
+      if (width < default_flight_tunnel_min_width &&
+          offset > 0) {
+        // tighten
+        width++;
+        offset--;
+      }
+      break;
+    case 2:
+      // decrease width, if permissible.  No offset change.
+      if (width > default_flight_tunnel_min_width) {
+        // tighten
+        width--;
+      }
+      break;
+    case 3:
+      // decrease width, if permissible.  Change offset.
+      if (width > default_flight_tunnel_min_width) {
+        // tighten
+        width--;
+        offset++;
+      }
+      break;
+    case 4:
+    case 5:
+      // offset increase -- jog right
+      if (width + offset < default_flight_tunnel_max_offset_and_width) {
+        offset++;
+      }
+      break;
+    case 6:
+    case 7:
+      // offset decrease -- jog left
+      if (offset > 0) {
+        offset--;
+      }
+      break;
+    }
+    
+    this->flight_path.slice[i].width = width;
+    this->flight_path.slice[i].offset = offset;
+  }
+
+  // exit tunnel-- widen it out
+  for (; i < 160; ++i) {
+    offset = offset > 0 ? offset - 1 : offset;
+    width = width < default_flight_tunnel_max_offset_and_width - 1 ?
+      width + 2 : default_flight_tunnel_max_offset_and_width;
+    this->flight_path.slice[i].width = width;
+    this->flight_path.slice[i].offset = offset;
+  }
+  
+
+  this->flight_path.flight_path_length = i;
+  this->flight_path.scroll_timer_reset = default_flight_tunnel_movement_timer;
+  this->flight_path.scroll_timer_remaining = this->flight_path.scroll_timer_reset;
+
+  this->player.flight_tunnel.x = default_flight_tunnel_max_offset_and_width / 2;
+  this->player.flight_tunnel.y = 0;
+
+  this->game_state = GAME_PLAY_FLIGHT_TUNNEL;
+
+  printf("flight path:\n");
+  for (i = 0; i < this->flight_path.flight_path_length; ++i) {
+    printf("  offset %d  width %d\n",
+           this->flight_path.slice[i].offset,
+           this->flight_path.slice[i].width);
+  }
+
 }

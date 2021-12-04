@@ -1,3 +1,4 @@
+
 /* Copyright 2021 Kyle Farrell
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -35,6 +36,7 @@ struct controller_flight* create_controller_flight(struct model*, struct view_fl
 void free_controller_flight(struct controller_flight *this);
 
 
+void controller_flight_init(struct controller_flight *this);
 void controller_flight_update(struct controller_flight *this, uint32_t clock);
 
 void controller_flight_callback_control_panel(const struct control_panel *control_panel, void *userdata);
