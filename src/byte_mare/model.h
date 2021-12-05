@@ -36,9 +36,10 @@ typedef enum { GAME_ATTRACT, GAME_PLAY_MAP, GAME_PLAY_FLIGHT_TUNNEL, GAME_PLAY_B
 typedef enum { ACTIVE, DESTROYED, INACTIVE, NOT_IN_LEVEL } object_state_t;
 
 
-struct ammo {
+struct stores {
   int bullets;
-  int bombs;
+  int fuel;
+  int shields;
 };
 
 struct xy {
@@ -59,7 +60,7 @@ struct player_bullet {
 };
 
 struct player {
-  struct ammo ammo;
+  struct stores stores;
   struct xy quadrant;
   struct xy cursor_quadrant;
   struct xyz sector;

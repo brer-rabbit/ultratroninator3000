@@ -15,6 +15,7 @@
 
 #include <stdlib.h>
 #include "view_flight.h"
+#include "view_common.h"
 
 
 static const int display_width = 20;
@@ -100,6 +101,8 @@ void draw_flight_tunnel(struct view_flight *this, const struct flight_path *flig
       tunnel_lower[ x % 5 ];
   }
   
+
+  draw_stores_as_leds(&player->stores, &this->ut3k_display.leds, clock);
 }
 
 

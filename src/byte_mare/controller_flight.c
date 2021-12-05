@@ -67,6 +67,13 @@ void controller_flight_init(struct controller_flight *this) {
 
 
 void controller_flight_update(struct controller_flight *this, uint32_t clock) {
+  if (clock & 0b1) {
+    // keyscan only valid every 20 ms.  Assume clock is 10ms, so skip
+    // every other one.
+    update_controls(this->ut3k_view, clock);
+  }
+
+
   if (this->flight_state == FLIGHT_COMPLETE) {
     if (text_scroller_is_complete(&this->clock_scroller_green.scroller_base)) {
       this->flight_state = FLIGHT_UNSET;
@@ -82,10 +89,6 @@ void controller_flight_update(struct controller_flight *this, uint32_t clock) {
   }
   else if (this->flight_state == FLIGHT_IN_PROGRESS) {
     if (clock & 0b1) {
-      // keyscan only valid every 20 ms.  Assume clock is 10ms, so skip
-      // every other one.
-      update_controls(this->ut3k_view, clock);
-
       clocktick_model(this->model);
     }
 
@@ -117,6 +120,10 @@ void controller_flight_callback_control_panel(const struct control_panel *contro
   const struct joystick *joystick = get_joystick(control_panel);
   const struct rotary_encoder *red_rotary_encoder = get_red_rotary_encoder(control_panel);
 
+
+  if (this->flight_state != FLIGHT_IN_PROGRESS) {
+    return;
+  }
 
   if (joystick->state_count == 0 && joystick->direction == JOY_LEFT) {
     flight_move_player(this->model, -1);

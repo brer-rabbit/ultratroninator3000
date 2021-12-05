@@ -21,19 +21,20 @@
 #include <ctype.h>
 
 #include "model.h"
-//#include "view_attract.h"
 #include "ut3k_pulseaudio.h"
 
 
 // indexed from zero, values are inclusive
 static const int quadrant_max_x = 3;
 static const int quadrant_max_y = 5;
-static const int sector_max_x = 7;
+//static const int sector_max_x = 7;
 static const int sector_max_y = 5;
 static const int sector_max_z = 7;
 
 
 static const int default_player_starting_ammo = 64;
+static const int default_player_starting_fuel = 64;
+static const int default_player_starting_shields = 16;
 static const int default_player_start_quadrant_x = quadrant_max_x;
 static const int default_player_start_quadrant_y = 0;
 static const int default_player_start_sector_x = 0;
@@ -43,7 +44,8 @@ static const int default_player_start_sector_z = sector_max_z;
 static const int default_motogroup_movement_timer = 250;
 static const int default_motogroup_movement_timer_randomness = 100;
 
-static const int default_flight_tunnel_movement_timer = 5;
+static const int default_flight_tunnel_movement_start_timer = 18;
+static const int default_flight_tunnel_movement_end_timer = 4;
 static const int default_flight_tunnel_min_width = 4;
 static const int default_flight_tunnel_max_width = 6;
 static const int default_flight_tunnel_max_offset_and_width = 20;
@@ -60,12 +62,14 @@ struct model {
 
 
 static void init_player(struct player *player);
+static void player_hit(struct model *this);
+
 static void init_level(struct level *level);
 
 static void move_motogroups(struct level *level);
 
 static void set_flight_tunnel_state(struct model *this);
-
+static void clocktick_flightpath(struct model *this);
 
 
 /** create the model.
@@ -97,10 +101,7 @@ game_state_t clocktick_model(struct model *this) {
     move_motogroups(&this->level);
   }
   else if (this->game_state == GAME_PLAY_FLIGHT_TUNNEL) {
-    if (this->flight_path.scroll_timer_remaining-- == 0) {
-      this->flight_path.scroll_timer_remaining = this->flight_path.scroll_timer_reset;
-      this->player.flight_tunnel.y++;
-    }
+    clocktick_flightpath(this);
   }
 
   return this->game_state;
@@ -214,8 +215,10 @@ void flight_move_player(struct model *this, int position) {
 static void init_player(struct player *player) {
   *player = (struct player const)
     {
-     .ammo = {
-              .bullets = default_player_starting_ammo
+     .stores = {
+                .bullets = default_player_starting_ammo,
+                .fuel = default_player_starting_fuel,
+                .shields = default_player_starting_shields
               },
      .quadrant = {
                   .x = default_player_start_quadrant_x,
@@ -233,6 +236,12 @@ static void init_player(struct player *player) {
     };
 }
 
+
+static void player_hit(struct model *this) {
+  if (--this->player.stores.shields == 0) {
+    this->game_state = GAME_OVER;
+  }
+}
 
 static int get_new_moto_group_movement_timer() {
   return default_motogroup_movement_timer +
@@ -343,9 +352,41 @@ static void set_flight_tunnel_state(struct model *this) {
     this->flight_path.slice[i].offset = offset;
   }
 
+
+  // do some serpentine stuff to start
+  int go_left = rand() & 0b1;
+
+  for (width = 6,
+       offset = this->flight_path.slice[i - 1].offset;
+       i < 50; ++i) {
+
+    if (go_left) {
+      if (offset > 0) {
+        offset--;
+      }
+      else {
+        go_left = 0;
+        offset++;
+      }
+    }
+    else {
+      if (offset + width < default_flight_tunnel_max_offset_and_width) {
+        offset++;
+      }
+      else {
+        go_left = 1;
+        offset--;
+      }
+    }
+
+    this->flight_path.slice[i].width = width;
+    this->flight_path.slice[i].offset = offset;
+  }
+
+
   for (width = this->flight_path.slice[i - 1].width,
        offset = this->flight_path.slice[i - 1].offset;
-       i < 150; ++i) {
+       i < 120; ++i) {
     // TODO the fun stuff
     // for now just make it basically random.  This will need to be addressed later.
     switch (rand() % 8) {
@@ -401,6 +442,38 @@ static void set_flight_tunnel_state(struct model *this) {
     this->flight_path.slice[i].offset = offset;
   }
 
+  // do some serpentine stuff before finishing up
+  go_left = rand() & 0b1;
+
+  for (width = 6,
+       offset = this->flight_path.slice[i - 1].offset;
+       i < 140; ++i) {
+
+    if (go_left) {
+      if (offset > 0) {
+        offset--;
+      }
+      else {
+        go_left = 0;
+        offset++;
+      }
+    }
+    else {
+      if (offset + width < default_flight_tunnel_max_offset_and_width) {
+        offset++;
+      }
+      else {
+        go_left = 1;
+        offset--;
+      }
+    }
+
+    this->flight_path.slice[i].width = width;
+    this->flight_path.slice[i].offset = offset;
+  }
+
+
+
   // exit tunnel-- widen it out
   for (; i < 160; ++i) {
     offset = offset > 0 ? offset - 1 : offset;
@@ -412,7 +485,7 @@ static void set_flight_tunnel_state(struct model *this) {
   
 
   this->flight_path.flight_path_length = i;
-  this->flight_path.scroll_timer_reset = default_flight_tunnel_movement_timer;
+  this->flight_path.scroll_timer_reset = default_flight_tunnel_movement_start_timer;
   this->flight_path.scroll_timer_remaining = this->flight_path.scroll_timer_reset;
 
   this->player.flight_tunnel.x = default_flight_tunnel_max_offset_and_width / 2;
@@ -428,3 +501,38 @@ static void set_flight_tunnel_state(struct model *this) {
   }
 
 }
+
+
+static void clocktick_flightpath(struct model *this) {
+  if (this->flight_path.scroll_timer_remaining-- == 0) {
+    // start at start_timer and linear increase to end_timer over the
+    // course of the tunnel
+    this->flight_path.scroll_timer_reset =
+      default_flight_tunnel_movement_start_timer - (((default_flight_tunnel_movement_start_timer - default_flight_tunnel_movement_end_timer) * this->player.flight_tunnel.y) / this->flight_path.flight_path_length) - 1;
+
+    printf("new timer: %d\n", this->flight_path.scroll_timer_reset);
+    this->flight_path.scroll_timer_remaining = this->flight_path.scroll_timer_reset;
+    this->player.flight_tunnel.y++;
+  }
+  // check for collisions
+  if (this->player.flight_tunnel.x <
+      this->flight_path.slice[ this->player.flight_tunnel.y ].offset) {
+    this->player.flight_tunnel.x = this->flight_path.slice[ this->player.flight_tunnel.y ].offset;
+    printf("CRASH!\n");
+    player_hit(this);
+  }
+  else if (this->player.flight_tunnel.x >=
+           this->flight_path.slice[ this->player.flight_tunnel.y ].offset +
+           this->flight_path.slice[ this->player.flight_tunnel.y ].width) {
+    // TODO: decrement shield or whatevz, play sound and all that
+    this->player.flight_tunnel.x =
+      this->flight_path.slice[ this->player.flight_tunnel.y ].offset +
+      this->flight_path.slice[ this->player.flight_tunnel.y ].width - 1;
+    printf("CRASH!\n");
+    player_hit(this);
+  }
+
+
+}
+
+

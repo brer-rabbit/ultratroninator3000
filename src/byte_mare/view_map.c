@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "view_map.h"
+#include "view_common.h"
 
 
 struct view_map {
@@ -86,7 +87,10 @@ void draw_player(struct view_map *this, const struct player *player, uint32_t cl
     this->ut3k_display.displays[display].display_value.display_glyph[digit] |=
       is_top ? player_top_glyph : player_bottom_glyph;
   }
+
+  draw_stores_as_leds(&player->stores, &this->ut3k_display.leds, clock);
 }
+
 
 
 void draw_moto_groups(struct view_map *this, const struct moto_group *moto_groups) {
