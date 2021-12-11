@@ -150,6 +150,9 @@ void flight_move_player(struct model *this, int position);
 
 void set_game_state_battle(struct model *this);
 const struct battle* get_battle(struct model *this);
+void battle_move_player_x(struct model *this, int amount);
+void battle_move_player_y(struct model *this, int amount);
+void battle_move_player_z(struct model *this, int amount);
 
 
 #endif

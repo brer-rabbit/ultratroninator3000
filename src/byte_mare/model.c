@@ -64,7 +64,9 @@ static const int terrain_z_distribution[] = { 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 5, 6
 static const int default_battle_player_x = default_battle_terrain_x_max / 2;
 static const int default_battle_player_y = 1;
 static const int default_battle_player_z = default_battle_terrain_z_max;
-
+static const int battle_max_x = 9;
+static const int battle_max_y = 5;
+static const int battle_max_z = 9;
 
 typedef enum { FLIGHT_CRASH_WALL, BATTLE_CRASH_GROUND } player_hit_context_t;
 
@@ -107,9 +109,6 @@ struct model* create_model() {
   for (int i = 0; i < MAX_FLIGHT_PATH_LENGTH; ++i) {
     this->flight_path.slice[i].width = default_flight_tunnel_max_offset_and_width;
   }
-
-  // TODO delete the next line-- testing straight to battle here
-  set_game_state_battle(this);
 
   return this;
 }
@@ -247,6 +246,7 @@ void set_game_state_battle(struct model *this) {
   if (this->battle.moto_group == NULL) {
     printf("odd the moto group is null\n");
   }
+  
 
   this->battle.terrain_segment_length = default_init_battle_terrain_segment_length;
   this->battle.terrain_distance_on_segment = default_init_battle_terrain_distance_on_segment;
@@ -274,6 +274,45 @@ const struct battle* get_battle(struct model *this) {
   return &this->battle;
 }
 
+void battle_move_player_x(struct model *this, int amount) {
+  if (amount > 0 && this->player.sector.x < battle_max_x) {
+    this->player.sector.x++;
+  }
+  else if (amount < 0 && this->player.sector.x > 0) {
+    this->player.sector.x--;
+  }
+  printf("battle move player %d %d %d (x: %d)\n",
+         this->player.sector.x,
+         this->player.sector.y,
+         this->player.sector.z,
+         amount);
+}
+void battle_move_player_y(struct model *this, int amount) {
+  if (amount > 0 && this->player.sector.y < battle_max_y) {
+    this->player.sector.y++;
+  }
+  else if (amount < 0 && this->player.sector.y > 0) {
+    this->player.sector.y--;
+  }
+  printf("battle move player %d %d %d (y: %d)\n",
+         this->player.sector.x,
+         this->player.sector.y,
+         this->player.sector.z,
+         amount);
+}
+void battle_move_player_z(struct model *this, int amount) {
+  if (amount > 0 && this->player.sector.z < battle_max_z) {
+    this->player.sector.z++;
+  }
+  else if (amount < 0 && this->player.sector.z > 0) {
+    this->player.sector.z--;
+  }
+  printf("battle move player %d %d %d (z: %d)\n",
+         this->player.sector.x,
+         this->player.sector.y,
+         this->player.sector.z,
+         amount);
+}
 
 
 
@@ -332,6 +371,16 @@ static void init_level(struct level *level) {
     if (i < 4) {
 
       level->moto_groups[i].num_motos = 1 + rand() % 3;
+      for (int j = 0; j < MAX_MOTOS_PER_GROUP; ++j) {
+        if (j < level->moto_groups[i].num_motos) {
+          // init the moto
+          level->moto_groups[i].motos[j].status = ACTIVE;
+        }
+        else {
+          level->moto_groups[i].motos[j].status = NOT_IN_LEVEL;
+        }
+
+      }
       level->moto_groups[i].movement_timer_reset = get_new_moto_group_movement_timer();
       level->moto_groups[i].movement_timer_remaining = level->moto_groups[i].movement_timer_reset;
       // TODO: some smarts on placement.  This'll do for now.
@@ -610,6 +659,7 @@ static void clocktick_flightpath(struct model *this) {
  *
  * objectives:
  * scroll terrain
+ * TODO:
  * move bad dudes
  * move shots
  * determine next state
@@ -660,13 +710,10 @@ static int get_next_battle_terrain(struct battle *battle, int current_terrain) {
  */
 static void scroll_battle_terrain(struct battle *battle) {
   int i;
-  printf("scrolling terrain: %d (dropped) ", battle->terrain_map[0]);
 
   for (i = 0; i < TERRAIN_DISTANCE - 1; ++i) {
     battle->terrain_map[i] = battle->terrain_map[i + 1];
-    printf("%d ", battle->terrain_map[i]);
   }
 
   battle->terrain_map[i] = get_next_battle_terrain(battle, battle->terrain_map[i - 1]);
-  printf("%d\n", battle->terrain_map[i]);
 }

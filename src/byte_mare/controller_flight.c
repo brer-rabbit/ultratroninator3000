@@ -119,7 +119,7 @@ void controller_flight_callback_control_panel(const struct control_panel *contro
   struct controller_flight *this = (struct controller_flight*) userdata;
   const struct joystick *joystick = get_joystick(control_panel);
   const struct rotary_encoder *red_rotary_encoder = get_red_rotary_encoder(control_panel);
-
+  const struct rotary_encoder *blue_rotary_encoder = get_blue_rotary_encoder(control_panel);
 
   if (this->flight_state != FLIGHT_IN_PROGRESS) {
     return;
@@ -132,8 +132,13 @@ void controller_flight_callback_control_panel(const struct control_panel *contro
     flight_move_player(this->model, 1);
   }
 
+
   if (red_rotary_encoder->encoder_delta != 0) {
     flight_move_player(this->model, red_rotary_encoder->encoder_delta);
+  }
+
+  if (blue_rotary_encoder->encoder_delta != 0) {
+    flight_move_player(this->model, blue_rotary_encoder->encoder_delta);
   }
 
 }

@@ -79,11 +79,28 @@ void controller_battle_update(struct controller_battle *this, uint32_t clock) {
 void controller_battle_callback_control_panel(const struct control_panel *control_panel, void *userdata) {
   struct controller_battle *this = (struct controller_battle*) userdata;
   const struct joystick *joystick = get_joystick(control_panel);
-
+  const struct rotary_encoder *blue_rotary_encoder = get_blue_rotary_encoder(control_panel);
 
   if (joystick->state_count == 0 && joystick->direction != JOY_CENTERED) {
-    //move_player(this->model, joystick->direction);
+    switch (joystick->direction) {
+    case JOY_LEFT:
+      battle_move_player_x(this->model, 1);
+      break;
+    case JOY_RIGHT:
+      battle_move_player_x(this->model, -1);
+      break;
+    case JOY_UP:
+      battle_move_player_y(this->model, 1);
+      break;
+    case JOY_DOWN:
+      battle_move_player_y(this->model, -1);
+      break;
+    default:
+      break;
+    }
   }
 
-
+  if (blue_rotary_encoder->encoder_delta != 0) {
+    battle_move_player_z(this->model, blue_rotary_encoder->encoder_delta);
+  }
 }

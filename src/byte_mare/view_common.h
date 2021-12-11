@@ -22,4 +22,8 @@
 
 void draw_stores_as_leds(const struct stores *stores, struct display *leds, uint32_t clock);
 
+extern const int player_blink_cycle;
+extern const int player_blink_cycle_on;
+
+
 #endif

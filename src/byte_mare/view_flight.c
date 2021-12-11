@@ -23,6 +23,7 @@ static const uint16_t tunnel_lower[] = { SEG_E, SEG_L, SEG_M, SEG_N, SEG_C };
 static const uint16_t tunnel_upper[] = { SEG_F, SEG_H, SEG_J, SEG_K, SEG_B };
 static const int display_map[] = { 2, 1, 0 };
 
+
 struct view_flight {
   struct ut3k_view *ut3k_view;
   struct ut3k_display ut3k_display;
@@ -96,7 +97,7 @@ void draw_flight_tunnel(struct view_flight *this, const struct flight_path *flig
 
   // draw the player at a different intensity so player is
   // differentiated versus walls
-  if (clock % 8 < 4) {
+  if (clock % player_blink_cycle < player_blink_cycle_on) {
     this->ut3k_display.displays[2].display_value.display_glyph[x / 5] |=
       tunnel_lower[ x % 5 ];
   }
