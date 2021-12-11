@@ -78,7 +78,7 @@ void controller_flight_update(struct controller_flight *this, uint32_t clock) {
     if (text_scroller_is_complete(&this->clock_scroller_green.scroller_base)) {
       this->flight_state = FLIGHT_UNSET;
       clear_view_flight(this->view);
-      // TODO: set model state
+      set_game_state_battle(this->model);
     }
   }
   else if (this->flight_state == FLIGHT_SET) {

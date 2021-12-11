@@ -30,6 +30,7 @@
 #define MAX_MOTO_GROUPS 8
 #define MAX_MOTOS_PER_GROUP 8
 #define MAX_FLIGHT_PATH_LENGTH 512
+#define TERRAIN_DISTANCE 6
 
 
 typedef enum { GAME_ATTRACT, GAME_PLAY_MAP, GAME_PLAY_FLIGHT_TUNNEL, GAME_PLAY_BATTLE, GAME_OVER } game_state_t;
@@ -106,6 +107,17 @@ struct level {
   int num_moto_groups;
 };
 
+struct battle {
+  struct moto_group *moto_group; // pointer to which group is in battle
+  int terrain_map[TERRAIN_DISTANCE];
+  // values for determining next terrain step:
+  int terrain_segment_length;
+  int terrain_distance_on_segment; // increment til terrain_distance_to_next_pitch_change
+  int terrain_start_elevation;
+  int terrain_end_elevation;
+  int terrain_scroll_timer_reset;
+  int terrain_scroll_timer_remaining;
+};
 
 
 struct model;
@@ -127,7 +139,7 @@ void set_game_start(struct model *this);
 const struct player* get_player(struct model *this);
 
 void map_move_cursor(struct model *this, enum direction direction);
-void map_player_move(struct model *this);
+void set_game_state_flight_tunnel(struct model *this);
 
 const struct moto_group* get_moto_groups(struct model *this);
 
@@ -135,7 +147,9 @@ const struct flight_path* get_flight_path(struct model *this);
 int is_flight_path_complete(struct model *this);
 void flight_move_player(struct model *this, int position);
 
-// accessors here- but these may be decoupled via the display_strategy
+
+void set_game_state_battle(struct model *this);
+const struct battle* get_battle(struct model *this);
 
 
 #endif

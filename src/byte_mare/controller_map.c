@@ -94,7 +94,7 @@ void controller_map_callback_control_panel(const struct control_panel *control_p
   if ((green_button->button_state == 1 && green_button->state_count == 0) ||
       (blue_button->button_state == 1 && blue_button->state_count == 0) ||
       (red_button->button_state == 1 && red_button->state_count == 0)) {
-    map_player_move(this->model);
+    set_game_state_flight_tunnel(this->model);
   }
 
 }

@@ -50,7 +50,23 @@ static const int default_flight_tunnel_min_width = 4;
 static const int default_flight_tunnel_max_width = 6;
 static const int default_flight_tunnel_max_offset_and_width = 20;
 
+static const int default_init_battle_terrain_segment_length = 3;
+static const int default_init_battle_terrain_distance_on_segment = 0;
+static const int default_init_battle_terrain_elevation = 1;
+static const int default_battle_terrain_x_max = 9;
+static const int default_battle_terrain_y_max = 5;
+static const int default_battle_terrain_z_min = 0;
+static const int default_battle_terrain_z_max = 6;
+static const int default_battle_terrain_segment_length_min = 5;
+static const int default_battle_terrain_segment_length_max = 20;
+static const int default_battle_terrain_scroll_timer = 15;
+static const int terrain_z_distribution[] = { 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 5, 6 };
+static const int default_battle_player_x = default_battle_terrain_x_max / 2;
+static const int default_battle_player_y = 1;
+static const int default_battle_player_z = default_battle_terrain_z_max;
 
+
+typedef enum { FLIGHT_CRASH_WALL, BATTLE_CRASH_GROUND } player_hit_context_t;
 
 
 struct model {
@@ -58,18 +74,25 @@ struct model {
   struct player player;
   struct level level;
   struct flight_path flight_path;
+  struct battle battle;
 };
 
 
 static void init_player(struct player *player);
-static void player_hit(struct model *this);
+static void player_hit(struct model *this, player_hit_context_t context);
 
 static void init_level(struct level *level);
 
 static void move_motogroups(struct level *level);
+static struct moto_group* get_moto_group_by_quadrant(struct model *this, struct xy *quadrant);
 
-static void set_flight_tunnel_state(struct model *this);
+static void init_game_state_flight_tunnel(struct model *this);
 static void clocktick_flightpath(struct model *this);
+
+static void clocktick_battle(struct model *this);
+static int get_next_battle_terrain(struct battle *battle, int current_terrain);
+static void scroll_battle_terrain(struct battle *battle);
+
 
 
 /** create the model.
@@ -84,6 +107,9 @@ struct model* create_model() {
   for (int i = 0; i < MAX_FLIGHT_PATH_LENGTH; ++i) {
     this->flight_path.slice[i].width = default_flight_tunnel_max_offset_and_width;
   }
+
+  // TODO delete the next line-- testing straight to battle here
+  set_game_state_battle(this);
 
   return this;
 }
@@ -102,6 +128,9 @@ game_state_t clocktick_model(struct model *this) {
   }
   else if (this->game_state == GAME_PLAY_FLIGHT_TUNNEL) {
     clocktick_flightpath(this);
+  }
+  else if (this->game_state == GAME_PLAY_BATTLE) {
+    clocktick_battle(this);
   }
 
   return this->game_state;
@@ -151,29 +180,25 @@ void map_move_cursor(struct model *this, enum direction direction) {
     }
   }
 
-  printf("map_move_cursor: quadrant %d, %d\n", this->player.cursor_quadrant.x, this->player.cursor_quadrant.y);
+  //printf("map_move_cursor: quadrant %d, %d\n", this->player.cursor_quadrant.x, this->player.cursor_quadrant.y);
 }
 
 
-/** map_player_move
+/** set_game_state_flight_tunnel
  *
  * on the map, the player has initiated a move.  Attempt to move from
  * current position to where the cursor is.  Only move there if the
  * position is occupied by something- don't allow a move to an empty space.
  */
-void map_player_move(struct model *this) {
+void set_game_state_flight_tunnel(struct model *this) {
   // check if cursor is at a valid spot for a move
-  for (int i = 0; i < this->level.num_moto_groups; ++i) {
-    if (this->level.moto_groups[i].status == ACTIVE &&
-        this->player.cursor_quadrant.x == this->level.moto_groups[i].quadrant.x &&
-        this->player.cursor_quadrant.y == this->level.moto_groups[i].quadrant.y) {
-      // legal move
-      printf("player move to %d %d\n",
-             this->player.quadrant.x, this->player.quadrant.y);
-      set_flight_tunnel_state(this);
-      // TODO: set game state
-      return;
-    }
+  if (get_moto_group_by_quadrant(this, &this->player.cursor_quadrant) != NULL) {
+    init_game_state_flight_tunnel(this);
+    // set player position to cursor position --
+    // seems like a fair spot in the code to do it.
+    this->player.quadrant.x = this->player.cursor_quadrant.x;
+    this->player.quadrant.y = this->player.cursor_quadrant.y;
+    return;
   }
 
   printf("map_player_move: empty space / not allowed\n");
@@ -207,7 +232,50 @@ void flight_move_player(struct model *this, int position) {
   else if (position > 0 && this->player.flight_tunnel.x < default_flight_tunnel_max_offset_and_width - 1) {
     this->player.flight_tunnel.x++;
   }
+
+  // else don't move player; stay in-bounds
 }
+
+
+
+
+void set_game_state_battle(struct model *this) {
+  // init the battle struct
+
+  // set pointer to moto_group
+  this->battle.moto_group = get_moto_group_by_quadrant(this, &this->player.quadrant);
+  if (this->battle.moto_group == NULL) {
+    printf("odd the moto group is null\n");
+  }
+
+  this->battle.terrain_segment_length = default_init_battle_terrain_segment_length;
+  this->battle.terrain_distance_on_segment = default_init_battle_terrain_distance_on_segment;
+  this->battle.terrain_start_elevation = default_init_battle_terrain_elevation;
+  this->battle.terrain_end_elevation = default_init_battle_terrain_elevation;
+  this->battle.terrain_scroll_timer_reset = default_battle_terrain_scroll_timer;
+  this->battle.terrain_scroll_timer_remaining = default_battle_terrain_scroll_timer;
+
+
+
+  // init the landscape (terrain)
+  for (int i = 0; i < TERRAIN_DISTANCE; ++i) {
+    this->battle.terrain_map[i] = get_next_battle_terrain(&this->battle, default_battle_terrain_z_min);
+  }
+
+
+  this->player.sector.x = default_battle_player_x;
+  this->player.sector.y = default_battle_player_y;
+  this->player.sector.z = default_battle_player_z;
+  this->game_state = GAME_PLAY_BATTLE;
+}
+
+
+const struct battle* get_battle(struct model *this) {
+  return &this->battle;
+}
+
+
+
 
 /* static ----------------------------------------------------------- */
 
@@ -237,9 +305,16 @@ static void init_player(struct player *player) {
 }
 
 
-static void player_hit(struct model *this) {
+static void player_hit(struct model *this, player_hit_context_t context) {
   if (--this->player.stores.shields == 0) {
     this->game_state = GAME_OVER;
+  }
+
+  switch (context) {
+  case FLIGHT_CRASH_WALL:
+    break;
+  default:
+    break;
   }
 }
 
@@ -336,11 +411,54 @@ static void move_motogroups(struct level *level) {
   }
 }
 
-/** set_flight_tunnel_state
+
+
+/** get_moto_group_by_quadrant
+ *
+ * find by xy quadrant a matching motogroup.  Return pointer to it or
+ * null if nothing found.
+ */
+static struct moto_group* get_moto_group_by_quadrant(struct model *this, struct xy *quadrant) {
+  for (int i = 0; i < this->level.num_moto_groups; ++i) {
+    if (this->level.moto_groups[i].status == ACTIVE &&
+        quadrant->x == this->level.moto_groups[i].quadrant.x &&
+        quadrant->y == this->level.moto_groups[i].quadrant.y) {
+      // found it
+      return &this->level.moto_groups[i];
+    }
+  }
+  return NULL;
+}
+
+
+
+static void flight_tunnel_serpentine(int width, int *offset, int *go_left) {
+  if (*go_left) {
+    if (*offset > 0) {
+      (*offset)--;
+    }
+    else {
+      *go_left = 0;
+      (*offset)++;
+    }
+  }
+  else {
+    if (*offset + width < default_flight_tunnel_max_offset_and_width) {
+      (*offset)++;
+    }
+    else {
+      *go_left = 1;
+      (*offset)--;
+    }
+  }
+}
+
+
+/** init_game_state_flight_tunnel
  *
  * set state to the flight tunnel thingy.  Init the data structures required.
  */
-static void set_flight_tunnel_state(struct model *this) {
+static void init_game_state_flight_tunnel(struct model *this) {
   int width, offset, i;
 
   // construct a tunnel
@@ -359,26 +477,7 @@ static void set_flight_tunnel_state(struct model *this) {
   for (width = 6,
        offset = this->flight_path.slice[i - 1].offset;
        i < 50; ++i) {
-
-    if (go_left) {
-      if (offset > 0) {
-        offset--;
-      }
-      else {
-        go_left = 0;
-        offset++;
-      }
-    }
-    else {
-      if (offset + width < default_flight_tunnel_max_offset_and_width) {
-        offset++;
-      }
-      else {
-        go_left = 1;
-        offset--;
-      }
-    }
-
+    flight_tunnel_serpentine(width, &offset, &go_left);
     this->flight_path.slice[i].width = width;
     this->flight_path.slice[i].offset = offset;
   }
@@ -448,26 +547,7 @@ static void set_flight_tunnel_state(struct model *this) {
   for (width = 6,
        offset = this->flight_path.slice[i - 1].offset;
        i < 140; ++i) {
-
-    if (go_left) {
-      if (offset > 0) {
-        offset--;
-      }
-      else {
-        go_left = 0;
-        offset++;
-      }
-    }
-    else {
-      if (offset + width < default_flight_tunnel_max_offset_and_width) {
-        offset++;
-      }
-      else {
-        go_left = 1;
-        offset--;
-      }
-    }
-
+    flight_tunnel_serpentine(width, &offset, &go_left);
     this->flight_path.slice[i].width = width;
     this->flight_path.slice[i].offset = offset;
   }
@@ -492,14 +572,6 @@ static void set_flight_tunnel_state(struct model *this) {
   this->player.flight_tunnel.y = 0;
 
   this->game_state = GAME_PLAY_FLIGHT_TUNNEL;
-
-  printf("flight path:\n");
-  for (i = 0; i < this->flight_path.flight_path_length; ++i) {
-    printf("  offset %d  width %d\n",
-           this->flight_path.slice[i].offset,
-           this->flight_path.slice[i].width);
-  }
-
 }
 
 
@@ -510,7 +582,7 @@ static void clocktick_flightpath(struct model *this) {
     this->flight_path.scroll_timer_reset =
       default_flight_tunnel_movement_start_timer - (((default_flight_tunnel_movement_start_timer - default_flight_tunnel_movement_end_timer) * this->player.flight_tunnel.y) / this->flight_path.flight_path_length) - 1;
 
-    printf("new timer: %d\n", this->flight_path.scroll_timer_reset);
+    //printf("new timer: %d\n", this->flight_path.scroll_timer_reset);
     this->flight_path.scroll_timer_remaining = this->flight_path.scroll_timer_reset;
     this->player.flight_tunnel.y++;
   }
@@ -518,8 +590,7 @@ static void clocktick_flightpath(struct model *this) {
   if (this->player.flight_tunnel.x <
       this->flight_path.slice[ this->player.flight_tunnel.y ].offset) {
     this->player.flight_tunnel.x = this->flight_path.slice[ this->player.flight_tunnel.y ].offset;
-    printf("CRASH!\n");
-    player_hit(this);
+    player_hit(this, FLIGHT_CRASH_WALL);
   }
   else if (this->player.flight_tunnel.x >=
            this->flight_path.slice[ this->player.flight_tunnel.y ].offset +
@@ -528,11 +599,74 @@ static void clocktick_flightpath(struct model *this) {
     this->player.flight_tunnel.x =
       this->flight_path.slice[ this->player.flight_tunnel.y ].offset +
       this->flight_path.slice[ this->player.flight_tunnel.y ].width - 1;
-    printf("CRASH!\n");
-    player_hit(this);
+    player_hit(this, FLIGHT_CRASH_WALL);
   }
 
 
 }
 
 
+/** clocktick_battle
+ *
+ * objectives:
+ * scroll terrain
+ * move bad dudes
+ * move shots
+ * determine next state
+ */
+static void clocktick_battle(struct model *this) {
+
+  if (--this->battle.terrain_scroll_timer_remaining == 0) {
+    this->battle.terrain_scroll_timer_remaining = this->battle.terrain_scroll_timer_reset;
+    // scroll terrain
+    scroll_battle_terrain(&this->battle);
+  }
+}
+
+
+/** get_next_battle_terrain
+ *
+ * use some whacky algorithm to construct an terrain profile that isn't
+ * completely wonky yet is ragged enough to make the game interesting.
+ * this will need to be completely redone and with some thought next time.
+ */
+static int get_next_battle_terrain(struct battle *battle, int current_terrain) {
+
+  if (++battle->terrain_distance_on_segment == battle->terrain_segment_length) {
+    // determine a new segment length, target elevation, and reset our distance on it
+    battle->terrain_distance_on_segment = 0;
+    battle->terrain_segment_length = rand() %
+      (default_battle_terrain_segment_length_max - default_battle_terrain_segment_length_min) + default_battle_terrain_segment_length_min;
+
+    // previous end elevation is new segment start elevation; and
+    // determine a new end elevation
+    battle->terrain_start_elevation = battle->terrain_end_elevation;
+    battle->terrain_end_elevation = terrain_z_distribution[ rand() % (sizeof(terrain_z_distribution) / sizeof(int)) ];
+    printf("landscape: length %d elevation: %d\n",
+           battle->terrain_segment_length,
+           battle->terrain_end_elevation);
+  }
+
+
+  return ((battle->terrain_end_elevation - battle->terrain_start_elevation) *
+          battle->terrain_distance_on_segment) / battle->terrain_segment_length + battle->terrain_start_elevation;
+}
+
+/** scroll_battle_terrain
+ *
+ * copy the terrain map from 1-TERRAIN_DISTANCE down by one, dropping
+ * the initial element.  Add a new element to the back.  Really ought
+ * to have a simple queue for this.  It's only 6 elements though...
+ */
+static void scroll_battle_terrain(struct battle *battle) {
+  int i;
+  printf("scrolling terrain: %d (dropped) ", battle->terrain_map[0]);
+
+  for (i = 0; i < TERRAIN_DISTANCE - 1; ++i) {
+    battle->terrain_map[i] = battle->terrain_map[i + 1];
+    printf("%d ", battle->terrain_map[i]);
+  }
+
+  battle->terrain_map[i] = get_next_battle_terrain(battle, battle->terrain_map[i - 1]);
+  printf("%d\n", battle->terrain_map[i]);
+}

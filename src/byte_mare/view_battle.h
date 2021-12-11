@@ -28,7 +28,8 @@ void free_view_battle(struct view_battle*);
 void clear_view_battle(struct view_battle *this);
 
 void toggle_battle_display(struct view_battle *this);
-void draw_battle(struct view_battle*, void*, f_animator);
+void draw_battle(struct view_battle*, const struct battle*, uint32_t);
+void draw_battle_player(struct view_battle*, const struct player*, uint32_t);
 
 void render_battle_display(struct view_battle*, uint32_t clock);
 

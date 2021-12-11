@@ -118,9 +118,9 @@ void controller_attract_callback_control_panel(const struct control_panel *contr
 
 
   // any button depressed starts the game
-  if ((green_button->button_state == 0 && green_button->state_count == 0) ||
-      (blue_button->button_state == 0 && blue_button->state_count == 0) ||
-      (red_button->button_state == 0 && red_button->state_count == 0)) {
+  if ((green_button->button_state == 1 && green_button->state_count == 0) ||
+      (blue_button->button_state == 1 && blue_button->state_count == 0) ||
+      (red_button->button_state == 1 && red_button->state_count == 0)) {
     set_game_start(this->model);
   }
 

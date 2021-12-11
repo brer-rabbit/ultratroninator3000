@@ -58,7 +58,14 @@ void controller_battle_update(struct controller_battle *this, uint32_t clock) {
     update_controls(this->ut3k_view, clock);
 
     clocktick_model(this->model);
+    
   }
+
+  const struct battle *battle = get_battle(this->model);
+  draw_battle(this->view, battle, clock);
+
+  const struct player *player = get_player(this->model);
+  draw_battle_player(this->view, player, clock);
 
   render_battle_display(this->view, clock);
 }
