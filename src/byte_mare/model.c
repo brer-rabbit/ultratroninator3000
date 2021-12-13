@@ -15,10 +15,11 @@
 
 
 
+#include <assert.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "model.h"
 #include "ut3k_pulseaudio.h"
@@ -50,7 +51,7 @@ static const int default_flight_tunnel_min_width = 4;
 static const int default_flight_tunnel_max_width = 6;
 static const int default_flight_tunnel_max_offset_and_width = 20;
 
-static const int default_init_battle_terrain_segment_length = 3;
+static const int default_init_battle_terrain_segment_length = 6;
 static const int default_init_battle_terrain_distance_on_segment = 0;
 static const int default_init_battle_terrain_elevation = 1;
 static const int default_battle_terrain_x_max = 9;
@@ -67,6 +68,12 @@ static const int default_battle_player_z = default_battle_terrain_z_max;
 static const int battle_max_x = 9;
 static const int battle_max_y = 5;
 static const int battle_max_z = 9;
+static struct xyz shuffled_xy_placements[] =
+  { { 9,5,1 }, { 8,5,1 }, { 7,5,1 }, { 6,5,1 }, { 5,5,1 }, { 4,5,1 }, { 3,5,1 }, { 2,5,1 }, { 1,5,1 }, { 0,5,1 },
+    { 9,4,1 }, { 8,4,1 }, { 7,4,1 }, { 6,4,1 }, { 5,4,1 }, { 4,4,1 }, { 3,4,1 }, { 2,4,1 }, { 1,4,1 }, { 0,4,1 },
+    { 9,3,1 }, { 8,3,1 }, { 7,3,1 }, { 6,3,1 }, { 5,3,1 }, { 4,3,1 }, { 3,3,1 }, { 2,3,1 }, { 1,3,1 }, { 0,3,1 },
+    { 9,2,1 }, { 8,2,1 }, { 7,2,1 }, { 6,2,1 }, { 5,2,1 }, { 4,2,1 }, { 3,2,1 }, { 2,2,1 }, { 1,2,1 }, { 0,2,1 }
+  };
 
 typedef enum { FLIGHT_CRASH_WALL, BATTLE_CRASH_GROUND } player_hit_context_t;
 
@@ -92,9 +99,11 @@ static void init_game_state_flight_tunnel(struct model *this);
 static void clocktick_flightpath(struct model *this);
 
 static void clocktick_battle(struct model *this);
+static void shuffle_xy_placements();
+static void init_battle_moto_placement(struct battle *battle);
+
 static int get_next_battle_terrain(struct battle *battle, int current_terrain);
 static void scroll_battle_terrain(struct battle *battle);
-
 
 
 /** create the model.
@@ -243,9 +252,10 @@ void set_game_state_battle(struct model *this) {
 
   // set pointer to moto_group
   this->battle.moto_group = get_moto_group_by_quadrant(this, &this->player.quadrant);
-  if (this->battle.moto_group == NULL) {
-    printf("odd the moto group is null\n");
-  }
+  assert(this->battle.moto_group != NULL);
+
+  // init the motos in the group
+  init_battle_moto_placement(&this->battle);
   
 
   this->battle.terrain_segment_length = default_init_battle_terrain_segment_length;
@@ -255,13 +265,10 @@ void set_game_state_battle(struct model *this) {
   this->battle.terrain_scroll_timer_reset = default_battle_terrain_scroll_timer;
   this->battle.terrain_scroll_timer_remaining = default_battle_terrain_scroll_timer;
 
-
-
   // init the landscape (terrain)
   for (int i = 0; i < TERRAIN_DISTANCE; ++i) {
     this->battle.terrain_map[i] = get_next_battle_terrain(&this->battle, default_battle_terrain_z_min);
   }
-
 
   this->player.sector.x = default_battle_player_x;
   this->player.sector.y = default_battle_player_y;
@@ -373,7 +380,7 @@ static void init_level(struct level *level) {
       level->moto_groups[i].num_motos = 1 + rand() % 3;
       for (int j = 0; j < MAX_MOTOS_PER_GROUP; ++j) {
         if (j < level->moto_groups[i].num_motos) {
-          // init the moto
+          // init the moto status
           level->moto_groups[i].motos[j].status = ACTIVE;
         }
         else {
@@ -674,6 +681,50 @@ static void clocktick_battle(struct model *this) {
 }
 
 
+/** shuffle_xy_placements
+ *
+ * shuffle the global array `shuffled_xy_placements`
+ */
+static void shuffle_xy_placements() {
+  struct xyz tmp;
+  for (int i = (sizeof(shuffled_xy_placements) / sizeof(struct xyz)) - 1; i > 0; --i) {
+    int j = rand() % (i + 1);
+    // swap i & j.. todo: switch these to pointers
+    tmp.x = shuffled_xy_placements[i].x;
+    tmp.y = shuffled_xy_placements[i].y;
+    tmp.z = shuffled_xy_placements[i].z;
+
+    shuffled_xy_placements[i].x = shuffled_xy_placements[j].x;
+    shuffled_xy_placements[i].y = shuffled_xy_placements[j].y;
+    shuffled_xy_placements[i].z = shuffled_xy_placements[j].z;
+
+    shuffled_xy_placements[j].x = tmp.x;
+    shuffled_xy_placements[j].y = tmp.y;
+    shuffled_xy_placements[j].z = tmp.z;
+  }
+}
+
+
+
+/** init_battle_moto_placement
+ *
+ * set the motos somewhere on the battle terrain.  Only one moto per
+ * sector.
+ */
+static void init_battle_moto_placement(struct battle *battle) {
+  shuffle_xy_placements();
+
+  for (int i = 0; i < battle->moto_group->num_motos; ++i) {
+    battle->moto_group->motos[i].sector.x = shuffled_xy_placements[i].x;
+    battle->moto_group->motos[i].sector.y = shuffled_xy_placements[i].y;
+    battle->moto_group->motos[i].sector.z = shuffled_xy_placements[i].z;
+    printf("moto %i starting %d,%d,%d\n", i,
+           battle->moto_group->motos[i].sector.x,
+           battle->moto_group->motos[i].sector.y,
+           battle->moto_group->motos[i].sector.z);
+  }
+}
+
 /** get_next_battle_terrain
  *
  * use some whacky algorithm to construct an terrain profile that isn't
@@ -707,6 +758,8 @@ static int get_next_battle_terrain(struct battle *battle, int current_terrain) {
  * copy the terrain map from 1-TERRAIN_DISTANCE down by one, dropping
  * the initial element.  Add a new element to the back.  Really ought
  * to have a simple queue for this.  It's only 6 elements though...
+ * TODO: Any ground-based objects (motos) need to follow the terrain as
+ * moves up or down
  */
 static void scroll_battle_terrain(struct battle *battle) {
   int i;
@@ -716,4 +769,10 @@ static void scroll_battle_terrain(struct battle *battle) {
   }
 
   battle->terrain_map[i] = get_next_battle_terrain(battle, battle->terrain_map[i - 1]);
+
+  // moto's z value is the same as terrain at it's y-value + 1
+  for (int i = 0; i < battle->moto_group->num_motos; ++i) {
+    battle->moto_group->motos[i].sector.z =
+      battle->terrain_map[ battle->moto_group->motos[i].sector.y ] + 1;
+  }
 }

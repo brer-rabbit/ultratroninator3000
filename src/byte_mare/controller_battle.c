@@ -101,6 +101,6 @@ void controller_battle_callback_control_panel(const struct control_panel *contro
   }
 
   if (blue_rotary_encoder->encoder_delta != 0) {
-    battle_move_player_z(this->model, blue_rotary_encoder->encoder_delta);
+    battle_move_player_z(this->model, blue_rotary_encoder->encoder_delta < 0 ? 1 : -1);
   }
 }

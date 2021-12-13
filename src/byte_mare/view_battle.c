@@ -19,7 +19,7 @@
 
 static void draw_landscape(struct view_battle *this, const struct battle *battle);
 static void draw_motogroup(struct view_battle *this, const struct battle *battle, uint32_t clock);
-static void draw_single_segment_object(struct view_battle *this, const struct sector *sector);
+static void draw_single_segment_object(struct view_battle *this, const struct xyz *sector);
 
 
 // display of the ground.  With a digit broken into two square,
@@ -140,9 +140,14 @@ static void draw_landscape(struct view_battle *this, const struct battle *battle
 
 
 static void draw_motogroup(struct view_battle *this, const struct battle *battle, uint32_t clock) {
+  if (clock % 16 < 12) {
+    for (int i = 0; i < battle->moto_group->num_motos; ++i) {
+      draw_single_segment_object(this, &battle->moto_group->motos[i].sector);
+    }
+  }
 }
 
-static void draw_single_segment_object(struct view_battle *this, const struct sector *sector) {
+static void draw_single_segment_object(struct view_battle *this, const struct xyz *sector) {
   int display;
   int digit;
   int is_lower;
@@ -151,21 +156,21 @@ static void draw_single_segment_object(struct view_battle *this, const struct se
   // left half of display is y-z values, y goes vertical and
   // z is left right to show elevation.  This goes on digits 2 or 3 depending
   // on y-location.
-  display = display_map[ player->sector.y / 2 ];
-  is_lower = player->sector.y % 2 == 0 ? 1 : 0;
-  digit = player->sector.z > 4 ? 0 : 1;
+  display = display_map[ sector->y / 2 ];
+  is_lower = sector->y % 2 == 0 ? 1 : 0;
+  digit = sector->z > 4 ? 0 : 1;
   glyph = is_lower ?
-    object_xz_lower_glyph[ player->sector.z % 5 ] :
-    object_xz_upper_glyph[ player->sector.z % 5 ];
+    object_xz_lower_glyph[ sector->z % 5 ] :
+    object_xz_upper_glyph[ sector->z % 5 ];
 
   this->ut3k_display.displays[ display ].display_value.display_glyph[ digit ] |=glyph;
 
   // right half of the display is x-y values, y again going vertical.
   // this gives a top-down view
-  digit = player->sector.x > 4 ? 2 : 3;
+  digit = sector->x > 4 ? 2 : 3;
   glyph = is_lower ?
-    object_xz_lower_glyph[ player->sector.x % 5 ] :
-    object_xz_upper_glyph[ player->sector.x % 5 ];
+    object_xz_lower_glyph[ sector->x % 5 ] :
+    object_xz_upper_glyph[ sector->x % 5 ];
 
   this->ut3k_display.displays[ display ].display_value.display_glyph[ digit ] |=glyph;
 
