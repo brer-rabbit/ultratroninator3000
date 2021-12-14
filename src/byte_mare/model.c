@@ -68,6 +68,11 @@ static const int default_battle_player_z = default_battle_terrain_z_max;
 static const int battle_max_x = 9;
 static const int battle_max_y = 5;
 static const int battle_max_z = 9;
+
+static const int battle_moto_move_min_timer = 30;
+static const int battle_moto_move_max_timer = 120;
+static const int battle_moto_move_min_y = 3;
+
 static struct xyz shuffled_xy_placements[] =
   { { 9,5,1 }, { 8,5,1 }, { 7,5,1 }, { 6,5,1 }, { 5,5,1 }, { 4,5,1 }, { 3,5,1 }, { 2,5,1 }, { 1,5,1 }, { 0,5,1 },
     { 9,4,1 }, { 8,4,1 }, { 7,4,1 }, { 6,4,1 }, { 5,4,1 }, { 4,4,1 }, { 3,4,1 }, { 2,4,1 }, { 1,4,1 }, { 0,4,1 },
@@ -99,11 +104,13 @@ static void init_game_state_flight_tunnel(struct model *this);
 static void clocktick_flightpath(struct model *this);
 
 static void clocktick_battle(struct model *this);
-static void shuffle_xy_placements();
+static void shuffle_placements();
 static void init_battle_moto_placement(struct battle *battle);
 
 static int get_next_battle_terrain(struct battle *battle, int current_terrain);
 static void scroll_battle_terrain(struct battle *battle);
+static void clocktick_battle_motos(struct battle *battle);
+static int battle_xyz_collision(struct battle *battle, struct xyz *test);
 
 
 /** create the model.
@@ -678,14 +685,16 @@ static void clocktick_battle(struct model *this) {
     // scroll terrain
     scroll_battle_terrain(&this->battle);
   }
+
+  clocktick_battle_motos(&this->battle);
 }
 
 
-/** shuffle_xy_placements
+/** shuffle_placements
  *
  * shuffle the global array `shuffled_xy_placements`
  */
-static void shuffle_xy_placements() {
+static void shuffle_placements() {
   struct xyz tmp;
   for (int i = (sizeof(shuffled_xy_placements) / sizeof(struct xyz)) - 1; i > 0; --i) {
     int j = rand() % (i + 1);
@@ -710,9 +719,10 @@ static void shuffle_xy_placements() {
  *
  * set the motos somewhere on the battle terrain.  Only one moto per
  * sector.
+ * init the movement timer for motos.
  */
 static void init_battle_moto_placement(struct battle *battle) {
-  shuffle_xy_placements();
+  shuffle_placements();
 
   for (int i = 0; i < battle->moto_group->num_motos; ++i) {
     battle->moto_group->motos[i].sector.x = shuffled_xy_placements[i].x;
@@ -722,6 +732,11 @@ static void init_battle_moto_placement(struct battle *battle) {
            battle->moto_group->motos[i].sector.x,
            battle->moto_group->motos[i].sector.y,
            battle->moto_group->motos[i].sector.z);
+    battle->moto_group->motos[i].movement_timer_reset =
+      (rand() % (battle_moto_move_max_timer - battle_moto_move_min_timer)) +
+      battle_moto_move_min_timer;
+    battle->moto_group->motos[i].movement_timer_remaining =
+      battle->moto_group->motos[i].movement_timer_reset;
   }
 }
 
@@ -775,4 +790,89 @@ static void scroll_battle_terrain(struct battle *battle) {
     battle->moto_group->motos[i].sector.z =
       battle->terrain_map[ battle->moto_group->motos[i].sector.y ] + 1;
   }
+}
+
+
+/** clocktick_battle_motos
+ *
+ * clocktick the motos in the battle to see if they should move.  If
+ * timer ticks down, move the moto a random xy if the space is open.
+ * Reset timer.  Adjust z to elevation.
+ */
+
+static void clocktick_battle_motos(struct battle *battle) {
+  int moved = 0;
+  struct xyz movement_test;
+
+
+  for (int i = 0; i < battle->moto_group->num_motos; ++i) {
+    if (--battle->moto_group->motos[i].movement_timer_remaining == 0) {
+      // reset timer
+      battle->moto_group->motos[i].movement_timer_remaining =
+        battle->moto_group->motos[i].movement_timer_reset;
+      // pick a random direction and try to move that way if it's legal
+      switch (rand() % 4) {
+      case 0:
+        // y+1
+        if (battle->moto_group->motos[i].sector.y < battle_max_y) {
+          movement_test.x = battle->moto_group->motos[i].sector.x;
+          movement_test.y = battle->moto_group->motos[i].sector.y + 1;
+          movement_test.z = battle->terrain_map[ battle->moto_group->motos[i].sector.y ] + 1;
+          moved = 1;
+        }
+        break;
+      case 1:
+        // y-1
+        if (battle->moto_group->motos[i].sector.y > battle_moto_move_min_y) {
+          movement_test.x = battle->moto_group->motos[i].sector.x;
+          movement_test.y = battle->moto_group->motos[i].sector.y - 1;
+          movement_test.z = battle->terrain_map[ battle->moto_group->motos[i].sector.y ] + 1;
+          moved = 1;
+        }
+        break;
+      case 2:
+        // x+1
+        if (battle->moto_group->motos[i].sector.x < battle_max_x) {
+          movement_test.x = battle->moto_group->motos[i].sector.x + 1;
+          movement_test.y = battle->moto_group->motos[i].sector.y;
+          movement_test.z = battle->terrain_map[ battle->moto_group->motos[i].sector.y ] + 1;
+          moved = 1;
+        }
+        break;
+      case 3:
+        // x-1
+        if (battle->moto_group->motos[i].sector.x > 0) {
+          movement_test.x = battle->moto_group->motos[i].sector.x - 1;
+          movement_test.y = battle->moto_group->motos[i].sector.y;
+          movement_test.z = battle->terrain_map[ battle->moto_group->motos[i].sector.y ] + 1;
+          moved = 1;
+        }
+        break;
+      }
+
+      // test that the candidate location is empty
+      if (moved && battle_xyz_collision(battle, &movement_test) == 0) {
+        battle->moto_group->motos[i].sector.x = movement_test.x;
+        battle->moto_group->motos[i].sector.y = movement_test.y;
+        battle->moto_group->motos[i].sector.z = movement_test.z;
+      }
+    }
+  }
+}
+
+
+/** battle_xyz_collision
+ *
+ * test if the struct xyz location is occupied by a moto/vehicle
+ * Return zero for empty otherwise non-zero for occupied
+ */
+static int battle_xyz_collision(struct battle *battle, struct xyz *test) {
+  for (int i = 0; i < battle->moto_group->num_motos; ++i) {
+    if (battle->moto_group->motos[i].sector.x == test->x &&
+        battle->moto_group->motos[i].sector.y == test->y &&
+        battle->moto_group->motos[i].sector.z == test->z) {
+      return 1;
+    }
+  }
+  return 0;
 }

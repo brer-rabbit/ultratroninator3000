@@ -19,7 +19,8 @@
 
 const int player_blink_cycle = 8;
 const int player_blink_cycle_on = 4;
-
+const int moto_blink_cycle = 32;
+const int moto_blink_cycle_on = 20;
 
 void draw_stores_as_leds(const struct stores *stores, struct display *leds, uint32_t clock) {
   

@@ -20,10 +20,15 @@
 #include "model.h"
 
 
+#define PLAYER_BLINK(clock)  (clock % player_blink_cycle) < (player_blink_cycle_on)
+#define MOTO_BLINK(clock)  (clock % moto_blink_cycle) < (moto_blink_cycle_on)
+
 void draw_stores_as_leds(const struct stores *stores, struct display *leds, uint32_t clock);
 
 extern const int player_blink_cycle;
 extern const int player_blink_cycle_on;
+extern const int moto_blink_cycle;
+extern const int moto_blink_cycle_on;
 
 
 #endif

@@ -97,7 +97,7 @@ void draw_flight_tunnel(struct view_flight *this, const struct flight_path *flig
 
   // draw the player at a different intensity so player is
   // differentiated versus walls
-  if (clock % player_blink_cycle < player_blink_cycle_on) {
+  if (PLAYER_BLINK(clock)) {
     this->ut3k_display.displays[2].display_value.display_glyph[x / 5] |=
       tunnel_lower[ x % 5 ];
   }

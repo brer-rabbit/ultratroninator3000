@@ -71,6 +71,8 @@ struct player {
 struct moto {
   struct xyz sector;
   object_state_t status;
+  int movement_timer_reset;
+  int movement_timer_remaining;
 };
 
 struct moto_group {

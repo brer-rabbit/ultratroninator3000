@@ -107,7 +107,7 @@ void draw_battle(struct view_battle *this, const struct battle *battle, uint32_t
 
 
 void draw_battle_player(struct view_battle *this, const struct player *player, uint32_t clock) {
-  if (clock % player_blink_cycle < player_blink_cycle_on) {
+  if (PLAYER_BLINK(clock)) {
     draw_single_segment_object(this, &player->sector);
   }
 
@@ -140,7 +140,7 @@ static void draw_landscape(struct view_battle *this, const struct battle *battle
 
 
 static void draw_motogroup(struct view_battle *this, const struct battle *battle, uint32_t clock) {
-  if (clock % 16 < 12) {
+  if (MOTO_BLINK(clock)) {
     for (int i = 0; i < battle->moto_group->num_motos; ++i) {
       draw_single_segment_object(this, &battle->moto_group->motos[i].sector);
     }
