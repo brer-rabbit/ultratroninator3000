@@ -319,7 +319,13 @@ void battle_move_player_z(struct model *this, int amount) {
     this->player.sector.z++;
   }
   else if (amount < 0 && this->player.sector.z > 0) {
-    this->player.sector.z--;
+    if (this->player.sector.z - 1 >
+        this->battle.terrain_map[ this->player.sector.y ]) {
+      this->player.sector.z--;
+    }
+    else {
+      player_hit(this, BATTLE_CRASH_GROUND);
+    }
   }
   printf("battle move player %d %d %d (z: %d)\n",
          this->player.sector.x,
@@ -684,6 +690,12 @@ static void clocktick_battle(struct model *this) {
     this->battle.terrain_scroll_timer_remaining = this->battle.terrain_scroll_timer_reset;
     // scroll terrain
     scroll_battle_terrain(&this->battle);
+    if (this->player.sector.z ==
+        this->battle.terrain_map[ this->player.sector.y ]) {
+      player_hit(this, BATTLE_CRASH_GROUND);
+      this->player.sector.z++;
+    }
+
   }
 
   clocktick_battle_motos(&this->battle);
